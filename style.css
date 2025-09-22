@@ -1,0 +1,37 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #0f0f0f;
+  font-family: 'Segoe UI', sans-serif;
+  color: #e0e0e0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.shield {
+  background: linear-gradient(to bottom, #1a1a1a, #2a2a2a);
+  width: 90vw;
+  max-width: 400px;
+  height: 80vh;
+  padding: 40px 20px;
+  text-align: center;
+  border-radius: 50% 50% 0 0 / 10% 10% 0 0;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.7);
+  border: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.shield h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #ffffff;
+}
+
+.shield p {
+  font-size: 14px;
+  color: #aaaaaa;
+}
