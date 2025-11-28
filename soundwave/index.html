@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>音声波形ビューア（1秒・ズーム対応 v2）</title>
+  <title>音声波形ビューア（1秒・ズーム対応 v3）</title>
   <style>
     :root {
       --bg: #f7f7fb;
@@ -17,27 +17,27 @@
       --muted: #6b7280;
     }
     body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", "Helvetica Neue", Arial, sans-serif; background: linear-gradient(180deg, #f5f9ff, var(--bg)); color: var(--text); display: grid; min-height: 100vh; place-items: center; }
-    .app { width: min(980px, 94vw); background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,.08); padding: 18px; }
+    .app { width: min(1000px, 94vw); background: var(--card); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,.08); padding: 18px; }
     h1 { font-size: 1.2rem; margin: 0 0 8px; }
     .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     button, label.input { appearance: none; border: 1px solid var(--border); background: #fff; color: var(--text); border-radius: 12px; padding: 10px 12px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: transform .04s ease, box-shadow .12s ease; }
     button:hover, label.input:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,.08); }
     button.primary { background: var(--accent); color: #fff; border-color: transparent; }
     button.secondary { background: var(--accent-2); color: #fff; border-color: transparent; }
-    button.danger { background: var(--danger); color: #fff; border-color: transparent; }
     input[type=file] { display: none; }
     .status { color: var(--muted); font-size: .95rem; min-height: 1.2em; margin: 6px 0 10px; }
     .controls { display: grid; gap: 8px; margin-bottom: 10px; }
     .opt { display: flex; align-items: center; gap: 12px; color: var(--muted); flex-wrap: wrap; }
     .opt .group { display: inline-flex; align-items: center; gap: 8px; }
+    .opt input[type=range], .opt select { height: 36px; }
     .opt input[type=range] { width: 180px; }
     canvas { width: 100%; height: auto; border: 1px dashed var(--border); border-radius: 12px; background: #fff; touch-action: none; }
     .note { color: var(--muted); font-size: .9rem; margin-top: 8px; }
   </style>
 </head>
 <body>
-  <main class="app" role="application" aria-label="音声波形ビューア（1秒・ズーム対応 v2）">
-    <h1>音声波形ビューア（1秒・ズームとパン対応 v2）</h1>
+  <main class="app" role="application" aria-label="音声波形ビューア（1秒・ズーム対応 v3）">
+    <h1>音声波形ビューア（1秒・ズーム／パン／オンセット表示 v3）</h1>
     <div class="status" id="status">準備完了：マイク録音またはファイル読み込みで 1 秒の波形を表示します。</div>
 
     <section class="controls" aria-label="入力と操作">
@@ -61,6 +61,14 @@
           <input id="prerollRange" type="range" min="0" max="50" step="5" value="20">
           <span id="prerollVal">20</span>
         </div>
+        <div class="group">
+          <label for="zoomMode">ズーム軸</label>
+          <select id="zoomMode">
+            <option value="both" selected>両方</option>
+            <option value="x">横だけ</option>
+            <option value="y">縦だけ</option>
+          </select>
+        </div>
       </div>
     </section>
 
@@ -68,7 +76,7 @@
       <canvas id="canvas" width="1200" height="420" aria-label="音圧-時間の波形（ズーム可）"></canvas>
     </section>
 
-    <p class="note">縦軸：音圧（相対振幅, -1 ～ +1）／横軸：時間（秒）。ピンチでズーム、ドラッグでパン、ダブルタップでリセット。描画は検出した信号開始（しきい値超過）から表示します（プリロールで前を少し残せます）。</p>
+    <p class="note">縦軸：音圧（相対振幅, -1 ～ +1）／横軸：時間（秒）。ピンチでズーム、ドラッグでパン、ダブルタップでリセット。ズーム軸は「横だけ／縦だけ／両方」から選択可能。描画は検出した信号開始（しきい値超過）から表示します（プリロールで前を少し残せます）。</p>
   </main>
 
   <script>
@@ -84,6 +92,7 @@
     const thresholdVal = document.getElementById('thresholdVal');
     const prerollRange = document.getElementById('prerollRange');
     const prerollVal = document.getElementById('prerollVal');
+    const zoomModeSel = document.getElementById('zoomMode');
     const ctx = canvas.getContext('2d');
 
     let audioCtx = null;         // 再利用して初回以降のラグを軽減
@@ -95,29 +104,25 @@
     const view = { xmin: 0, xmax: 1, ymin: -1, ymax: 1 };
     const defaultView = { xmin: 0, xmax: 1, ymin: -1, ymax: 1 };
 
+    // ズームモード
+    let zoomMode = 'both'; // 'x' | 'y' | 'both'
+    zoomModeSel.addEventListener('change', () => { zoomMode = zoomModeSel.value; });
+
     // -------------- 汎用 --------------
     function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
     function setStatus(msg) { statusEl.textContent = msg; }
 
     // -------------- 目盛計算（消えないように改善） --------------
     function niceTickStep(range, desired=10) {
-      // desired本程度の目盛が出る「きれいな」ステップ（1,2,5の繰り返し）
       const rough = range / desired;
-      const exponent = Math.floor(Math.log10(rough));
+      const exponent = Math.floor(Math.log10(Math.max(1e-12, rough)));
       const base = Math.pow(10, exponent);
       const candidates = [1, 2, 5].map(f => f * base);
-      // 最も rough に近い候補を選ぶ
-      let best = candidates[0];
-      let bestDiff = Math.abs(candidates[0] - rough);
-      for (const c of candidates) {
-        const d = Math.abs(c - rough);
-        if (d < bestDiff) { best = c; bestDiff = d; }
-      }
+      let best = candidates[0]; let bestDiff = Math.abs(candidates[0] - rough);
+      for (const c of candidates) { const d = Math.abs(c - rough); if (d < bestDiff) { best = c; bestDiff = d; } }
       return best;
     }
-
     function formatTick(val, step) {
-      // ステップに応じて小数桁を自動調整
       const decimals = Math.max(0, -Math.floor(Math.log10(step)));
       return Number(val).toFixed(decimals);
     }
@@ -126,16 +131,13 @@
     function drawAxes() {
       const margin = 56;
       ctx.clearRect(0,0,canvas.width, canvas.height);
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
       const plotW = canvas.width - margin*2;
       const plotH = canvas.height - margin*2;
       const x0 = margin, y0 = margin, x1 = x0 + plotW, y1 = y0 + plotH;
 
       // グリッド
-      ctx.strokeStyle = '#eef2f7';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
+      ctx.strokeStyle = '#eef2f7'; ctx.lineWidth = 1; ctx.beginPath();
       const xStep = niceTickStep(view.xmax - view.xmin, 10);
       for (let t = Math.ceil(view.xmin / xStep) * xStep; t <= view.xmax + 1e-12; t += xStep) {
         const x = x0 + (t - view.xmin) / (view.xmax - view.xmin) * plotW;
@@ -149,32 +151,25 @@
       ctx.stroke();
 
       // 軸
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
+      ctx.strokeStyle = '#334155'; ctx.lineWidth = 2; ctx.beginPath();
       ctx.moveTo(x0, y1); ctx.lineTo(x1, y1); // x軸
       ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); // y軸
       ctx.stroke();
 
       // ラベル
-      ctx.fillStyle = '#334155';
-      ctx.font = '14px system-ui';
-      ctx.textAlign = 'center';
+      ctx.fillStyle = '#334155'; ctx.font = '14px system-ui'; ctx.textAlign = 'center';
       for (let t = Math.ceil(view.xmin / xStep) * xStep; t <= view.xmax + 1e-12; t += xStep) {
         const x = x0 + (t - view.xmin) / (view.xmax - view.xmin) * plotW;
         ctx.fillText(formatTick(t, xStep), x, y1 + 18);
       }
-      ctx.textAlign = 'right';
-      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
       for (let a = Math.ceil(view.ymin / yStep) * yStep; a <= view.ymax + 1e-12; a += yStep) {
         const y = y0 + (1 - (a - view.ymin) / (view.ymax - view.ymin)) * plotH;
         ctx.fillText(formatTick(a, yStep), x0 - 6, y);
       }
-      ctx.textAlign = 'center';
-      ctx.save();
+      ctx.textAlign = 'center'; ctx.save();
       ctx.fillText('時間 [s]', (x0+x1)/2, y1 + 40);
-      ctx.translate(18, (y0+y1)/2);
-      ctx.rotate(-Math.PI/2);
+      ctx.translate(18, (y0+y1)/2); ctx.rotate(-Math.PI/2);
       ctx.fillText('音圧（相対振幅）', 0, 0);
       ctx.restore();
 
@@ -185,37 +180,25 @@
       if (!samples || samples.length === 0) return;
       latestSamples = samples; latestSR = sampleRate;
       const {x0,y0, plotW, plotH} = drawAxes();
-      ctx.strokeStyle = '#1e88e5';
-      ctx.lineWidth = 1.7;
-      ctx.beginPath();
+      ctx.strokeStyle = '#1e88e5'; ctx.lineWidth = 1.7; ctx.beginPath();
       const N = Math.min(samples.length, sampleRate); // 1秒分
 
       // 正規化
       let data = samples.slice(0, N);
-      if (normalize) {
-        let maxAbs = 1e-9; for (let i=0;i<data.length;i++) maxAbs = Math.max(maxAbs, Math.abs(data[i]));
-        data = data.map(v => v / maxAbs);
-      }
+      if (normalize) { let maxAbs = 1e-9; for (let i=0;i<data.length;i++) maxAbs = Math.max(maxAbs, Math.abs(data[i])); data = data.map(v => v / maxAbs); }
 
-      // オンセット検出
-      const thr = parseFloat(thresholdRange.value);
-      const prerollMs = parseInt(prerollRange.value, 10);
+      // オンセット検出（RMS 10ms → しきい値、失敗時は絶対値しきい値）
+      const thr = parseFloat(thresholdRange.value), prerollMs = parseInt(prerollRange.value, 10);
       const win = Math.max(1, Math.floor(sampleRate * 0.01)); // 10ms RMS
-      let onset = 0;
-      let sum = 0; for (let i=0;i<win && i<data.length;i++) sum += data[i]*data[i];
-      for (let i=win; i<data.length; i++) {
-        const rms = Math.sqrt(sum / win);
-        if (rms >= thr) { onset = i - win; break; }
-        sum += data[i]*data[i] - data[i-win]*data[i-win];
-      }
+      let onset = 0; let sum = 0; for (let i=0;i<win && i<data.length;i++) sum += data[i]*data[i];
+      for (let i=win; i<data.length; i++) { const rms = Math.sqrt(sum / win); if (rms >= thr) { onset = i - win; break; } sum += data[i]*data[i] - data[i-win]*data[i-win]; }
       if (onset === 0) { for (let i=0;i<data.length;i++) { if (Math.abs(data[i]) >= thr) { onset = i; break; } } }
       onset = clamp(onset, 0, data.length-1);
       const prerollSamples = Math.floor(sampleRate * prerollMs / 1000);
       const startIdx = clamp(onset - prerollSamples, 0, data.length-1);
 
       // 描画（現在のビュー座標に合わせて）
-      const xrange = view.xmax - view.xmin;
-      const yrange = view.ymax - view.ymin;
+      const xrange = view.xmax - view.xmin; const yrange = view.ymax - view.ymin;
       for (let i=startIdx; i<data.length; i++) {
         const t = (i - startIdx) / sampleRate; // オンセットを 0s として描く
         const x = x0 + (t - view.xmin) / xrange * plotW;
@@ -226,108 +209,79 @@
     }
 
     // -------------- ズーム＆パン（Pointer Events） --------------
-    const pointers = new Map();
-    let lastCenter = null;
-    let lastDist = null;
-    let lastView = null;
-    let doubleTapTimer = 0;
+    const pointers = new Map(); let lastCenter = null; let lastDist = null; let lastView = null; let doubleTapTimer = 0;
 
     function getCenterAndDist() {
-      const pts = Array.from(pointers.values());
-      if (pts.length < 2) return {center:null, dist:null};
-      const c = { x: (pts[0].x + pts[1].x)/2, y: (pts[0].y + pts[1].y)/2 };
-      const dx = pts[0].x - pts[1].x, dy = pts[0].y - pts[1].y;
+      const pts = Array.from(pointers.values()); if (pts.length < 2) return {center:null, dist:null};
+      const c = { x: (pts[0].x + pts[1].x)/2, y: (pts[0].y + pts[1].y)/2 }; const dx = pts[0].x - pts[1].x, dy = pts[0].y - pts[1].y;
       return {center: c, dist: Math.hypot(dx, dy)};
     }
-
     function canvasToData(x, y) {
-      const margin = 56;
-      const plotW = canvas.width - margin*2;
-      const plotH = canvas.height - margin*2;
-      const x0 = margin, y0 = margin;
+      const margin = 56, plotW = canvas.width - margin*2, plotH = canvas.height - margin*2; const x0 = margin, y0 = margin;
       const t = view.xmin + (x - x0) / plotW * (view.xmax - view.xmin);
       const a = view.ymax - (y - y0) / plotH * (view.ymax - view.ymin);
       return {t, a};
     }
 
     canvas.addEventListener('pointerdown', (e) => {
-      canvas.setPointerCapture(e.pointerId);
-      pointers.set(e.pointerId, {x: e.offsetX, y: e.offsetY});
+      canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, {x: e.offsetX, y: e.offsetY});
       if (pointers.size === 1) {
-        lastView = {...view};
-        // ダブルタップ判定
-        const now = performance.now();
+        lastView = {...view}; const now = performance.now();
         if (now - doubleTapTimer < 250) { Object.assign(view, defaultView); redraw(); }
         doubleTapTimer = now;
       }
-      if (pointers.size === 2) {
-        const {center, dist} = getCenterAndDist();
-        lastCenter = center; lastDist = dist; lastView = {...view};
-      }
+      if (pointers.size === 2) { const {center, dist} = getCenterAndDist(); lastCenter = center; lastDist = dist; lastView = {...view}; }
     });
 
     canvas.addEventListener('pointermove', (e) => {
-      if (!pointers.has(e.pointerId)) return;
-      const prev = pointers.get(e.pointerId);
-      const curr = {x: e.offsetX, y: e.offsetY};
-      pointers.set(e.pointerId, curr);
+      if (!pointers.has(e.pointerId)) return; const prev = pointers.get(e.pointerId); const curr = {x: e.offsetX, y: e.offsetY}; pointers.set(e.pointerId, curr);
       const pts = Array.from(pointers.values());
-
       if (pts.length === 1) {
-        // パン（上下・左右）: 上にドラッグで「上方向にスクロール」する直感的な動きに修正
-        const deltaX = curr.x - prev.x;
-        const deltaY = curr.y - prev.y;
-        const xrange = lastView.xmax - lastView.xmin;
-        const yrange = lastView.ymax - lastView.ymin;
-        const margin = 56;
-        const plotW = canvas.width - margin*2;
-        const plotH = canvas.height - margin*2;
-        const dxT = -deltaX / plotW * xrange;   // 左右は従来通り
-        const dyA = -deltaY / plotH * yrange;   // ★上下は符号を反転
-        view.xmin = lastView.xmin + dxT;
-        view.xmax = lastView.xmax + dxT;
-        view.ymin = lastView.ymin + dyA;
-        view.ymax = lastView.ymax + dyA;
+        // パン（上下・左右）：上ドラッグで上方向へ
+        const deltaX = curr.x - prev.x, deltaY = curr.y - prev.y;
+        const xrange = lastView.xmax - lastView.xmin, yrange = lastView.ymax - lastView.ymin;
+        const margin = 56, plotW = canvas.width - margin*2, plotH = canvas.height - margin*2;
+        const dxT = -deltaX / plotW * xrange; const dyA = -deltaY / plotH * yrange;
+        view.xmin = lastView.xmin + dxT; view.xmax = lastView.xmax + dxT;
+        view.ymin = lastView.ymin + dyA; view.ymax = lastView.ymax + dyA;
         redraw();
       } else if (pts.length >= 2) {
-        // ピンチズーム（両軸）
-        const {center, dist} = getCenterAndDist();
-        if (!center || !lastCenter || !lastDist) return;
-        const scale = clamp(dist / lastDist, 0.2, 5); // 0.2x～5x
-        const cData = canvasToData(center.x, center.y);
-        const xrange0 = lastView.xmax - lastView.xmin;
-        const yrange0 = lastView.ymax - lastView.ymin;
-        const xrange = clamp(xrange0 / scale, 0.0001, 2.0); // 最小0.1msまで拡大
-        const yrange = clamp(yrange0 / scale, 0.02, 4.0);   // 縦軸レンジ
-        view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0);
-        view.xmax = view.xmin + xrange;
-        view.ymin = cData.a - (cData.a - lastView.ymin) * (yrange / yrange0);
-        view.ymax = view.ymin + yrange;
+        // ピンチズーム（ズーム軸モード対応）
+        const {center, dist} = getCenterAndDist(); if (!center || !lastCenter || !lastDist) return;
+        const scale = clamp(dist / lastDist, 0.2, 5); const cData = canvasToData(center.x, center.y);
+        const xrange0 = lastView.xmax - lastView.xmin, yrange0 = lastView.ymax - lastView.ymin;
+        let xrange = xrange0, yrange = yrange0;
+        if (zoomMode === 'x' || zoomMode === 'both') { xrange = clamp(xrange0 / scale, 0.0001, 2.0); }
+        if (zoomMode === 'y' || zoomMode === 'both') { yrange = clamp(yrange0 / scale, 0.02, 4.0); }
+        view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0); view.xmax = view.xmin + xrange;
+        view.ymin = cData.a - (cData.a - lastView.ymin) * (yrange / yrange0); view.ymax = view.ymin + yrange;
         redraw();
       }
     });
-
     function endPointer(e){ pointers.delete(e.pointerId); lastView = {...view}; }
     canvas.addEventListener('pointerup', endPointer);
     canvas.addEventListener('pointercancel', endPointer);
     canvas.addEventListener('pointerleave', endPointer);
 
-    // ホイールで水平ズーム（Ctrl+ホイールで両軸ズーム）
+    // ホイールズーム（修飾キー優先 → UIトグル）
     canvas.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      const c = {x: e.offsetX, y: e.offsetY};
-      const {t, a} = canvasToData(c.x, c.y);
-      const factor = e.deltaY < 0 ? 0.9 : 1.1; // ズームイン/アウト
-      const xrange0 = view.xmax - view.xmin;
-      const yrange0 = view.ymax - view.ymin;
-      const xrange = clamp(xrange0 * factor, 0.0001, 2.0);
-      const yrange = e.ctrlKey ? clamp(yrange0 * factor, 0.02, 4.0) : yrange0;
-      view.xmin = t - (t - view.xmin) * (xrange / xrange0);
-      view.xmax = view.xmin + xrange;
-      view.ymin = a - (a - view.ymin) * (yrange / yrange0);
-      view.ymax = view.ymin + yrange;
+      e.preventDefault(); const c = {x: e.offsetX, y: e.offsetY}; const {t, a} = canvasToData(c.x, c.y);
+      let mode = zoomMode; if (e.ctrlKey) mode = 'both'; else if (e.shiftKey) mode = 'x'; else if (e.altKey) mode = 'y';
+      const factor = e.deltaY < 0 ? 0.9 : 1.1; const xrange0 = view.xmax - view.xmin, yrange0 = view.ymax - view.ymin;
+      let xrange = xrange0, yrange = yrange0;
+      if (mode === 'x' || mode === 'both') xrange = clamp(xrange0 * factor, 0.0001, 2.0);
+      if (mode === 'y' || mode === 'both') yrange = clamp(yrange0 * factor, 0.02, 4.0);
+      view.xmin = t - (t - view.xmin) * (xrange / xrange0); view.xmax = view.xmin + xrange;
+      view.ymin = a - (a - view.ymin) * (yrange / yrange0); view.ymax = view.ymin + yrange;
       redraw();
     }, {passive:false});
+
+    // ショートカット：x/y/b でズーム軸切替
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'x') { zoomModeSel.value = 'x'; zoomMode = 'x'; }
+      if (e.key.toLowerCase() === 'y') { zoomModeSel.value = 'y'; zoomMode = 'y'; }
+      if (e.key.toLowerCase() === 'b') { zoomModeSel.value = 'both'; zoomMode = 'both'; }
+    });
 
     function redraw() { if (latestSamples) drawWaveform(latestSamples, latestSR, normalizeChk.checked); else drawAxes(); }
     resetViewBtn.addEventListener('click', () => { Object.assign(view, defaultView); redraw(); });
@@ -336,94 +290,47 @@
     prerollRange.addEventListener('input', () => { prerollVal.textContent = prerollRange.value; redraw(); });
 
     // -------------- マイク録音（ラグ軽減＆オンセット描画） --------------
-    async function ensureAudioContext() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') { try { await audioCtx.resume(); } catch {} }
-      return audioCtx;
-    }
+    async function ensureAudioContext() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') { try { await audioCtx.resume(); } catch {} } return audioCtx; }
     async function ensureMicStream() {
       if (location.protocol === 'file:') { setStatus('file:// ではマイクが使えません。localhost または HTTPS で開いてください。'); throw new Error('insecure-origin'); }
-      if (!micStream) {
-        try { micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false }); }
-        catch (e) { setStatus('マイク権限を取得できませんでした。サイト権限をご確認ください。'); throw e; }
-      }
+      if (!micStream) { try { micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false }); } catch (e) { setStatus('マイク権限を取得できませんでした。サイト権限をご確認ください。'); throw e; } }
       return micStream;
     }
     async function recordOneSecond() {
-      setStatus('録音準備中...');
-      const ctxA = await ensureAudioContext();
-      const stream = await ensureMicStream();
-      srInfo.textContent = `サンプリング周波数：${ctxA.sampleRate} Hz`;
-      const source = ctxA.createMediaStreamSource(stream);
-      const samples = [];
-      const targetCount = ctxA.sampleRate; // 1秒分
-
+      setStatus('録音準備中...'); const ctxA = await ensureAudioContext(); const stream = await ensureMicStream(); srInfo.textContent = `サンプリング周波数：${ctxA.sampleRate} Hz`;
+      const source = ctxA.createMediaStreamSource(stream); const samples = []; const targetCount = ctxA.sampleRate; // 1秒分
       if (ctxA.audioWorklet) {
         if (!recordOneSecond._moduleLoaded) {
-          const workletCode = `class PCMCollectorProcessor extends AudioWorkletProcessor {\n  process(inputs) {\n    const input = inputs[0];\n    if (input && input.length > 0) {\n      const ch = input[0];\n      this.port.postMessage(ch.slice(0));\n    }\n    return true;\n  }\n}\nregisterProcessor('pcm-collector', PCMCollectorProcessor);`;
-          const blob = new Blob([workletCode], {type: 'application/javascript'});
-          const url = URL.createObjectURL(blob);
-          await ctxA.audioWorklet.addModule(url);
-          URL.revokeObjectURL(url);
-          recordOneSecond._moduleLoaded = true;
+          const workletCode = `class PCMCollectorProcessor extends AudioWorkletProcessor {
+  process(inputs) {
+    const input = inputs[0];
+    if (input && input.length > 0) {
+      const ch = input[0];
+      this.port.postMessage(ch.slice(0));
+    }
+    return true;
+  }
+}
+registerProcessor('pcm-collector', PCMCollectorProcessor);`;
+          const blob = new Blob([workletCode], {type: 'application/javascript'}); const url = URL.createObjectURL(blob);
+          await ctxA.audioWorklet.addModule(url); URL.revokeObjectURL(url); recordOneSecond._moduleLoaded = true;
         }
-        const node = new AudioWorkletNode(ctxA, 'pcm-collector');
-        source.connect(node);
-        node.port.onmessage = (e) => {
-          samples.push(...e.data);
-          if (samples.length >= targetCount) {
-            try { node.disconnect(); } catch {}
-            try { source.disconnect(); } catch {}
-            drawWaveform(samples, ctxA.sampleRate, normalizeChk.checked);
-            setStatus(`録音完了：${(samples.length/ctxA.sampleRate).toFixed(2)} 秒`);
-          }
-        };
-        setTimeout(() => {
-          if (samples.length < targetCount) {
-            try { node.disconnect(); } catch {}
-            try { source.disconnect(); } catch {}
-            drawWaveform(samples, ctxA.sampleRate, normalizeChk.checked);
-            setStatus('タイムアウト：取得できた分で描画しました');
-          }
-        }, 1200);
+        const node = new AudioWorkletNode(ctxA, 'pcm-collector'); source.connect(node);
+        node.port.onmessage = (e) => { samples.push(...e.data); if (samples.length >= targetCount) { try { node.disconnect(); } catch {} try { source.disconnect(); } catch {} drawWaveform(samples, ctxA.sampleRate, normalizeChk.checked); setStatus(`録音完了：${(samples.length/ctxA.sampleRate).toFixed(2)} 秒`); } };
+        setTimeout(() => { if (samples.length < targetCount) { try { node.disconnect(); } catch {} try { source.disconnect(); } catch {} drawWaveform(samples, ctxA.sampleRate, normalizeChk.checked); setStatus('タイムアウト：取得できた分で描画しました'); } }, 1200);
       } else {
-        const proc = ctxA.createScriptProcessor(4096, 1, 1);
-        source.connect(proc);
-        proc.connect(ctxA.destination);
-        proc.onaudioprocess = (ev) => {
-          samples.push(...ev.inputBuffer.getChannelData(0));
-          if (samples.length >= targetCount) {
-            try { proc.disconnect(); } catch {}
-            try { source.disconnect(); } catch {}
-            drawWaveform(samples, ctxA.sampleRate, normalizeChk.checked);
-            setStatus(`録音完了：${(samples.length/ctxA.sampleRate).toFixed(2)} 秒`);
-          }
-        };
-        setTimeout(() => {
-          if (samples.length < targetCount) {
-            try { proc.disconnect(); } catch {}
-            try { source.disconnect(); } catch {}
-            drawWaveform(samples, ctxA.sampleRate, normalizeChk.checked);
-            setStatus('タイムアウト：取得できた分で描画しました');
-          }
-        }, 1200);
+        const proc = ctxA.createScriptProcessor(4096, 1, 1); source.connect(proc); proc.connect(ctxA.destination);
+        proc.onaudioprocess = (ev) => { samples.push(...ev.inputBuffer.getChannelData(0)); if (samples.length >= targetCount) { try { proc.disconnect(); } catch {} try { source.disconnect(); } catch {} drawWaveform(samples, ctxA.sampleRate, normalizeChk.checked); setStatus(`録音完了：${(samples.length/ctxA.sampleRate).toFixed(2)} 秒`); } };
+        setTimeout(() => { if (samples.length < targetCount) { try { proc.disconnect(); } catch {} try { source.disconnect(); } catch {} drawWaveform(samples, ctxA.sampleRate, normalizeChk.checked); setStatus('タイムアウト：取得できた分で描画しました'); } }, 1200);
       }
     }
 
     // -------------- ファイル読み込み（最初の1秒＋オンセット表示） --------------
     async function drawFromFile(file) {
-      setStatus(`ファイル読込中：${file.name}`);
-      const arrayBuf = await file.arrayBuffer();
-      const ctxA = await ensureAudioContext();
-      srInfo.textContent = `サンプリング周波数：${ctxA.sampleRate} Hz`;
-      let audioBuf;
-      try { audioBuf = await ctxA.decodeAudioData(arrayBuf); }
-      catch { setStatus('この形式はブラウザでデコードできませんでした'); return; }
-      const sr = audioBuf.sampleRate;
-      const ch0 = audioBuf.getChannelData(0);
-      const N = Math.min(ch0.length, sr);
-      drawWaveform(ch0.slice(0, N), sr, normalizeChk.checked);
-      setStatus(`描画完了：${(N/sr).toFixed(2)} 秒分を表示（sr=${sr}Hz）`);
+      setStatus(`ファイル読込中：${file.name}`); const arrayBuf = await file.arrayBuffer(); const ctxA = await ensureAudioContext(); srInfo.textContent = `サンプリング周波数：${ctxA.sampleRate} Hz`;
+      let audioBuf; try { audioBuf = await ctxA.decodeAudioData(arrayBuf); } catch { setStatus('この形式はブラウザでデコードできませんでした'); return; }
+      const sr = audioBuf.sampleRate; const ch0 = audioBuf.getChannelData(0); const N = Math.min(ch0.length, sr);
+      drawWaveform(ch0.slice(0, N), sr, normalizeChk.checked); setStatus(`描画完了：${(N/sr).toFixed(2)} 秒分を表示（sr=${sr}Hz）`);
     }
 
     // -------------- イベント --------------
@@ -436,4 +343,3 @@
     drawAxes();
   </script>
 </body>
-</html>
