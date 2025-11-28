@@ -3,10 +3,100 @@
 <head>
   <meta charset="UTF-8">
   <title>サウンドジェネレータ</title>
-  <link rel="stylesheet" href="./style.css">
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: 'Orbitron', sans-serif;
+      text-align: center;
+    }
+
+    h1 {
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff;
+    }
+
+    #controls {
+      margin-top: 20px;
+    }
+
+    label {
+      display: block;
+      margin: 15px;
+      padding: 10px;
+      background: #222;
+      border-radius: 8px;
+      box-shadow: 0 0 10px #333 inset;
+    }
+
+    input[type="number"], input[type="range"] {
+      margin: 5px;
+    }
+
+    #play, #pause {
+      font-size: 18px;
+      padding: 10px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: #fff;
+      background: #333;
+      transition: all 0.3s ease;
+    }
+
+    #play.active {
+      background: #0f0;
+      box-shadow: 0 0 20px #0f0;
+    }
+
+    #pause.active {
+      background: #f00;
+      box-shadow: 0 0 20px #f00;
+    }
+
+    span {
+      margin-left: 10px;
+      font-weight: bold;
+      color: #0ff;
+      text-shadow: 0 0 5px #0ff;
+    }
+
+    .vu-meter {
+      display: inline-block;
+      width: 100px;
+      height: 10px;
+      background: #333;
+      border-radius: 5px;
+      overflow: hidden;
+      vertical-align: middle;
+      margin-left: 10px;
+    }
+
+    .vu-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0f0, #ff0, #f00);
+      width: 0%;
+      transition: width 0.2s ease;
+    }
+
+    #warning {
+      margin-top: 20px;
+      color: #ff0;
+      font-weight: bold;
+      text-shadow: 0 0 10px #f00;
+      display: none;
+    }
+
+    canvas {
+      margin-top: 30px;
+      background: #000;
+      border: 2px solid #0ff;
+    }
+  </style>
 </head>
 <body>
-  <h1>サウンドジェネレータ v0.6</h1>
+  <h1>サウンドジェネレータ　v0.7</h1>
 
   <button id="play">▶ 再生</button>
   <button id="pause">⏸ 一時停止</button>
@@ -14,15 +104,12 @@
   <div id="controls"></div>
   <div id="warning">⚠ 音が鳴らない場合はマナーモードを解除してください</div>
 
+  <canvas id="oscilloscope" width="600" height="200"></canvas>
+
   <script>
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const oscillators = [];
     const gains = [];
-
-    function dbToGain(db) {
-      const maxDb = 50;
-      return db / maxDb; // 0〜1に収める
-    }
 
     // AnalyserNodeで波形を取得
     const analyser = audioCtx.createAnalyser();
@@ -30,8 +117,12 @@
     const bufferLength = analyser.fftSize;
     const dataArray = new Uint8Array(bufferLength);
 
+    function dbToGain(db) {
+      const maxDb = 50;
+      return db / maxDb; // 0〜1に収める
+    }
 
-    // ページ読み込み時にオシレーター生成（ただし無音）
+    // ページ読み込み時にオシレーター生成（初期は無音）
     for (let i = 0; i < 4; i++) {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -46,12 +137,11 @@
       gains.push(gain);
 
       const initDb = 30;
-      const initHz = [440, 550, 660, 880];
       const div = document.createElement("div");
       div.innerHTML = `
         <label>音${i+1}:
           <input type="checkbox" id="check${i}">
-          周波数 <input type="number" id="freq${i}" value="${initHz[i]}"> Hz
+          周波数 <input type="number" id="freq${i}" value="${440 + i * 110}"> Hz
           音圧 <input type="range" id="gain${i}" min="10" max="50" step="1" value="${initDb}">
           <span id="db${i}">${initDb} dB</span>
           <div class="vu-meter"><div id="vu${i}" class="vu-fill"></div></div>
