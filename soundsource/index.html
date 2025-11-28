@@ -95,11 +95,9 @@
     const oscillators = [];
     const gains = [];
 
+    // dBをGainNode用の振幅に変換
     function dbToGain(db) {
-      const maxDb = 50;
-      const gain = 10 ** (db / 20);
-      const maxGain = 10 ** (maxDb / 20);
-      return gain / maxGain; // 正規化して0〜1に収める
+      return 10 ** (db / 20);
     }
 
     for (let i = 0; i < 4; i++) {
