@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>音声波形ビューア（1秒・ズーム対応 v4）</title>
+  <title>音声波形ビューア（1秒・ズーム対応 v5）</title>
   <style>
     :root { --bg: #f7f7fb; --card: #ffffff; --text: #222; --accent: #1e88e5; --accent-2: #2e7d32; --danger: #c62828; --border: #e5e7eb; --muted: #6b7280; }
     body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", "Helvetica Neue", Arial, sans-serif; background: linear-gradient(180deg, #f5f9ff, var(--bg)); color: var(--text); display: grid; min-height: 100vh; place-items: center; }
@@ -27,8 +27,8 @@
   </style>
 </head>
 <body>
-  <main class="app" role="application" aria-label="音声波形ビューア（1秒・ズーム対応 v4）">
-    <h1>音声波形ビューア（1秒・ズーム／パン／オンセット表示 v4）</h1>
+  <main class="app" role="application" aria-label="音声波形ビューア（1秒・ズーム対応 v5）">
+    <h1>音声波形ビューア（1秒・ズーム／パン／オンセット表示 v5）</h1>
     <div class="status" id="status">準備完了：マイク録音またはファイル読み込みで 1 秒の波形を表示します。</div>
 
     <section class="controls" aria-label="入力と操作">
@@ -67,7 +67,7 @@
       <canvas id="canvas" width="1200" height="420" aria-label="音圧-時間の波形（ズーム可）"></canvas>
     </section>
 
-    <p class="note">縦軸：音圧（相対振幅, -1 ～ +1）／横軸：時間（秒）。ピンチでズーム、ドラッグでパン、ダブルタップでリセット。縦ズームは常に 0 を中心、ホイールは（修飾キーなしで）横スクロール、Shift=横ズーム、Alt=縦ズーム、Ctrl=両軸ズーム。横軸 0 未満の波形は表示しません。</p>
+    <p class="note">縦軸：音圧（相対振幅, -1 ～ +1）／横軸：時間（秒）。縦ズームは常に 0 を中心。ホイール操作：未修飾＝横スクロール、Shift＝横ズーム、Alt＝縦ズーム（0中心）、Ctrl＝両軸ズーム。描画は縦軸（Y軸）より左側の領域を自動クリップします。</p>
   </main>
 
   <script>
@@ -162,14 +162,20 @@
     function drawWaveform(samples, sampleRate, normalize=false) {
       if (!samples || samples.length === 0) return;
       latestSamples = samples; latestSR = sampleRate;
-      const {x0,y0, plotW, plotH} = drawAxes();
+      const {x0,y0,x1,y1, plotW, plotH} = drawAxes();
+
+      // クリップ領域：Y軸（x0）より左側は描画しない／上下・右も枠内のみ
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x0, y0, plotW, plotH);
+      ctx.clip();
+
       ctx.strokeStyle = '#1e88e5'; ctx.lineWidth = 1.7; ctx.beginPath();
       const N = Math.min(samples.length, sampleRate);
-
       let data = samples.slice(0, N);
       if (normalize) { let maxAbs = 1e-9; for (let i=0;i<data.length;i++) maxAbs = Math.max(maxAbs, Math.abs(data[i])); data = data.map(v => v / maxAbs); }
 
-      // オンセット検出（RMS 10ms → しきい値、失敗時は絶対値しきい値）
+      // オンセット検出
       const thr = parseFloat(thresholdRange.value), prerollMs = parseInt(prerollRange.value, 10);
       const win = Math.max(1, Math.floor(sampleRate * 0.01));
       let onset = 0; let sum = 0; for (let i=0;i<win && i<data.length;i++) sum += data[i]*data[i];
@@ -182,13 +188,14 @@
       const xrange = view.xmax - view.xmin; const yrange = view.ymax - view.ymin;
       let moved = false;
       for (let i=startIdx; i<data.length; i++) {
-        const tOnset = (i - onset) / sampleRate; // 0 がオンセット
-        if (tOnset < 0) continue; // ★ 0 未満は描画しない
+        const tOnset = (i - onset) / sampleRate; // オンセットを時間ゼロ基準に
         const x = x0 + (tOnset - view.xmin) / xrange * plotW;
         const y = y0 + (1 - (data[i] - view.ymin) / yrange) * plotH;
         if (!moved) { ctx.moveTo(x, y); moved = true; } else { ctx.lineTo(x, y); }
       }
       if (moved) ctx.stroke();
+
+      ctx.restore();
     }
 
     // -------------- ズーム＆パン（Pointer Events） --------------
@@ -236,9 +243,8 @@
         let xrange = xrange0, yrange = yrange0;
         if (zoomMode === 'x' || zoomMode === 'both') { xrange = clamp(xrange0 / scale, 0.0001, 2.0); }
         if (zoomMode === 'y' || zoomMode === 'both') { yrange = clamp(yrange0 / scale, 0.02, 4.0); }
-        // x はポインタ中心、y は 0 中心
         view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0); view.xmax = view.xmin + xrange;
-        view.ymin = -yrange/2; view.ymax = yrange/2; // ★ 常に 0 中心
+        view.ymin = -yrange/2; view.ymax = yrange/2; // 0 中心
         redraw();
       }
     });
@@ -247,7 +253,7 @@
     canvas.addEventListener('pointercancel', endPointer);
     canvas.addEventListener('pointerleave', endPointer);
 
-    // ホイール：修飾なし→横スクロール（パン）、Shift→横ズーム、Alt→縦ズーム、Ctrl→両軸ズーム（縦は 0 中心）
+    // ホイール：未修飾=横スクロール、Shift=横ズーム、Alt=縦ズーム(0中心)、Ctrl=両軸ズーム
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault(); const c = {x: e.offsetX, y: e.offsetY}; const {t, a} = canvasToData(c.x, c.y);
       const xrange0 = view.xmax - view.xmin, yrange0 = view.ymax - view.ymin;
@@ -256,9 +262,10 @@
       if (e.ctrlKey) mode = 'both'; else if (e.shiftKey) mode = 'x'; else if (e.altKey) mode = 'y';
 
       if (mode === 'panx') {
-        // 横スクロール（ホイール量に応じてパン）
-        const panSpeed = 0.15; // 調整可能
-        const deltaT = (e.deltaY / 100) * (xrange0 * panSpeed);
+        // 横スクロール：トラックパッド向けに deltaX 優先、なければ deltaY
+        const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+        const panSpeed = 0.0025; // スクロール速度（環境に合わせて調整）
+        const deltaT = d * (xrange0 * panSpeed);
         view.xmin += deltaT; view.xmax += deltaT;
         redraw();
         return;
