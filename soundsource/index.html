@@ -2,34 +2,48 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>サウンドジェネレータ（リセット版）</title>
+  <title>iPad対応サウンドジェネレータ</title>
 </head>
 <body>
-  <h1>サウンドジェネレータ</h1>
+  <h1>サウンドジェネレータ　v0.1</h1>
   <button id="play">▶ 再生</button>
-  <button id="pause">⏸ 一時停止</button>
+  <button id="stop">⏹ 停止</button>
 
   <script>
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    let osc, gain;
+    let audioCtx;
+    let osc;
+    let gain;
 
-    // 再生ボタン
     document.getElementById("play").addEventListener("click", () => {
-      if (!osc) {
+      // AudioContextをユーザー操作内で初期化
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      // resumeを必ず呼ぶ
+      audioCtx.resume().then(() => {
+        // 既に鳴っていれば何もしない
+        if (osc) return;
+
         osc = audioCtx.createOscillator();
         gain = audioCtx.createGain();
+
         osc.type = "sine";
         osc.frequency.value = 440; // A4の音
         gain.gain.value = 0.2;     // 音量（0〜1）
+
         osc.connect(gain).connect(audioCtx.destination);
         osc.start();
-      }
-      audioCtx.resume();
+      });
     });
 
-    // 一時停止ボタン
-    document.getElementById("pause").addEventListener("click", () => {
-      audioCtx.suspend();
+    document.getElementById("stop").addEventListener("click", () => {
+      if (osc) {
+        osc.stop();
+        osc.disconnect();
+        osc = null;
+        gain = null;
+      }
     });
   </script>
 </body>
