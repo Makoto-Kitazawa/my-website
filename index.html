@@ -1,80 +1,75 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>4音サウンドジェネレータ</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>File Tree Links</title>
+  <link href="./style.css" rel="stylesheet">
 </head>
 <body>
-  <h1>サウンドジェネレータ</h1>
+  <main class="container" role="main">
+    <h1 class="title">📁 Project filesystem <span class="status">readonly · v1.0.0</span></h1>
 
-  <button id="play">▶ 再生</button>
-  <button id="pause">⏸ 一時停止</button>
+    <div class="toolbar" aria-label="Actions">
+      <button class="btn">Refresh</button>
+      <button class="btn">Expand all</button>
+      <button class="btn">Collapse all</button>
+    </div>
 
-  <div id="controls"></div>
+    <ul class="tree" aria-label="File tree">
+      <li>
+        <div class="node">
+          <span class="icon">📦</span>
+          <a class="entry" href="./">
+            <span>root</span>
+            <span class="tag green">workspace</span>
+            <span class="meta">/</span>
+          </a>
+        </div>
+        <ul class="children">
+          <li>
+            <div class="node">
+              <span class="icon">🗂️</span>
+              <a class="entry" href="src/">
+                <span>物理用ファイル</span>
+                <span class="tag purple">module</span>
+                <span class="meta">/src</span>
+              </a>
+            </div>
+            <ul class="children">
+              <li>
+                <div class="node">
+                  <span class="icon">📄</span>
+                  <a class="entry" href="soundwave/index.html">
+                    <span>音声の波形を見てみよう</span>
+                  </a>
+                </div>
+              </li>
+            </ul>
+          </li>
+          <li>
+            <div class="node">
+              <span class="icon">🗂️</span>
+              <a class="entry" href="docs/">
+                <span>その他</span>
+                <span class="meta">/docs</span>
+              </a>
+            </div>
+            <ul class="children">
+              <li>
+                <div class="node">
+                  <span class="icon">📄</span>
+                  <a class="entry" href="docs/README.md">
+                    <span>README.md</span>
+                    <span class="meta">MD · 4.9 KB</span>
+                  </a>
+                </div>
+              </li>
+            </ul>
+          </li>
 
-  <script>
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const maxGain = 0.5;
-
-    const oscillators = [];
-    const gains = [];
-
-    function gainToDb(gain) {
-      return gain > 0 ? (20 * Math.log10(gain)).toFixed(1) : "-∞";
-    }
-
-    for (let i = 0; i < 4; i++) {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = 440;
-      gain.gain.value = 0;
-      osc.connect(gain).connect(audioCtx.destination);
-      osc.start();
-
-      oscillators.push(osc);
-      gains.push(gain);
-
-      const div = document.createElement("div");
-      div.innerHTML = `
-        <label>音${i+1}:
-          <input type="checkbox" id="check${i}">
-          周波数 <input type="number" id="freq${i}" value="440"> Hz
-          音圧 <input type="range" id="gain${i}" min="0" max="${maxGain}" step="0.01" value="0">
-          <span id="db${i}">-∞ dB</span>
-        </label>
-      `;
-      document.getElementById("controls").appendChild(div);
-
-      // チェックボックス
-      document.getElementById(`check${i}`).addEventListener("change", e => {
-        const val = parseFloat(document.getElementById(`gain${i}`).value);
-        gains[i].gain.value = e.target.checked ? val : 0;
-        document.getElementById(`db${i}`).textContent = gainToDb(gains[i].gain.value) + " dB";
-      });
-
-      // 周波数変更
-      document.getElementById(`freq${i}`).addEventListener("input", e => {
-        oscillators[i].frequency.value = parseFloat(e.target.value);
-      });
-
-      // 音圧変更
-      document.getElementById(`gain${i}`).addEventListener("input", e => {
-        const val = Math.min(parseFloat(e.target.value), maxGain);
-        if (document.getElementById(`check${i}`).checked) {
-          gains[i].gain.value = val;
-        }
-        document.getElementById(`db${i}`).textContent = gainToDb(val) + " dB";
-      });
-    }
-
-    // 再生・一時停止
-    document.getElementById("play").addEventListener("click", () => {
-      audioCtx.resume();
-    });
-    document.getElementById("pause").addEventListener("click", () => {
-      audioCtx.suspend();
-    });
-  </script>
-</body>
-</html>
+          <li>
+            <div class="node">
+              <span class="icon">🗂️</span>
+              <a class="entry" href="assets/">
+                <span>assets</span>
