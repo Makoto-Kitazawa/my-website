@@ -82,7 +82,7 @@
   </style>
 </head>
 <body>
-  <h1>DJ風サウンドジェネレータ</h1>
+  <h1>DJ風サウンドジェネレータ v0</h1>
 
   <button id="play">▶ 再生</button>
   <button id="pause">⏸ 一時停止</button>
@@ -95,7 +95,7 @@
     const oscillators = [];
     const gains = [];
 
-    // dBをGainNode用の振幅に変換
+    // dBをGainNode用の振幅に変換（上限80dB）
     function dbToGain(db) {
       return 10 ** (db / 20);
     }
@@ -121,9 +121,9 @@
         <label>音${i+1}:
           <input type="checkbox" id="check${i}" checked>
           周波数 <input type="number" id="freq${i}" value="440"> Hz
-          音圧 <input type="range" id="gain${i}" min="10" max="50" step="1" value="${initDb}">
+          音圧 <input type="range" id="gain${i}" min="10" max="80" step="1" value="${initDb}">
           <span id="db${i}">${initDb} dB</span>
-          <div class="vu-meter"><div id="vu${i}" class="vu-fill" style="width:${(initDb-10)/40*100}%"></div></div>
+          <div class="vu-meter"><div id="vu${i}" class="vu-fill" style="width:${(initDb-10)/70*100}%"></div></div>
         </label>
       `;
       document.getElementById("controls").appendChild(div);
@@ -133,7 +133,7 @@
         const dbVal = parseFloat(document.getElementById(`gain${i}`).value);
         gains[i].gain.value = e.target.checked ? dbToGain(dbVal) : 0;
         document.getElementById(`db${i}`).textContent = dbVal + " dB";
-        document.getElementById(`vu${i}`).style.width = ((dbVal - 10) / 40 * 100) + "%";
+        document.getElementById(`vu${i}`).style.width = ((dbVal - 10) / 70 * 100) + "%";
       });
 
       // 周波数変更
@@ -148,7 +148,7 @@
           gains[i].gain.value = dbToGain(dbVal);
         }
         document.getElementById(`db${i}`).textContent = dbVal + " dB";
-        document.getElementById(`vu${i}`).style.width = ((dbVal - 10) / 40 * 100) + "%";
+        document.getElementById(`vu${i}`).style.width = ((dbVal - 10) / 70 * 100) + "%";
       });
     }
 
