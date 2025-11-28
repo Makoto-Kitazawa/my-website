@@ -5,32 +5,44 @@
   <title>iPad対応サウンドテスト</title>
 </head>
 <body>
-  <h1>サウンドテスト　v0.2</h1>
+  <h1>サウンドテスト　v0.3</h1>
   <button id="play">▶ 再生</button>
   <button id="stop">⏹ 停止</button>
 
   <script>
-    let audioCtx;
-    let osc;
-    let gain;
+    // AudioContextは1回だけ生成して使い回す
+    let audioCtx = null;
+    let osc = null;
+    let gain = null;
+
+    function getAudioContext() {
+      if (!audioCtx || audioCtx.state === 'closed') {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioCtx;
+    }
 
     document.getElementById("play").addEventListener("click", () => {
-      // ユーザー操作内で初期化
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = getAudioContext();
 
-      osc = audioCtx.createOscillator();
-      gain = audioCtx.createGain();
+      // oscillator生成 (既存oscが残っている場合は止める)
+      if (osc) {
+        osc.stop();
+        osc.disconnect();
+      }
+      osc = ctx.createOscillator();
+      gain = ctx.createGain();
 
       osc.type = "sine";
       osc.frequency.value = 440; // A4
       gain.gain.value = 0.2;     // 音量
 
-      osc.connect(gain).connect(audioCtx.destination);
+      osc.connect(gain).connect(ctx.destination);
 
-      // ユーザー操作内で start()
-      osc.start();
-
-      audioCtx.resume();
+      // iOSでは resume() 必須
+      ctx.resume().then(() => {
+        osc.start();
+      });
     });
 
     document.getElementById("stop").addEventListener("click", () => {
