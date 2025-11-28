@@ -33,7 +33,6 @@
       margin: 5px;
     }
 
-    /* 再生・停止ボタン */
     #play, #pause {
       font-size: 18px;
       padding: 10px 20px;
@@ -56,7 +55,6 @@
       box-shadow: 0 0 20px #f00;
     }
 
-    /* dB表示 */
     span {
       margin-left: 10px;
       font-weight: bold;
@@ -64,7 +62,6 @@
       text-shadow: 0 0 5px #0ff;
     }
 
-    /* VUメーター風バー */
     .vu-meter {
       display: inline-block;
       width: 100px;
@@ -94,13 +91,15 @@
 
   <script>
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const maxGain = 0.5;
 
     const oscillators = [];
     const gains = [];
 
-    function gainToDb(gain) {
-      return gain > 0 ? (20 * Math.log10(gain)).toFixed(1) : "-∞";
+    function dbToGain(db) {
+      const maxDb = 50;
+      const gain = 10 ** (db / 20);
+      const maxGain = 10 ** (maxDb / 20);
+      return gain / maxGain; // 正規化して0〜1に収める
     }
 
     for (let i = 0; i < 4; i++) {
@@ -108,7 +107,11 @@
       const gain = audioCtx.createGain();
       osc.type = "sine";
       osc.frequency.value = 440;
-      gain.gain.value = 0;
+
+      // 初期値を30dBに設定
+      const initDb = 30;
+      gain.gain.value = dbToGain(initDb);
+
       osc.connect(gain).connect(audioCtx.destination);
       osc.start();
 
@@ -118,21 +121,21 @@
       const div = document.createElement("div");
       div.innerHTML = `
         <label>音${i+1}:
-          <input type="checkbox" id="check${i}">
+          <input type="checkbox" id="check${i}" checked>
           周波数 <input type="number" id="freq${i}" value="440"> Hz
-          音圧 <input type="range" id="gain${i}" min="0" max="${maxGain}" step="0.01" value="0">
-          <span id="db${i}">-∞ dB</span>
-          <div class="vu-meter"><div id="vu${i}" class="vu-fill"></div></div>
+          音圧 <input type="range" id="gain${i}" min="10" max="50" step="1" value="${initDb}">
+          <span id="db${i}">${initDb} dB</span>
+          <div class="vu-meter"><div id="vu${i}" class="vu-fill" style="width:${(initDb-10)/40*100}%"></div></div>
         </label>
       `;
       document.getElementById("controls").appendChild(div);
 
       // チェックボックス
       document.getElementById(`check${i}`).addEventListener("change", e => {
-        const val = parseFloat(document.getElementById(`gain${i}`).value);
-        gains[i].gain.value = e.target.checked ? val : 0;
-        document.getElementById(`db${i}`).textContent = gainToDb(gains[i].gain.value) + " dB";
-        document.getElementById(`vu${i}`).style.width = (val / maxGain * 100) + "%";
+        const dbVal = parseFloat(document.getElementById(`gain${i}`).value);
+        gains[i].gain.value = e.target.checked ? dbToGain(dbVal) : 0;
+        document.getElementById(`db${i}`).textContent = dbVal + " dB";
+        document.getElementById(`vu${i}`).style.width = ((dbVal - 10) / 40 * 100) + "%";
       });
 
       // 周波数変更
@@ -142,12 +145,12 @@
 
       // 音圧変更
       document.getElementById(`gain${i}`).addEventListener("input", e => {
-        const val = Math.min(parseFloat(e.target.value), maxGain);
+        const dbVal = parseFloat(e.target.value);
         if (document.getElementById(`check${i}`).checked) {
-          gains[i].gain.value = val;
+          gains[i].gain.value = dbToGain(dbVal);
         }
-        document.getElementById(`db${i}`).textContent = gainToDb(val) + " dB";
-        document.getElementById(`vu${i}`).style.width = (val / maxGain * 100) + "%";
+        document.getElementById(`db${i}`).textContent = dbVal + " dB";
+        document.getElementById(`vu${i}`).style.width = ((dbVal - 10) / 40 * 100) + "%";
       });
     }
 
