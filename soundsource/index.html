@@ -24,6 +24,13 @@
       return db / maxDb; // 0〜1に収める
     }
 
+    // AnalyserNodeで波形を取得
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    const bufferLength = analyser.fftSize;
+    const dataArray = new Uint8Array(bufferLength);
+
+
     // ページ読み込み時にオシレーター生成（ただし無音）
     for (let i = 0; i < 4; i++) {
       const osc = audioCtx.createOscillator();
@@ -32,7 +39,7 @@
       osc.frequency.value = 440 + i * 110;
       gain.gain.value = 0; // 初期は無音
 
-      osc.connect(gain).connect(audioCtx.destination);
+      osc.connect(gain).connect(analyser).connect(audioCtx.destination);
       osc.start();
 
       oscillators.push(osc);
