@@ -368,14 +368,14 @@
         }
       }
     });
-    */
+
     canvas.addEventListener('pointerup', (e) => {
       pointers.delete(e.pointerId);
       if (pointers.size < 2) {
         gestureMode = null; // リセット
       }
     });
-
+    */
     function endPointer(e){ pointers.delete(e.pointerId); lastView = {...view}; if (pointers.size >= 2) { const {center, dist} = getCenterAndDist(); lastCenter = center; lastDist = dist; } }
     canvas.addEventListener('pointerup', endPointer);
     canvas.addEventListener('pointercancel', endPointer);
