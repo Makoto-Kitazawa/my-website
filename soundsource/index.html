@@ -96,7 +96,7 @@
   </style>
 </head>
 <body>
-  <h1>サウンドジェネレータ　v0.8</h1>
+  <h1>サウンドジェネレータ　v0.9</h1>
 
   <button id="play">▶ 再生</button>
   <button id="pause">⏸ 一時停止</button>
@@ -141,10 +141,11 @@
 
     const initDb = 30;
     const div = document.createElement("div");
+    const intiHz = [440, 550, 660, 880];
     div.innerHTML = `
       <label>音${i+1}:
         <input type="checkbox" id="check${i}">
-        周波数 <input type="number" id="freq${i}" value="${440 + i * 110}"> Hz
+        周波数 <input type="number" id="freq${i}" value="${initHz[i]}"> Hz
         音圧 <input type="range" id="gain${i}" min="10" max="50" step="1" value="${initDb}">
         <span id="db${i}">${initDb} dB</span>
         <div class="vu-meter"><div id="vu${i}" class="vu-fill"></div></div>
