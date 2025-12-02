@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ドップラー効果シミュレーション (21個の円）</title>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #0f172a;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    .dots {
+      position: absolute;
+      bottom: 80px;
+      left: 0;
+      right: 0;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      z-index: 0;
+    }
+
+    .dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fef9c3;
+    }
+
+    .dot.red {
+      background: #f87171;
+    }
+
+    .stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      touch-action: manipulation;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    .ripple {
+      position: absolute;
+      border: 50px solid rgba(255, 255, 255, 0.6);
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(0.001);
+      opacity: 1;
+      will-change: transform, opacity;
+      animation: rippleLine var(--ripple-duration, 800ms) linear forwards;
+    }
+
+    @keyframes rippleLine {
+      0% {
+        transform: translate(-50%, -50%) scale(0.001);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0;
+      }
+    }
+
+    .hint {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      color: #cbd5e1;
+      text-align: center;
+      user-select: none;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .controls {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #e2e8f0;
+      font-size: 14px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 8px 12px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+      z-index: 2;
+    }
+
+    .controls input[type="range"] {
+      width: 160px;
+    }
+
+    .speed-value {
+      min-width: 80px;
+      text-align: right;
+    }
+
+    .last-updated {
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      font-size: 12px;
+      color: #94a3b8;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 8px;
+      border-radius: 6px;
+      user-select: none;
+      pointer-events: none;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+  <!-- 19個の円 -->
+  <div class="dots" id="dots"></div>
+
+  <!-- 波紋ステージ -->
+  <div class="stage" id="stage">
+    <div class="hint">
+      ドップラー効果を確認しよう！<br/>
+      画面をタップ / クリックして波紋を出してみよう</div>
+    <div class="controls">
+      <label for="speed">速さ</label>
+      <input type="range" id="speed" min="10" max="1000" value="600" />
+      <div class="speed-value" id="speedValue">600 px/s</div>
+    </div>
+  </div>
+
+  <!-- 最終更新表示 -->
+  <div class="last-updated" id="lastUpdated"></div>
+
+  <script>
+    const stage = document.getElementById('stage');
+    const speedSlider = document.getElementById('speed');
+    const speedValue = document.getElementById('speedValue');
+    const dotsContainer = document.getElementById('dots');
+
+    let currentSpeed = parseInt(speedSlider.value, 10); // px/s
+
+    // 19個の円を生成（中央だけ赤）
+    for (let i = 0; i < 20; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      if (i === 0) dot.classList.add('red'); // 中央（10番目）だけ赤
+      if (i === 9) dot.classList.add('red'); // 中央（10番目）だけ赤
+      if (i === 19) dot.classList.add('red'); // 中央（10番目）だけ赤
+      dotsContainer.appendChild(dot);
+    }
+
+    function computeRippleSize(x, y) {
+      const rect = stage.getBoundingClientRect();
+      const cx = x - rect.left;
+      const cy = y - rect.top;
+
+      const dTopLeft     = Math.hypot(cx, cy);
+      const dTopRight    = Math.hypot(rect.width - cx, cy);
+      const dBottomLeft  = Math.hypot(cx, rect.height - cy);
+      const dBottomRight = Math.hypot(rect.width - cx, rect.height - cy);
+
+      const radius = Math.max(dTopLeft, dTopRight, dBottomLeft, dBottomRight);
+      return radius * 2.1;
+    }
+
+    function spawnRipple(x, y) {
+      const size = computeRippleSize(x, y);
+      const durationMs = Math.max(100, Math.round((size / currentSpeed) * 1000)); // 最低100ms
+
+      const el = document.createElement('span');
+      el.className = 'ripple';
+      el.style.width = `${size}px`;
+      el.style.height = `${size}px`;
+      el.style.left = `${x}px`;
+      el.style.top = `${y}px`;
+      el.style.setProperty('--ripple-duration', `${durationMs}ms`);
+
+      stage.appendChild(el);
+
+      el.addEventListener('animationend', () => {
+        el.remove();
+      });
+    }
+
+    stage.addEventListener('pointerdown', (e) => {
+      if (e.isPrimary === false) return;
+      spawnRipple(e.clientX, e.clientY);
+    });
+
+    stage.addEventListener('pointerdown', () => {
+      const hint = document.querySelector('.hint');
+      if (hint) hint.remove();
+    }, { once: true });
+
+    speedSlider.addEventListener('input', () => {
+      currentSpeed = parseInt(speedSlider.value, 10);
+      speedValue.textContent = `${currentSpeed} px/s`;
+    });
+
+    // 初期化
+    speedSlider.dispatchEvent(new Event('input'));
+
+    // 最終更新日を表示
+    const updated = new Date(document.lastModified);
+    const yyyy = updated.getFullYear();
+    const mm = String(updated.getMonth() + 1).padStart(2, '0');
+    const dd = String(updated.getDate()).padStart(2, '0');
+    const hh = String(updated.getHours()).padStart(2, '0');
+    const min = String(updated.getMinutes()).padStart(2, '0');
+    document.getElementById('lastUpdated').textContent = `最終更新履歴：${yyyy}/${mm}/${dd} ${hh}:${min}`;
+  </script>
+</body>
+</html>
