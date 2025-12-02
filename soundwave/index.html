@@ -185,38 +185,72 @@
       if (pointers.size === 2) { const {center, dist} = getCenterAndDist(); lastCenter = center; lastDist = dist; lastView = {...view}; }
     });
 
+    let gestureMode = null;
+    
+    canvas.addEventListener('pointerdown', (e) => {
+      pointers.set(e.pointerId, {x: e.offsetX, y: e.offsetY});
+      if (pointers.size === 2) {
+        // 2本指になった瞬間に初期値を記録
+        const {center, dist} = getCenterAndDist();
+        lastCenter = center;
+        lastDist = dist;
+        gestureMode = null; // まだ未決定
+      }
+    });
+    
     canvas.addEventListener('pointermove', (e) => {
-      if (!pointers.has(e.pointerId)) return; const prev = pointers.get(e.pointerId); const curr = {x: e.offsetX, y: e.offsetY}; pointers.set(e.pointerId, curr);
+      if (!pointers.has(e.pointerId)) return;
+      const prev = pointers.get(e.pointerId);
+      const curr = {x: e.offsetX, y: e.offsetY};
+      pointers.set(e.pointerId, curr);
+    
       const pts = Array.from(pointers.values());
+    
       if (pts.length === 1) {
-        // 1本指パン（上下・左右）
-        const deltaX = curr.x - prev.x, deltaY = curr.y - prev.y; const xrange = lastView.xmax - lastView.xmin, yrange = lastView.ymax - lastView.ymin;
-        const margin = 56, plotW = canvas.width - margin*2, plotH = canvas.height - margin*2;
-        const dxT = -deltaX / plotW * xrange; const dyA = -deltaY / plotH * yrange;
-        view.xmin = lastView.xmin + dxT; view.xmax = lastView.xmax + dxT; view.ymin = lastView.ymin + dyA; view.ymax = lastView.ymax + dyA; redraw();
+        // 1本指パン
+        ...
       } else if (pts.length >= 2) {
-        // 2本指：ピンチズーム or 横スクロール（スワイプ）
-        const {center, dist} = getCenterAndDist(); if (!center || !lastCenter || !lastDist) return;
-        const scale = dist / lastDist; const xrange0 = lastView.xmax - lastView.xmin; const yrange0 = lastView.ymax - lastView.ymin;
-        const margin = 56, plotW = canvas.width - margin*2; // 横スワイプ量計算用
-
-        const ZOOM_THRESHOLD = 0.05; // 5% 以上の距離変化でズーム判定
-        if (Math.abs(scale - 1) < ZOOM_THRESHOLD) {
-          // ★ 2本指スワイプ：横スクロールのみ（縦パンはしない）
-          const deltaCenterX = center.x - lastCenter.x;
-          const dxT = -deltaCenterX / plotW * xrange0; // 左へスワイプで右へスクロール
-          view.xmin = lastView.xmin + dxT; view.xmax = lastView.xmax + dxT; redraw();
-        } else {
-          // ピンチズーム：x=中心維持、y=常に0中心
-          let xrange = xrange0, yrange = yrange0;
-          if (zoomMode === 'x' || zoomMode === 'both') xrange = clamp(xrange0 / scale, 0.0001, 2.0);
-          if (zoomMode === 'y' || zoomMode === 'both') yrange = clamp(yrange0 / scale, 0.02, 4.0);
-          const cData = canvasToData(center.x, center.y);
-          view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0); view.xmax = view.xmin + xrange;
-          view.ymin = -yrange/2; view.ymax = yrange/2; redraw();
+        const {center, dist} = getCenterAndDist();
+        if (!center || !lastCenter || !lastDist) return;
+    
+        const scale = dist / lastDist;
+        const deltaCenterX = center.x - lastCenter.x;
+    
+        if (!gestureMode) {
+          // 最初にモードを決める
+          const ZOOM_THRESHOLD = 0.05;
+          const SWIPE_THRESHOLD = 10; // px
+          if (Math.abs(scale - 1) >= ZOOM_THRESHOLD) {
+            gestureMode = 'zoom';
+          } else if (Math.abs(deltaCenterX) >= SWIPE_THRESHOLD) {
+            gestureMode = 'swipe';
+          } else {
+            gestureMode = 'pan'; // 2本指で縦横パンしたい場合
+          }
+        }
+    
+        if (gestureMode === 'swipe') {
+          // 横スクロールのみ
+          const xrange0 = lastView.xmax - lastView.xmin;
+          const margin = 56, plotW = canvas.width - margin*2;
+          const dxT = -deltaCenterX / plotW * xrange0;
+          view.xmin = lastView.xmin + dxT;
+          view.xmax = lastView.xmax + dxT;
+          redraw();
+        } else if (gestureMode === 'zoom') {
+          // ピンチズーム
+          ...
         }
       }
     });
+    
+    canvas.addEventListener('pointerup', (e) => {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) {
+        gestureMode = null; // リセット
+      }
+    });
+
     function endPointer(e){ pointers.delete(e.pointerId); lastView = {...view}; if (pointers.size >= 2) { const {center, dist} = getCenterAndDist(); lastCenter = center; lastDist = dist; } }
     canvas.addEventListener('pointerup', endPointer);
     canvas.addEventListener('pointercancel', endPointer);
