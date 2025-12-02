@@ -155,7 +155,9 @@
     for (let i = 0; i < 21; i++) {
       const dot = document.createElement('div');
       dot.className = 'dot';
+      if (i === 0) dot.classList.add('red');
       if (i === 10) dot.classList.add('red');
+      if (i === 20) dot.classList.add('red');
       dotsContainer.appendChild(dot);
     }
 
