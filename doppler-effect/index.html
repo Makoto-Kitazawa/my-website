@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ドップラー効果シミュレーション (21個の円）</title>
+  <title>ドップラー効果シミュレーション（21個の円）</title>
   <style>
     html, body {
       height: 100%;
@@ -47,7 +47,7 @@
 
     .ripple {
       position: absolute;
-      outline: 50px solid rgba(255, 255, 255, 0.6);
+      outline: 30px solid rgba(255, 255, 255, 0.6); /* 太さを30pxに変更 */
       border-radius: 50%;
       pointer-events: none;
       transform: translate(-50%, -50%) scale(0.001);
@@ -91,7 +91,7 @@
       border-radius: 8px;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       user-select: none;
       z-index: 2;
     }
@@ -121,18 +121,20 @@
   </style>
 </head>
 <body>
-  <!-- 19個の円 -->
+  <!-- 21個の円 -->
   <div class="dots" id="dots"></div>
 
   <!-- 波紋ステージ -->
   <div class="stage" id="stage">
     <div class="hint">
       ドップラー効果を確認しよう！<br/>
-      画面をタップ / クリックして波紋を出してみよう</div>
+      画面をタップ / クリックして波紋を出してみよう
+    </div>
     <div class="controls">
       <label for="speed">速さ</label>
       <input type="range" id="speed" min="10" max="1000" value="600" />
       <div class="speed-value" id="speedValue">600 px/s</div>
+      <label><input type="checkbox" id="toggleDots" /> 円を非表示</label>
     </div>
   </div>
 
@@ -144,16 +146,16 @@
     const speedSlider = document.getElementById('speed');
     const speedValue = document.getElementById('speedValue');
     const dotsContainer = document.getElementById('dots');
+    const toggleDots = document.getElementById('toggleDots');
 
-    let currentSpeed = parseInt(speedSlider.value, 10); // px/s
+    let currentSpeed = parseInt(speedSlider.value, 10);
+    let isInteractingWithUI = false;
 
-    // 19個の円を生成（中央だけ赤）
-    for (let i = 0; i < 20; i++) {
+    // 21個の円を生成（中央だけ赤）
+    for (let i = 0; i < 21; i++) {
       const dot = document.createElement('div');
       dot.className = 'dot';
-      if (i === 0) dot.classList.add('red'); // 中央（10番目）だけ赤
-      if (i === 9) dot.classList.add('red'); // 中央（10番目）だけ赤
-      if (i === 19) dot.classList.add('red'); // 中央（10番目）だけ赤
+      if (i === 10) dot.classList.add('red');
       dotsContainer.appendChild(dot);
     }
 
@@ -172,8 +174,10 @@
     }
 
     function spawnRipple(x, y) {
+      if (isInteractingWithUI) return;
+
       const size = computeRippleSize(x, y);
-      const durationMs = Math.max(100, Math.round((size / currentSpeed) * 1000)); // 最低100ms
+      const durationMs = Math.max(100, Math.round((size / currentSpeed) * 1000));
 
       const el = document.createElement('span');
       el.className = 'ripple';
@@ -184,10 +188,7 @@
       el.style.setProperty('--ripple-duration', `${durationMs}ms`);
 
       stage.appendChild(el);
-
-      el.addEventListener('animationend', () => {
-        el.remove();
-      });
+      el.addEventListener('animationend', () => el.remove());
     }
 
     stage.addEventListener('pointerdown', (e) => {
@@ -203,6 +204,26 @@
     speedSlider.addEventListener('input', () => {
       currentSpeed = parseInt(speedSlider.value, 10);
       speedValue.textContent = `${currentSpeed} px/s`;
+    });
+
+    // UI操作中フラグ制御（スライダー）
+    speedSlider.addEventListener('pointerdown', () => {
+      isInteractingWithUI = true;
+    });
+    speedSlider.addEventListener('pointerup', () => {
+      isInteractingWithUI = false;
+    });
+
+    // UI操作中フラグ制御（チェックボックス）
+    toggleDots.addEventListener('pointerdown', () => {
+      isInteractingWithUI = true;
+    });
+    toggleDots.addEventListener('pointerup', () => {
+      isInteractingWithUI = false;
+    });
+
+    toggleDots.addEventListener('change', () => {
+      dotsContainer.style.display = toggleDots.checked ? 'none' : 'flex';
     });
 
     // 初期化
