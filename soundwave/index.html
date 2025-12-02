@@ -179,6 +179,71 @@
       return {t, a};
     }
 
+/* 20251202 11:34 スワイプのイベントリスナー追加 */
+    let gestureMode = null;
+
+    canvas.addEventListener('pointermove', (e) => {
+      if (!pointers.has(e.pointerId)) return;
+      const prev = pointers.get(e.pointerId);
+      const curr = {x: e.offsetX, y: e.offsetY};
+      pointers.set(e.pointerId, curr);
+    
+      const pts = Array.from(pointers.values());
+    
+      if (pts.length === 1) {
+        // 1本指パン
+        ...
+      } else if (pts.length >= 2) {
+        const {center, distX, distY} = getCenterAndDistXY(); 
+        // distX: 2本指の横距離, distY: 縦距離
+        if (!center || !lastCenter || !lastDistX || !lastDistY) return;
+    
+        const scaleX = distX / lastDistX;
+        const scaleY = distY / lastDistY;
+        const deltaCenterX = center.x - lastCenter.x;
+    
+        if (!gestureMode) {
+          const ZOOM_THRESHOLD = 0.05;
+          const SWIPE_THRESHOLD = 10;
+    
+          if (Math.abs(scaleX - 1) >= ZOOM_THRESHOLD && Math.abs(scaleY - 1) < ZOOM_THRESHOLD) {
+            gestureMode = 'zoomX';   // 横方向ズーム
+          } else if (Math.abs(scaleY - 1) >= ZOOM_THRESHOLD && Math.abs(scaleX - 1) < ZOOM_THRESHOLD) {
+            gestureMode = 'zoomY';   // 縦方向ズーム
+          } else if (Math.abs(scaleX - 1) >= ZOOM_THRESHOLD && Math.abs(scaleY - 1) >= ZOOM_THRESHOLD) {
+            gestureMode = 'zoomBoth'; // 両方ズーム
+          } else if (Math.abs(deltaCenterX) >= SWIPE_THRESHOLD) {
+            gestureMode = 'swipe';   // 横スクロール
+          }
+        }
+    
+        if (gestureMode === 'swipe') {
+          // 横スクロール
+          ...
+        } else if (gestureMode === 'zoomX') {
+          // 横方向ズーム
+          const xrange0 = lastView.xmax - lastView.xmin;
+          const xrange = clamp(xrange0 / scaleX, 0.0001, 2.0);
+          const cData = canvasToData(center.x, center.y);
+          view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0);
+          view.xmax = view.xmin + xrange;
+          redraw();
+        } else if (gestureMode === 'zoomY') {
+          // 縦方向ズーム
+          const yrange0 = lastView.ymax - lastView.ymin;
+          const yrange = clamp(yrange0 / scaleY, 0.02, 4.0);
+          view.ymin = -yrange/2;
+          view.ymax = yrange/2;
+          redraw();
+        } else if (gestureMode === 'zoomBoth') {
+          // 両方ズーム
+          ...
+        }
+      }
+    });
+
+    
+    /* 20251202 11:34 削除変更分
     canvas.addEventListener('pointerdown', (e) => {
       canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, {x: e.offsetX, y: e.offsetY});
       if (pointers.size === 1) { lastView = {...view}; const now = performance.now(); if (now - doubleTapTimer < 250) { Object.assign(view, defaultView); redraw(); } doubleTapTimer = now; }
@@ -250,7 +315,7 @@
         gestureMode = null; // リセット
       }
     });
-
+*/
     function endPointer(e){ pointers.delete(e.pointerId); lastView = {...view}; if (pointers.size >= 2) { const {center, dist} = getCenterAndDist(); lastCenter = center; lastDist = dist; } }
     canvas.addEventListener('pointerup', endPointer);
     canvas.addEventListener('pointercancel', endPointer);
