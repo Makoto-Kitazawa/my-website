@@ -121,8 +121,8 @@
   const bufferLength = analyser.fftSize;
   const dataArray = new Uint8Array(bufferLength);
 
-  // トリガーレベル（振幅の80%）
-  const triggerLevel = 0.2;
+  // トリガーレベル（振幅の20%）
+  const triggerLevel = 0.0;
 
   function dbToGain(db) {
     const maxDb = 50;
@@ -144,7 +144,7 @@
     oscillators.push(osc);
     gains.push(gain);
 
-    const initDb = 30;
+    const initDb = 20;
     const div = document.createElement("div");
 
     div.innerHTML = `
@@ -201,6 +201,7 @@
   // 波形描画
   const canvas = document.getElementById("oscilloscope");
   const canvasCtx = canvas.getContext("2d");
+  let skipFrames = 0;
 
   function draw() {
     requestAnimationFrame(draw);
@@ -212,21 +213,34 @@
 
     canvasCtx.lineWidth = 2;
     canvasCtx.strokeStyle = "#0ff";
-
     canvasCtx.beginPath();
 
     const sliceWidth = canvas.width * 1.0 / bufferLength;
     let x = 0;
 
-    // --- トリガー検出（ゼロクロス＋閾値）---
+    // --- 最大値を計算して閾値を更新 ---
+    let maxVal = 0;
+    for (let i = 0; i < bufferLength; i++) {
+      const v = Math.abs((dataArray[i] - 128) / 128.0);
+      if (v > maxVal) maxVal = v;
+    }
+    const triggerLevel = maxVal * 0.98;
+
+    // --- スキップ処理 ---
+    if (skipFrames > 0) {
+      skipFrames--;
+      return; // このフレームは描画しない
+    }
+
+    // --- トリガー検出 ---
     let startIndex = 0;
     for (let i = 1; i < bufferLength; i++) {
       const prev = (dataArray[i - 1] - 128) / 128.0;
       const curr = (dataArray[i] - 128) / 128.0;
-    
-      // 負→正のゼロクロスかつ閾値以上の立ち上がりのみ検出
-      if (prev < 0 && curr >= 0 && curr >= triggerLevel) {
+
+      if (prev < triggerLevel && curr >= triggerLevel) {
         startIndex = i;
+        skipFrames = 1; // 次の2回分は描画をスキップ
         break;
       }
     }
@@ -248,7 +262,6 @@
     canvasCtx.lineTo(canvas.width, canvas.height / 2);
     canvasCtx.stroke();
   }
-
   draw();
 </script>
 <script>
