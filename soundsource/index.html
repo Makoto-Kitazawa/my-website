@@ -218,12 +218,14 @@
     const sliceWidth = canvas.width * 1.0 / bufferLength;
     let x = 0;
 
-    // --- トリガー検出 ---
+    // --- トリガー検出（ゼロクロス＋閾値）---
     let startIndex = 0;
     for (let i = 1; i < bufferLength; i++) {
       const prev = (dataArray[i - 1] - 128) / 128.0;
       const curr = (dataArray[i] - 128) / 128.0;
-      if (prev < triggerLevel && curr >= triggerLevel) {
+    
+      // 負→正のゼロクロスかつ閾値以上の立ち上がりのみ検出
+      if (prev < 0 && curr >= 0 && curr >= triggerLevel) {
         startIndex = i;
         break;
       }
