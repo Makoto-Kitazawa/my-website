@@ -129,8 +129,9 @@
   for (let i = 0; i < 4; i++) {
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
+    const initHz = [440, 550, 660, 880];
     osc.type = "sine";
-    osc.frequency.value = 440 + i * 110;
+    osc.frequency.value = initHz[i];
     gain.gain.value = 0; // 初期は無音
 
     osc.connect(gain).connect(analyser).connect(audioCtx.destination);
@@ -141,7 +142,7 @@
 
     const initDb = 30;
     const div = document.createElement("div");
-    const initHz = [440, 550, 660, 880];
+
     div.innerHTML = `
       <label>音${i+1}:
         <input type="checkbox" id="check${i}">
