@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Canvasでちらつきゼロの線分描画</title>
+  <link rel="stylesheet" href="./../style.css">
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
@@ -40,6 +41,15 @@
   </div>
 
   <script type="text/javascript" src="./js.js"></script>
-
+  <script>
+  // 最終更新日を表示
+    const updated = new Date(document.lastModified);
+    const yyyy = updated.getFullYear();
+    const mm = String(updated.getMonth() + 1).padStart(2, '0');
+    const dd = String(updated.getDate()).padStart(2, '0');
+    const hh = String(updated.getHours()).padStart(2, '0');
+    const min = String(updated.getMinutes()).padStart(2, '0');
+    document.getElementById('lastUpdated').textContent = `最終更新：${yyyy}/${mm}/${dd} ${hh}:${min}`;
+  </script>
 </body>
 </html>
