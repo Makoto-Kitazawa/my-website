@@ -1,0 +1,128 @@
+:root {
+    --bg: #f7f7fb;
+    --card: #ffffff;
+    --text: #222;
+    --accent: #1e88e5;
+    --accent-2: #2e7d32;
+    --danger: #c62828;
+    --border: #e5e7eb;
+    --muted: #6b7280;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", "Yu Gothic", "Helvetica Neue", Arial, sans-serif;
+    background: linear-gradient(180deg, #f5f9ff, var(--bg));
+    color: var(--text);
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+}
+
+.app {
+    width: min(1000px, 94vw);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, .08);
+    padding: 18px;
+}
+
+h1 {
+    font-size: 1.2rem;
+    margin: 0 0 8px;
+}
+
+.row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+button,
+label.input {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: #222;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform .04s ease, box-shadow .12s ease;
+}
+
+button:hover,
+label.input:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .08);
+}
+
+button.primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: transparent;
+}
+
+button.secondary {
+    background: var(--accent-2);
+    color: #fff;
+    border-color: transparent;
+}
+
+input[type=file] {
+    display: none;
+}
+
+.status {
+    color: var(--muted);
+    font-size: .95rem;
+    min-height: 1.2em;
+    margin: 6px 0 10px;
+}
+
+.controls {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.opt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--muted);
+    flex-wrap: wrap;
+}
+
+.opt .group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.opt input[type=range],
+.opt select {
+    height: 36px;
+}
+
+.opt input[type=range] {
+    width: 180px;
+}
+
+canvas {
+    width: 100%;
+    height: auto;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    background: #fff;
+    touch-action: none;
+}
+
+.note {
+    color: var(--muted);
+    font-size: .9rem;
+    margin-top: 8px;
+}
