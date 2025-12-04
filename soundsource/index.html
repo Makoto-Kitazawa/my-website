@@ -94,6 +94,7 @@
       border: 2px solid #0ff;
     }
   </style>
+  <link rel="stylesheet" href="./../style_common.css">
 </head>
 <body>
   <h1>サウンドジェネレータ　v0.9</h1>
@@ -106,6 +107,9 @@
 
   <canvas id="oscilloscope" width="600" height="200"></canvas>
 
+  <!-- 最終更新表示 -->
+  <div class="last-updated" id="lastUpdated">最終更新：2025/12/04 17:23</div>
+  
 <script>
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   const oscillators = [];
@@ -245,6 +249,15 @@
 
   draw();
 </script>
-
+<script>
+// 最終更新日を表示
+  const updated = new Date(document.lastModified);
+  const yyyy = updated.getFullYear();
+  const mm = String(updated.getMonth() + 1).padStart(2, '0');
+  const dd = String(updated.getDate()).padStart(2, '0');
+  const hh = String(updated.getHours()).padStart(2, '0');
+  const min = String(updated.getMinutes()).padStart(2, '0');
+  document.getElementById('lastUpdated').textContent = `最終更新：${yyyy}/${mm}/${dd} ${hh}:${min}`;
+</script>
 </body>
 </html>
