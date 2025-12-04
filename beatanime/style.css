@@ -1,0 +1,65 @@
+    body {
+      font-family: sans-serif;
+      margin: 24px;
+      background: #f4f6f8;
+    }
+    canvas {
+      border: 2px solid #888;
+      background: #fff;
+      display: block;
+      margin: 0 auto 24px;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .panel {
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 16px;
+      border-radius: 8px;
+      width: 220px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .panel h3 {
+      margin-top: 0;
+      color: #0078d4;
+    }
+    .input-row {
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+
+    input[type="number"],
+    input[type="checkbox"] {
+      font-size: 14px;
+    }
+    input[type="number"] {
+      width: 80px;
+      padding: 6px;
+      font-size: 14px;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .btns {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    button {
+      flex: 1;
+      padding: 6px;
+      font-size: 14px;
+      background: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005a9e;
+    }
