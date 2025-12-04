@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Canvasでちらつきゼロの線分描画</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 24px;
+      background: #f4f6f8;
+    }
+    canvas {
+      border: 2px solid #888;
+      background: #fff;
+      display: block;
+      margin: 0 auto 24px;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .panel {
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 16px;
+      border-radius: 8px;
+      width: 220px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .panel h3 {
+      margin-top: 0;
+      color: #0078d4;
+    }
+    .input-row {
+      margin-bottom: 12px;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 6px;
+      font-size: 14px;
+    }
+    .btns {
+      display: flex;
+      gap: 8px;
+    }
+    button {
+      flex: 1;
+      padding: 6px;
+      font-size: 14px;
+      background: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #005a9e;
+    }
+  </style>
+</head>
+<body>
+  <h2 style="text-align:center;">Canvasでちらつきゼロの線分描画</h2>
+  <canvas id="laneCanvas" width="800" height="200"></canvas>
+
+  <div class="controls">
+    <div class="panel">
+      <h3>レーン1</h3>
+      <div class="input-row">
+        <label>Hz: <input id="hz1" type="number" min="0" step="0.1" /></label>
+      </div>
+      <div class="btns">
+        <button id="start1">Start</button>
+        <button id="stop1">Stop</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>レーン2</h3>
+      <div class="input-row">
+        <label>Hz: <input id="hz2" type="number" min="0" step="0.1" /></label>
+      </div>
+      <div class="btns">
+        <button id="start2">Start</button>
+        <button id="stop2">Stop</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('laneCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const SPEED = 240;
+    const LINE_WIDTH = 10;
+    const LINE_HEIGHT = 200;
+
+    class Line {
+      constructor(x, color) {
+        this.x = x;
+        this.color = color;
+      }
+      update(dt) {
+        this.x += SPEED * dt;
+      }
+      draw(ctx) {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, 0, LINE_WIDTH, LINE_HEIGHT);
+      }
+    }
+
+    class Lane {
+      constructor(color, hzInput, startBtn, stopBtn) {
+        this.color = color;
+        this.hzInput = hzInput;
+        this.startBtn = startBtn;
+        this.stopBtn = stopBtn;
+        this.lines = [];
+        this.running = false;
+        this.accumulator = 0;
+        this.lastTime = 0;
+
+        this.startBtn.addEventListener('click', () => this.start());
+        this.stopBtn.addEventListener('click', () => this.stop());
+      }
+
+      getHz() {
+        const v = parseFloat(this.hzInput.value);
+        return Number.isFinite(v) && v >= 0 ? v : 0;
+      }
+
+      start() {
+        this.running = true;
+        this.lastTime = performance.now();
+        requestAnimationFrame(this.onFrame.bind(this));
+      }
+
+      stop() {
+        this.running = false;
+      }
+
+      onFrame(now) {
+        if (!this.running) return;
+        const dt = (now - this.lastTime) / 1000;
+        this.lastTime = now;
+
+        const hz = this.getHz();
+        this.accumulator += dt * hz;
+        const count = Math.floor(this.accumulator);
+        if (count > 0) {
+          for (let i = 0; i < count; i++) {
+            this.lines.push(new Line(0, this.color));
+          }
+          this.accumulator -= count;
+        }
+
+        this.lines.forEach(line => line.update(dt));
+        this.lines = this.lines.filter(line => line.x < canvas.width);
+
+        requestAnimationFrame(this.onFrame.bind(this));
+      }
+
+      draw(ctx) {
+        this.lines.forEach(line => line.draw(ctx));
+      }
+    }
+
+    const lane1 = new Lane('#4a90e2', hz1, start1, stop1);
+    const lane2 = new Lane('#e26a6a', hz2, start2, stop2);
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      lane1.draw(ctx);
+      lane2.draw(ctx);
+      requestAnimationFrame(render);
+    }
+
+    render();
+  </script>
+</body>
+</html>
