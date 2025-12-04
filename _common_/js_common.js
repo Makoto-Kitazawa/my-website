@@ -1,4 +1,4 @@
-    // 最終更新日を表示
+// 最終更新日を表示
 const updated = new Date(document.lastModified);
 const yyyy = updated.getFullYear();
 const mm = String(updated.getMonth() + 1).padStart(2, '0');
