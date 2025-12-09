@@ -127,7 +127,7 @@
 
       if (prev < triggerLevel && curr >= triggerLevel) {
         startIndex = i;
-        skipFrames = 1; // 次の2回分は描画をスキップ
+        skipFrames = 0; // 次の2回分は描画をスキップ
         break;
       }
     }
