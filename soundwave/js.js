@@ -105,22 +105,29 @@ function canvasToData(x, y) {
 }
 
 
-canvas.addEventListener('pointerdown', (e) => {
-    canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, {x: e.offsetX, y: e.offsetY});
-    if (pointers.size === 1) { lastView = {...view}; const now = performance.now(); if (now - doubleTapTimer < 250) { Object.assign(view, defaultView); redraw(); } doubleTapTimer = now; }
-    if (pointers.size === 2) { const {center, dist} = getCenterAndDist(); lastCenter = center; lastDist = dist; lastView = {...view}; }
-});
-
 let gestureMode = null;
 
 canvas.addEventListener('pointerdown', (e) => {
+    canvas.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, {x: e.offsetX, y: e.offsetY});
+    
+    if (pointers.size === 1) {
+        lastView = {...view};
+        const now = performance.now();
+        if (now - doubleTapTimer < 250) {
+            Object.assign(view, defaultView);
+            redraw();
+        }
+        doubleTapTimer = now;
+    }
+    
     if (pointers.size === 2) {
-    // 2本指になった瞬間に初期値を記録
-    const {center, dist} = getCenterAndDist();
-    lastCenter = center;
-    lastDist = dist;
-    gestureMode = null; // まだ未決定
+        // 2本指になった瞬間に初期値を記録
+        const {center, dist} = getCenterAndDist();
+        lastCenter = center;
+        lastDist = dist;
+        lastView = {...view};
+        gestureMode = null; // まだ未決定
     }
 });
 
@@ -133,8 +140,17 @@ canvas.addEventListener('pointermove', (e) => {
     const pts = Array.from(pointers.values());
 
     if (pts.length === 1) {
-    // 1本指パン
-    //const deltaX = curr.x - prev.x, deltaY = curr.y - prev.y; const xrange = lastView.xmax - lastView.xmin, yrange = lastView.ymax - lastView.ymin; const margin = 56, plotW = canvas.width - margin*2, plotH = canvas.height - margin*2; const dxT = -deltaX / plotW * xrange; const dyA = -deltaY / plotH * yrange; view.xmin = lastView.xmin + dxT; view.xmax = lastView.xmax + dxT; view.ymin = lastView.ymin + dyA; view.ymax = lastView.ymax + dyA; redraw();
+        // 1本指パン（前回からの相対移動を現在のviewに累積）
+        const deltaX = curr.x - prev.x, deltaY = curr.y - prev.y;
+        const xrange = view.xmax - view.xmin, yrange = view.ymax - view.ymin;
+        const margin = 56, plotW = canvas.width - margin*2, plotH = canvas.height - margin*2;
+        const dxT = -deltaX / plotW * xrange;
+        const dyA = deltaY / plotH * yrange;
+        view.xmin += dxT;
+        view.xmax += dxT;
+        view.ymin += dyA;
+        view.ymax += dyA;
+        redraw();
     } else if (pts.length >= 2) {
     const {center, dist} = getCenterAndDist();
     if (!center || !lastCenter || !lastDist) return;
@@ -165,19 +181,34 @@ canvas.addEventListener('pointermove', (e) => {
         redraw();
     } else if (gestureMode === 'zoom') {
         // ピンチズーム
-        //let xrange = xrange0, yrange = yrange0; if (zoomMode === 'x' || zoomMode === 'both') xrange = clamp(xrange0 / scale, 0.0001, 2.0); if (zoomMode === 'y' || zoomMode === 'both') yrange = clamp(yrange0 / scale, 0.02, 4.0); const cData = canvasToData(center.x, center.y); view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0); view.xmax = view.xmin + xrange; view.ymin = -yrange/2; view.ymax = yrange/2; redraw();
+        const xrange0 = lastView.xmax - lastView.xmin;
+        const yrange0 = lastView.ymax - lastView.ymin;
+        let xrange = xrange0, yrange = yrange0;
+        if (zoomMode === 'x' || zoomMode === 'both') xrange = clamp(xrange0 / scale, 0.0001, 2.0);
+        if (zoomMode === 'y' || zoomMode === 'both') yrange = clamp(yrange0 / scale, 0.02, 4.0);
+        const cData = canvasToData(center.x, center.y);
+        view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0);
+        view.xmax = view.xmin + xrange;
+        view.ymin = cData.a - (cData.a - lastView.ymin) * (yrange / yrange0);
+        view.ymax = view.ymin + yrange;
+        redraw();
     }
     }
 });
 
-canvas.addEventListener('pointerup', (e) => {
+function endPointer(e) {
     pointers.delete(e.pointerId);
     if (pointers.size < 2) {
-    gestureMode = null; // リセット
+        gestureMode = null; // リセット
     }
-});
+    lastView = {...view};
+    if (pointers.size >= 2) {
+        const {center, dist} = getCenterAndDist();
+        lastCenter = center;
+        lastDist = dist;
+    }
+}
 
-function endPointer(e){ pointers.delete(e.pointerId); lastView = {...view}; if (pointers.size >= 2) { const {center, dist} = getCenterAndDist(); lastCenter = center; lastDist = dist; } }
 canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('pointerleave', endPointer);
