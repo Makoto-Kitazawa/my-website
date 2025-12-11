@@ -32,7 +32,7 @@
     oscillators.push(osc);
     gains.push(gain);
 
-    const initDb = 15;
+    const initDb = 10;
     const div = document.createElement("div");
 
     div.innerHTML = `
