@@ -165,7 +165,7 @@ canvas.addEventListener('pointermove', (e) => {
         redraw();
     } else if (gestureMode === 'zoom') {
         // ピンチズーム
-        //let xrange = xrange0, yrange = yrange0; if (zoomMode === 'x' || zoomMode === 'both') xrange = clamp(xrange0 / scale, 0.0001, 2.0); if (zoomMode === 'y' || zoomMode === 'both') yrange = clamp(yrange0 / scale, 0.02, 4.0); const cData = canvasToData(center.x, center.y); view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0); view.xmax = view.xmin + xrange; view.ymin = -yrange/2; view.ymax = yrange/2; redraw();
+        let xrange = xrange0, yrange = yrange0; if (zoomMode === 'x' || zoomMode === 'both') xrange = clamp(xrange0 / scale, 0.0001, 2.0); if (zoomMode === 'y' || zoomMode === 'both') yrange = clamp(yrange0 / scale, 0.02, 4.0); const cData = canvasToData(center.x, center.y); view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0); view.xmax = view.xmin + xrange; view.ymin = -yrange/2; view.ymax = yrange/2; redraw();
     }
     }
 });
