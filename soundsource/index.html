@@ -7,10 +7,14 @@
   <link rel="stylesheet" href="/_common_/style_common.css">
 </head>
 <body>
-  <h1>サウンドジェネレータ　v0.10</h1>
+  <h1>サウンドジェネレータ v1.0</h1>
 
   <button id="play">▶ 再生</button>
   <button id="pause">⏸ 一時停止</button>
+  <label style="margin-left: 20px;">
+    トリガー: <input type="range" id="triggerSlider" min="0" max="100" value="50" style="width: 150px; vertical-align: middle;">
+    <span id="triggerValue">50%</span>
+  </label>
 
   <div id="controls"></div>
   <div id="warning">⚠ 音が鳴らない場合はマナーモードを解除してください</div>

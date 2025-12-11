@@ -4,13 +4,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>音声波形ビューア（1秒・ズーム対応 v6：2本指スワイプ横スクロール）</title>
+  <title>音声波形ビューア v1.0</title>
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="/_common_/style_common.css">
 </head>
 <body>
-  <main class="app" role="application" aria-label="音声波形ビューア（1秒・ズーム対応 v6）">
-    <h1>音声波形ビューア（v0.7）</h1>
+  <main class="app" role="application" aria-label="音声波形ビューア v1.0">
+    <h1>音声波形ビューア v1.0</h1>
     <div class="status" id="status">準備完了：iPad を含むタッチ環境で、2本指スワイプで横スクロールできます。</div>
 
     <section class="controls" aria-label="入力と操作">
@@ -48,7 +48,7 @@
     </section>
 
     <section aria-label="波形グラフ">
-      <canvas id="canvas" width="1200" height="420" aria-label="音圧-時間の波形（ズーム可）"></canvas>
+      <canvas id="canvas" aria-label="音圧-時間の波形（ズーム可）"></canvas>
     </section>
 
     <p class="note">縦軸：音圧（相対振幅, -1 ～ +1）／横軸：時間（秒）。<br>ピンチ：ズーム（縦は常に 0 中心）。<br>1本指ドラッグ：上下・左右のパン。<br><strong>2本指スワイプ：横スクロール（ズームせずに左右へ移動）。</strong><br>描画は縦軸（Y軸）より左側の領域を自動クリップします。</p>

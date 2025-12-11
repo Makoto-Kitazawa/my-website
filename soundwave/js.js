@@ -21,7 +21,7 @@ let latestSR = 48000;
 const view = { xmin: 0, xmax: 1, ymin: -1, ymax: 1 };
 const defaultView = { xmin: 0, xmax: 1, ymin: -1, ymax: 1 };
 
-let zoomMode = 'both';
+let zoomMode = 'x';  // デフォルトは横軸のみ（HTMLの選択と一致）
 zoomModeSel.addEventListener('change', () => { zoomMode = zoomModeSel.value; });
 
 function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
@@ -39,19 +39,28 @@ function niceTickStep(range, desired=10) {
 function formatTick(val, step) { const decimals = Math.max(0, -Math.floor(Math.log10(step))); return Number(val).toFixed(decimals); }
 
 function drawAxes() {
-    const margin = 56; ctx.clearRect(0,0,canvas.width, canvas.height); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    const plotW = canvas.width - margin*2; const plotH = canvas.height - margin*2; const x0 = margin, y0 = margin, x1 = x0 + plotW, y1 = y0 + plotH;
+    // CSS表示サイズ（論理ピクセル）で計算
+    const displayWidth = canvas.width / (window.devicePixelRatio || 1);
+    const displayHeight = canvas.height / (window.devicePixelRatio || 1);
+    const margin = Math.min(56, displayWidth * 0.08); // スマホでマージンを調整
+    ctx.clearRect(0,0,displayWidth, displayHeight); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,displayWidth,displayHeight);
+    const plotW = displayWidth - margin*2; const plotH = displayHeight - margin*2; const x0 = margin, y0 = margin, x1 = x0 + plotW, y1 = y0 + plotH;
 
     ctx.strokeStyle = '#eef2f7'; ctx.lineWidth = 1; ctx.beginPath();
-    const xStep = niceTickStep(view.xmax - view.xmin, 10);
+    // 画面サイズに応じて目盛り数を調整（小画面では少なく）
+    const xTickCount = displayWidth < 400 ? 2 : (displayWidth < 600 ? 3 : (displayWidth < 800 ? 5 : 8));
+    const yTickCount = displayHeight < 300 ? 2 : (displayHeight < 400 ? 3 : 5);
+    const xStep = niceTickStep(view.xmax - view.xmin, xTickCount);
     for (let t = Math.ceil(view.xmin / xStep) * xStep; t <= view.xmax + 1e-12; t += xStep) { const x = x0 + (t - view.xmin) / (view.xmax - view.xmin) * plotW; ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
-    const yStep = niceTickStep(view.ymax - view.ymin, 8);
+    const yStep = niceTickStep(view.ymax - view.ymin, yTickCount);
     for (let a = Math.ceil(view.ymin / yStep) * yStep; a <= view.ymax + 1e-12; a += yStep) { const y = y0 + (1 - (a - view.ymin) / (view.ymax - view.ymin)) * plotH; ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
     ctx.stroke();
 
     ctx.strokeStyle = '#334155'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0, y1); ctx.lineTo(x1, y1); ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); ctx.stroke();
 
-    ctx.fillStyle = '#334155'; ctx.font = '14px system-ui'; ctx.textAlign = 'center';
+    // 画面サイズに応じてフォントサイズを調整
+    const fontSize = displayWidth < 400 ? 10 : (displayWidth < 600 ? 11 : (displayWidth < 800 ? 12 : 14));
+    ctx.fillStyle = '#334155'; ctx.font = `${fontSize}px system-ui`; ctx.textAlign = 'center';
     for (let t = Math.ceil(view.xmin / xStep) * xStep; t <= view.xmax + 1e-12; t += xStep) { const x = x0 + (t - view.xmin) / (view.xmax - view.xmin) * plotW; ctx.fillText(formatTick(t, xStep), x, y1 + 18); }
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
     for (let a = Math.ceil(view.ymin / yStep) * yStep; a <= view.ymax + 1e-12; a += yStep) { const y = y0 + (1 - (a - view.ymin) / (view.ymax - view.ymin)) * plotH; ctx.fillText(formatTick(a, yStep), x0 - 6, y); }
@@ -98,33 +107,46 @@ function getCenterAndDist() {
     return {center: c, dist: Math.hypot(dx, dy)};
 }
 function canvasToData(x, y) {
-    const margin = 56, plotW = canvas.width - margin*2, plotH = canvas.height - margin*2; const x0 = margin, y0 = margin;
+    const displayWidth = canvas.width / (window.devicePixelRatio || 1);
+    const displayHeight = canvas.height / (window.devicePixelRatio || 1);
+    const margin = Math.min(56, displayWidth * 0.08);
+    const plotW = displayWidth - margin*2, plotH = displayHeight - margin*2;
+    const x0 = margin, y0 = margin;
     const t = view.xmin + (x - x0) / plotW * (view.xmax - view.xmin);
     const a = view.ymax - (y - y0) / plotH * (view.ymax - view.ymin);
     return {t, a};
 }
 
 
-canvas.addEventListener('pointerdown', (e) => {
-    canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, {x: e.offsetX, y: e.offsetY});
-    if (pointers.size === 1) { lastView = {...view}; const now = performance.now(); if (now - doubleTapTimer < 250) { Object.assign(view, defaultView); redraw(); } doubleTapTimer = now; }
-    if (pointers.size === 2) { const {center, dist} = getCenterAndDist(); lastCenter = center; lastDist = dist; lastView = {...view}; }
-});
-
 let gestureMode = null;
 
 canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, {x: e.offsetX, y: e.offsetY});
+    
+    if (pointers.size === 1) {
+        lastView = {...view};
+        const now = performance.now();
+        if (now - doubleTapTimer < 250) {
+            Object.assign(view, defaultView);
+            redraw();
+        }
+        doubleTapTimer = now;
+    }
+    
     if (pointers.size === 2) {
-    // 2本指になった瞬間に初期値を記録
-    const {center, dist} = getCenterAndDist();
-    lastCenter = center;
-    lastDist = dist;
-    gestureMode = null; // まだ未決定
+        // 2本指になった瞬間に初期値を記録
+        const {center, dist} = getCenterAndDist();
+        lastCenter = center;
+        lastDist = dist;
+        lastView = {...view};
+        gestureMode = null; // まだ未決定
     }
 });
 
 canvas.addEventListener('pointermove', (e) => {
+    e.preventDefault();
     if (!pointers.has(e.pointerId)) return;
     const prev = pointers.get(e.pointerId);
     const curr = {x: e.offsetX, y: e.offsetY};
@@ -133,51 +155,91 @@ canvas.addEventListener('pointermove', (e) => {
     const pts = Array.from(pointers.values());
 
     if (pts.length === 1) {
-    // 1本指パン
-    const deltaX = curr.x - prev.x, deltaY = curr.y - prev.y; const xrange = lastView.xmax - lastView.xmin, yrange = lastView.ymax - lastView.ymin; const margin = 56, plotW = canvas.width - margin*2, plotH = canvas.height - margin*2; const dxT = -deltaX / plotW * xrange; const dyA = -deltaY / plotH * yrange; view.xmin = lastView.xmin + dxT; view.xmax = lastView.xmax + dxT; view.ymin = lastView.ymin + dyA; view.ymax = lastView.ymax + dyA; redraw();
+        // 1本指パン（前回からの相対移動を現在のviewに累積）
+        const deltaX = curr.x - prev.x, deltaY = curr.y - prev.y;
+        const xrange = view.xmax - view.xmin, yrange = view.ymax - view.ymin;
+        const displayWidth = canvas.width / (window.devicePixelRatio || 1);
+        const displayHeight = canvas.height / (window.devicePixelRatio || 1);
+        const margin = Math.min(56, displayWidth * 0.08);
+        const plotW = displayWidth - margin*2, plotH = displayHeight - margin*2;
+        const dxT = -deltaX / plotW * xrange;
+        const dyA = deltaY / plotH * yrange;
+        view.xmin += dxT;
+        view.xmax += dxT;
+        view.ymin += dyA;
+        view.ymax += dyA;
+        redraw();
     } else if (pts.length >= 2) {
     const {center, dist} = getCenterAndDist();
     if (!center || !lastCenter || !lastDist) return;
 
     const scale = dist / lastDist;
     const deltaCenterX = center.x - lastCenter.x;
+    const deltaCenterY = center.y - lastCenter.y;
 
-    if (!gestureMode) {
-        // 最初にモードを決める
-        const ZOOM_THRESHOLD = 0.05;
-        const SWIPE_THRESHOLD = 10; // px
-        if (Math.abs(scale - 1) >= ZOOM_THRESHOLD) {
-        gestureMode = 'zoom';
-        } else if (Math.abs(deltaCenterX) >= SWIPE_THRESHOLD) {
-        gestureMode = 'swipe';
-        } else {
-        gestureMode = 'pan'; // 2本指で縦横パンしたい場合
-        }
+    // 毎回判定し直す（ズーム動作を優先）
+    const ZOOM_THRESHOLD = 0.02;  // 2%の距離変化でズーム判定
+    const SWIPE_THRESHOLD = 30;   // 30pxの横移動でスワイプ判定
+    
+    const scaleChange = Math.abs(scale - 1);
+    const horizontalMove = Math.abs(deltaCenterX);
+    const verticalMove = Math.abs(deltaCenterY);
+    
+    // ズームとスワイプを毎フレーム判定（ズーム優先）
+    let currentMode = null;
+    if (scaleChange >= ZOOM_THRESHOLD) {
+        // 指の距離が変化していれば常にズーム
+        currentMode = 'zoom';
+    } else if (horizontalMove >= SWIPE_THRESHOLD && horizontalMove > verticalMove * 2.5 && scaleChange < 0.015) {
+        // 明確な横移動で、ズームがほぼない場合のみスワイプ
+        currentMode = 'swipe';
+    }
+    
+    // モードが決まったら、それを使う（決まらなければ何もしない）
+    if (currentMode) {
+        gestureMode = currentMode;
     }
 
     if (gestureMode === 'swipe') {
         // 横スクロールのみ
         const xrange0 = lastView.xmax - lastView.xmin;
-        const margin = 56, plotW = canvas.width - margin*2;
+        const displayWidth = canvas.width / (window.devicePixelRatio || 1);
+        const margin = Math.min(56, displayWidth * 0.08);
+        const plotW = displayWidth - margin*2;
         const dxT = -deltaCenterX / plotW * xrange0;
         view.xmin = lastView.xmin + dxT;
         view.xmax = lastView.xmax + dxT;
         redraw();
     } else if (gestureMode === 'zoom') {
         // ピンチズーム
-        let xrange = xrange0, yrange = yrange0; if (zoomMode === 'x' || zoomMode === 'both') xrange = clamp(xrange0 / scale, 0.0001, 2.0); if (zoomMode === 'y' || zoomMode === 'both') yrange = clamp(yrange0 / scale, 0.02, 4.0); const cData = canvasToData(center.x, center.y); view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0); view.xmax = view.xmin + xrange; view.ymin = -yrange/2; view.ymax = yrange/2; redraw();
+        const xrange0 = lastView.xmax - lastView.xmin;
+        const yrange0 = lastView.ymax - lastView.ymin;
+        let xrange = xrange0, yrange = yrange0;
+        if (zoomMode === 'x' || zoomMode === 'both') xrange = clamp(xrange0 / scale, 0.0001, 2.0);
+        if (zoomMode === 'y' || zoomMode === 'both') yrange = clamp(yrange0 / scale, 0.02, 4.0);
+        const cData = canvasToData(center.x, center.y);
+        view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0);
+        view.xmax = view.xmin + xrange;
+        view.ymin = cData.a - (cData.a - lastView.ymin) * (yrange / yrange0);
+        view.ymax = view.ymin + yrange;
+        redraw();
     }
     }
 });
 
-canvas.addEventListener('pointerup', (e) => {
+function endPointer(e) {
     pointers.delete(e.pointerId);
     if (pointers.size < 2) {
-    gestureMode = null; // リセット
+        gestureMode = null; // リセット
     }
-});
+    lastView = {...view};
+    if (pointers.size >= 2) {
+        const {center, dist} = getCenterAndDist();
+        lastCenter = center;
+        lastDist = dist;
+    }
+}
 
-function endPointer(e){ pointers.delete(e.pointerId); lastView = {...view}; if (pointers.size >= 2) { const {center, dist} = getCenterAndDist(); lastCenter = center; lastDist = dist; } }
 canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('pointerleave', endPointer);
@@ -209,5 +271,30 @@ document.querySelector('label.input').addEventListener('click', () => fileInput.
 fileInput.addEventListener('change', async (e) => { const f = e.target.files && e.target.files[0]; if (f) await drawFromFile(f); });
 clearBtn.addEventListener('click', () => { latestSamples = null; Object.assign(view, defaultView); drawAxes(); setStatus('クリアしました'); });
 
-drawAxes();
+// レスポンシブ対応：画面サイズに応じてキャンバスをリサイズ
+function resizeCanvas() {
+    const container = canvas.parentElement;
+    const rect = container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    
+    // CSS表示サイズを設定
+    canvas.style.width = '100%';
+    const displayWidth = rect.width;
+    const displayHeight = Math.min(420, displayWidth * 0.4); // アスペクト比を維持
+    canvas.style.height = displayHeight + 'px';
+    
+    // 内部解像度を高DPI対応で設定（canvas.widthを設定するとコンテキストがリセットされる）
+    canvas.width = displayWidth * dpr;
+    canvas.height = displayHeight * dpr;
+    
+    // 論理座標系をCSS座標に合わせる（これで14pxが14pxのまま）
+    ctx.scale(dpr, dpr);
+    
+    // 再描画
+    redraw();
+}
+
+// 初期化とリサイズイベント
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
