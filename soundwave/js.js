@@ -161,23 +161,27 @@ canvas.addEventListener('pointermove', (e) => {
     const deltaCenterX = center.x - lastCenter.x;
     const deltaCenterY = center.y - lastCenter.y;
 
-    if (!gestureMode) {
-        // 最初にモードを決める（ズームを優先）
-        const ZOOM_THRESHOLD = 0.03;  // 3%の距離変化でズーム判定
-        const SWIPE_THRESHOLD = 25;   // 25pxの横移動でスワイプ判定
-        
-        const scaleChange = Math.abs(scale - 1);
-        const horizontalMove = Math.abs(deltaCenterX);
-        const verticalMove = Math.abs(deltaCenterY);
-        
-        // ズーム判定を優先（指の距離が変化していればズーム）
-        if (scaleChange >= ZOOM_THRESHOLD) {
-            gestureMode = 'zoom';
-        } else if (horizontalMove >= SWIPE_THRESHOLD && horizontalMove > verticalMove * 2 && scaleChange < 0.02) {
-            // 明確な横移動で、かつズームがほぼない場合のみスワイプ
-            gestureMode = 'swipe';
-        }
-        // まだ判定できない場合はnullのまま（次のmoveで再判定）
+    // 毎回判定し直す（ズーム動作を優先）
+    const ZOOM_THRESHOLD = 0.02;  // 2%の距離変化でズーム判定
+    const SWIPE_THRESHOLD = 30;   // 30pxの横移動でスワイプ判定
+    
+    const scaleChange = Math.abs(scale - 1);
+    const horizontalMove = Math.abs(deltaCenterX);
+    const verticalMove = Math.abs(deltaCenterY);
+    
+    // ズームとスワイプを毎フレーム判定（ズーム優先）
+    let currentMode = null;
+    if (scaleChange >= ZOOM_THRESHOLD) {
+        // 指の距離が変化していれば常にズーム
+        currentMode = 'zoom';
+    } else if (horizontalMove >= SWIPE_THRESHOLD && horizontalMove > verticalMove * 2.5 && scaleChange < 0.015) {
+        // 明確な横移動で、ズームがほぼない場合のみスワイプ
+        currentMode = 'swipe';
+    }
+    
+    // モードが決まったら、それを使う（決まらなければ何もしない）
+    if (currentMode) {
+        gestureMode = currentMode;
     }
 
     if (gestureMode === 'swipe') {
