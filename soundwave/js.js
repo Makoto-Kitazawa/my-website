@@ -39,8 +39,12 @@ function niceTickStep(range, desired=10) {
 function formatTick(val, step) { const decimals = Math.max(0, -Math.floor(Math.log10(step))); return Number(val).toFixed(decimals); }
 
 function drawAxes() {
-    const margin = 56; ctx.clearRect(0,0,canvas.width, canvas.height); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    const plotW = canvas.width - margin*2; const plotH = canvas.height - margin*2; const x0 = margin, y0 = margin, x1 = x0 + plotW, y1 = y0 + plotH;
+    const dpr = window.devicePixelRatio || 1;
+    const displayWidth = canvas.width / dpr;
+    const displayHeight = canvas.height / dpr;
+    const margin = Math.min(56, displayWidth * 0.08); // スマホでマージンを調整
+    ctx.clearRect(0,0,displayWidth, displayHeight); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,displayWidth,displayHeight);
+    const plotW = displayWidth - margin*2; const plotH = displayHeight - margin*2; const x0 = margin, y0 = margin, x1 = x0 + plotW, y1 = y0 + plotH;
 
     ctx.strokeStyle = '#eef2f7'; ctx.lineWidth = 1; ctx.beginPath();
     const xStep = niceTickStep(view.xmax - view.xmin, 10);
@@ -253,5 +257,30 @@ document.querySelector('label.input').addEventListener('click', () => fileInput.
 fileInput.addEventListener('change', async (e) => { const f = e.target.files && e.target.files[0]; if (f) await drawFromFile(f); });
 clearBtn.addEventListener('click', () => { latestSamples = null; Object.assign(view, defaultView); drawAxes(); setStatus('クリアしました'); });
 
-drawAxes();
+// レスポンシブ対応：画面サイズに応じてキャンバスをリサイズ
+function resizeCanvas() {
+    const container = canvas.parentElement;
+    const rect = container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    
+    // CSS表示サイズを設定
+    canvas.style.width = '100%';
+    const displayWidth = rect.width;
+    const displayHeight = Math.min(420, displayWidth * 0.4); // アスペクト比を維持
+    canvas.style.height = displayHeight + 'px';
+    
+    // 内部解像度を高DPI対応で設定
+    canvas.width = displayWidth * dpr;
+    canvas.height = displayHeight * dpr;
+    
+    // コンテキストをスケール
+    ctx.scale(dpr, dpr);
+    
+    // 再描画
+    redraw();
+}
+
+// 初期化とリサイズイベント
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
