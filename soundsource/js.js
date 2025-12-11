@@ -186,12 +186,22 @@
     // --- トリガーレベルの表示（左端に赤い三角形） ---
     // triggerLevelは0-1の範囲で、中心から上方向（正の振幅）として計算
     const triggerY = canvas.height / 2 - (triggerLevel * canvas.height / 2);
-    canvasCtx.fillStyle = "#f00";
+    
+    // 描画状態をリセットして確実に表示
+    canvasCtx.save();
+    canvasCtx.fillStyle = "#ff0000";
+    canvasCtx.strokeStyle = "#ff0000";
+    canvasCtx.lineWidth = 2;
+    canvasCtx.globalAlpha = 1.0;
+    
+    // 三角形を描画
     canvasCtx.beginPath();
     canvasCtx.moveTo(0, triggerY);
-    canvasCtx.lineTo(10, triggerY - 5);
-    canvasCtx.lineTo(10, triggerY + 5);
+    canvasCtx.lineTo(12, triggerY - 6);
+    canvasCtx.lineTo(12, triggerY + 6);
     canvasCtx.closePath();
     canvasCtx.fill();
+    canvasCtx.stroke(); // 輪郭も描画して確実に見えるように
+    canvasCtx.restore();
   }
   draw();
