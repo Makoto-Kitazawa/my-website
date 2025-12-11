@@ -39,9 +39,8 @@ function niceTickStep(range, desired=10) {
 function formatTick(val, step) { const decimals = Math.max(0, -Math.floor(Math.log10(step))); return Number(val).toFixed(decimals); }
 
 function drawAxes() {
-    const dpr = window.devicePixelRatio || 1;
-    const displayWidth = canvas.width / dpr;
-    const displayHeight = canvas.height / dpr;
+    const displayWidth = canvas.width;
+    const displayHeight = canvas.height;
     const margin = Math.min(56, displayWidth * 0.08); // スマホでマージンを調整
     ctx.clearRect(0,0,displayWidth, displayHeight); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,displayWidth,displayHeight);
     const plotW = displayWidth - margin*2; const plotH = displayHeight - margin*2; const x0 = margin, y0 = margin, x1 = x0 + plotW, y1 = y0 + plotH;
@@ -281,14 +280,11 @@ function resizeCanvas() {
     const displayHeight = Math.min(420, displayWidth * 0.4); // アスペクト比を維持
     canvas.style.height = displayHeight + 'px';
     
-    // 内部解像度を高DPI対応で設定
-    canvas.width = displayWidth * dpr;
-    canvas.height = displayHeight * dpr;
+    // 内部解像度を高DPI対応で設定（単純にdisplayWidthのままで良い）
+    canvas.width = displayWidth;
+    canvas.height = displayHeight;
     
-    // コンテキストをスケール
-    ctx.scale(dpr, dpr);
-    
-    // 再描画
+    // 再描画（scaleは不要）
     redraw();
 }
 
