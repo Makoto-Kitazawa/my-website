@@ -108,6 +108,7 @@ function canvasToData(x, y) {
 let gestureMode = null;
 
 canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
     canvas.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, {x: e.offsetX, y: e.offsetY});
     
@@ -132,6 +133,7 @@ canvas.addEventListener('pointerdown', (e) => {
 });
 
 canvas.addEventListener('pointermove', (e) => {
+    e.preventDefault();
     if (!pointers.has(e.pointerId)) return;
     const prev = pointers.get(e.pointerId);
     const curr = {x: e.offsetX, y: e.offsetY};
@@ -157,18 +159,20 @@ canvas.addEventListener('pointermove', (e) => {
 
     const scale = dist / lastDist;
     const deltaCenterX = center.x - lastCenter.x;
+    const deltaCenterY = center.y - lastCenter.y;
 
     if (!gestureMode) {
-        // 最初にモードを決める
-        const ZOOM_THRESHOLD = 0.05;
-        const SWIPE_THRESHOLD = 10; // px
+        // 最初にモードを決める（閾値を上げて誤判定を防ぐ）
+        const ZOOM_THRESHOLD = 0.1;  // 10%の距離変化でズーム判定
+        const SWIPE_THRESHOLD = 20;  // 20pxの横移動でスワイプ判定
+        
         if (Math.abs(scale - 1) >= ZOOM_THRESHOLD) {
-        gestureMode = 'zoom';
-        } else if (Math.abs(deltaCenterX) >= SWIPE_THRESHOLD) {
-        gestureMode = 'swipe';
-        } else {
-        gestureMode = 'pan'; // 2本指で縦横パンしたい場合
+            gestureMode = 'zoom';
+        } else if (Math.abs(deltaCenterX) >= SWIPE_THRESHOLD && Math.abs(deltaCenterX) > Math.abs(deltaCenterY) * 2) {
+            // 横移動が縦移動の2倍以上ならスワイプ
+            gestureMode = 'swipe';
         }
+        // まだ判定できない場合はnullのまま（次のmoveで再判定）
     }
 
     if (gestureMode === 'swipe') {
