@@ -134,7 +134,7 @@ canvas.addEventListener('pointermove', (e) => {
 
     if (pts.length === 1) {
     // 1本指パン
-    //const deltaX = curr.x - prev.x, deltaY = curr.y - prev.y; const xrange = lastView.xmax - lastView.xmin, yrange = lastView.ymax - lastView.ymin; const margin = 56, plotW = canvas.width - margin*2, plotH = canvas.height - margin*2; const dxT = -deltaX / plotW * xrange; const dyA = -deltaY / plotH * yrange; view.xmin = lastView.xmin + dxT; view.xmax = lastView.xmax + dxT; view.ymin = lastView.ymin + dyA; view.ymax = lastView.ymax + dyA; redraw();
+    const deltaX = curr.x - prev.x, deltaY = curr.y - prev.y; const xrange = lastView.xmax - lastView.xmin, yrange = lastView.ymax - lastView.ymin; const margin = 56, plotW = canvas.width - margin*2, plotH = canvas.height - margin*2; const dxT = -deltaX / plotW * xrange; const dyA = -deltaY / plotH * yrange; view.xmin = lastView.xmin + dxT; view.xmax = lastView.xmax + dxT; view.ymin = lastView.ymin + dyA; view.ymax = lastView.ymax + dyA; redraw();
     } else if (pts.length >= 2) {
     const {center, dist} = getCenterAndDist();
     if (!center || !lastCenter || !lastDist) return;
