@@ -48,7 +48,7 @@ function drawAxes() {
 
     ctx.strokeStyle = '#eef2f7'; ctx.lineWidth = 1; ctx.beginPath();
     // 画面サイズに応じて目盛り数を調整（小画面では少なく）
-    const xTickCount = displayWidth < 500 ? 3 : (displayWidth < 800 ? 5 : 8);
+    const xTickCount = displayWidth < 400 ? 2 : (displayWidth < 600 ? 3 : (displayWidth < 800 ? 5 : 8));
     const yTickCount = displayHeight < 300 ? 2 : (displayHeight < 400 ? 3 : 5);
     const xStep = niceTickStep(view.xmax - view.xmin, xTickCount);
     for (let t = Math.ceil(view.xmin / xStep) * xStep; t <= view.xmax + 1e-12; t += xStep) { const x = x0 + (t - view.xmin) / (view.xmax - view.xmin) * plotW; ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
@@ -58,7 +58,9 @@ function drawAxes() {
 
     ctx.strokeStyle = '#334155'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0, y1); ctx.lineTo(x1, y1); ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); ctx.stroke();
 
-    ctx.fillStyle = '#334155'; ctx.font = '14px system-ui'; ctx.textAlign = 'center';
+    // 画面サイズに応じてフォントサイズを調整
+    const fontSize = displayWidth < 400 ? 10 : (displayWidth < 600 ? 11 : (displayWidth < 800 ? 12 : 14));
+    ctx.fillStyle = '#334155'; ctx.font = `${fontSize}px system-ui`; ctx.textAlign = 'center';
     for (let t = Math.ceil(view.xmin / xStep) * xStep; t <= view.xmax + 1e-12; t += xStep) { const x = x0 + (t - view.xmin) / (view.xmax - view.xmin) * plotW; ctx.fillText(formatTick(t, xStep), x, y1 + 18); }
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
     for (let a = Math.ceil(view.ymin / yStep) * yStep; a <= view.ymax + 1e-12; a += yStep) { const y = y0 + (1 - (a - view.ymin) / (view.ymax - view.ymin)) * plotH; ctx.fillText(formatTick(a, yStep), x0 - 6, y); }
