@@ -21,7 +21,7 @@ let latestSR = 48000;
 const view = { xmin: 0, xmax: 1, ymin: -1, ymax: 1 };
 const defaultView = { xmin: 0, xmax: 1, ymin: -1, ymax: 1 };
 
-let zoomMode = 'both';
+let zoomMode = 'x';  // デフォルトは横軸のみ（HTMLの選択と一致）
 zoomModeSel.addEventListener('change', () => { zoomMode = zoomModeSel.value; });
 
 function clamp(v, min, max) { return Math.min(max, Math.max(min, v)); }
@@ -102,7 +102,12 @@ function getCenterAndDist() {
     return {center: c, dist: Math.hypot(dx, dy)};
 }
 function canvasToData(x, y) {
-    const margin = 56, plotW = canvas.width - margin*2, plotH = canvas.height - margin*2; const x0 = margin, y0 = margin;
+    const dpr = window.devicePixelRatio || 1;
+    const displayWidth = canvas.width / dpr;
+    const displayHeight = canvas.height / dpr;
+    const margin = Math.min(56, displayWidth * 0.08);
+    const plotW = displayWidth - margin*2, plotH = displayHeight - margin*2;
+    const x0 = margin, y0 = margin;
     const t = view.xmin + (x - x0) / plotW * (view.xmax - view.xmin);
     const a = view.ymax - (y - y0) / plotH * (view.ymax - view.ymin);
     return {t, a};
@@ -149,7 +154,11 @@ canvas.addEventListener('pointermove', (e) => {
         // 1本指パン（前回からの相対移動を現在のviewに累積）
         const deltaX = curr.x - prev.x, deltaY = curr.y - prev.y;
         const xrange = view.xmax - view.xmin, yrange = view.ymax - view.ymin;
-        const margin = 56, plotW = canvas.width - margin*2, plotH = canvas.height - margin*2;
+        const dpr = window.devicePixelRatio || 1;
+        const displayWidth = canvas.width / dpr;
+        const displayHeight = canvas.height / dpr;
+        const margin = Math.min(56, displayWidth * 0.08);
+        const plotW = displayWidth - margin*2, plotH = displayHeight - margin*2;
         const dxT = -deltaX / plotW * xrange;
         const dyA = deltaY / plotH * yrange;
         view.xmin += dxT;
@@ -191,7 +200,10 @@ canvas.addEventListener('pointermove', (e) => {
     if (gestureMode === 'swipe') {
         // 横スクロールのみ
         const xrange0 = lastView.xmax - lastView.xmin;
-        const margin = 56, plotW = canvas.width - margin*2;
+        const dpr = window.devicePixelRatio || 1;
+        const displayWidth = canvas.width / dpr;
+        const margin = Math.min(56, displayWidth * 0.08);
+        const plotW = displayWidth - margin*2;
         const dxT = -deltaCenterX / plotW * xrange0;
         view.xmin = lastView.xmin + dxT;
         view.xmax = lastView.xmax + dxT;
