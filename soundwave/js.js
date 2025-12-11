@@ -47,9 +47,12 @@ function drawAxes() {
     const plotW = displayWidth - margin*2; const plotH = displayHeight - margin*2; const x0 = margin, y0 = margin, x1 = x0 + plotW, y1 = y0 + plotH;
 
     ctx.strokeStyle = '#eef2f7'; ctx.lineWidth = 1; ctx.beginPath();
-    const xStep = niceTickStep(view.xmax - view.xmin, 10);
+    // 画面サイズに応じて目盛り数を調整（小画面では少なく）
+    const xTickCount = displayWidth < 500 ? 3 : (displayWidth < 800 ? 5 : 8);
+    const yTickCount = displayHeight < 300 ? 2 : (displayHeight < 400 ? 3 : 5);
+    const xStep = niceTickStep(view.xmax - view.xmin, xTickCount);
     for (let t = Math.ceil(view.xmin / xStep) * xStep; t <= view.xmax + 1e-12; t += xStep) { const x = x0 + (t - view.xmin) / (view.xmax - view.xmin) * plotW; ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
-    const yStep = niceTickStep(view.ymax - view.ymin, 8);
+    const yStep = niceTickStep(view.ymax - view.ymin, yTickCount);
     for (let a = Math.ceil(view.ymin / yStep) * yStep; a <= view.ymax + 1e-12; a += yStep) { const y = y0 + (1 - (a - view.ymin) / (view.ymax - view.ymin)) * plotH; ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
     ctx.stroke();
 
