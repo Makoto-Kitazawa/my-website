@@ -101,9 +101,8 @@ function getCenterAndDist() {
     return {center: c, dist: Math.hypot(dx, dy)};
 }
 function canvasToData(x, y) {
-    const dpr = window.devicePixelRatio || 1;
-    const displayWidth = canvas.width / dpr;
-    const displayHeight = canvas.height / dpr;
+    const displayWidth = canvas.width;
+    const displayHeight = canvas.height;
     const margin = Math.min(56, displayWidth * 0.08);
     const plotW = displayWidth - margin*2, plotH = displayHeight - margin*2;
     const x0 = margin, y0 = margin;
@@ -153,9 +152,8 @@ canvas.addEventListener('pointermove', (e) => {
         // 1本指パン（前回からの相対移動を現在のviewに累積）
         const deltaX = curr.x - prev.x, deltaY = curr.y - prev.y;
         const xrange = view.xmax - view.xmin, yrange = view.ymax - view.ymin;
-        const dpr = window.devicePixelRatio || 1;
-        const displayWidth = canvas.width / dpr;
-        const displayHeight = canvas.height / dpr;
+        const displayWidth = canvas.width;
+        const displayHeight = canvas.height;
         const margin = Math.min(56, displayWidth * 0.08);
         const plotW = displayWidth - margin*2, plotH = displayHeight - margin*2;
         const dxT = -deltaX / plotW * xrange;
@@ -199,8 +197,7 @@ canvas.addEventListener('pointermove', (e) => {
     if (gestureMode === 'swipe') {
         // 横スクロールのみ
         const xrange0 = lastView.xmax - lastView.xmin;
-        const dpr = window.devicePixelRatio || 1;
-        const displayWidth = canvas.width / dpr;
+        const displayWidth = canvas.width;
         const margin = Math.min(56, displayWidth * 0.08);
         const plotW = displayWidth - margin*2;
         const dxT = -deltaCenterX / plotW * xrange0;
