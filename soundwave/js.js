@@ -39,8 +39,9 @@ function niceTickStep(range, desired=10) {
 function formatTick(val, step) { const decimals = Math.max(0, -Math.floor(Math.log10(step))); return Number(val).toFixed(decimals); }
 
 function drawAxes() {
-    const displayWidth = canvas.width;
-    const displayHeight = canvas.height;
+    // CSS表示サイズ（論理ピクセル）で計算
+    const displayWidth = canvas.width / (window.devicePixelRatio || 1);
+    const displayHeight = canvas.height / (window.devicePixelRatio || 1);
     const margin = Math.min(56, displayWidth * 0.08); // スマホでマージンを調整
     ctx.clearRect(0,0,displayWidth, displayHeight); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,displayWidth,displayHeight);
     const plotW = displayWidth - margin*2; const plotH = displayHeight - margin*2; const x0 = margin, y0 = margin, x1 = x0 + plotW, y1 = y0 + plotH;
@@ -277,11 +278,14 @@ function resizeCanvas() {
     const displayHeight = Math.min(420, displayWidth * 0.4); // アスペクト比を維持
     canvas.style.height = displayHeight + 'px';
     
-    // 内部解像度を高DPI対応で設定（単純にdisplayWidthのままで良い）
-    canvas.width = displayWidth;
-    canvas.height = displayHeight;
+    // 内部解像度を高DPI対応で設定（canvas.widthを設定するとコンテキストがリセットされる）
+    canvas.width = displayWidth * dpr;
+    canvas.height = displayHeight * dpr;
     
-    // 再描画（scaleは不要）
+    // 論理座標系をCSS座標に合わせる（これで14pxが14pxのまま）
+    ctx.scale(dpr, dpr);
+    
+    // 再描画
     redraw();
 }
 
