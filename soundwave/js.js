@@ -162,14 +162,19 @@ canvas.addEventListener('pointermove', (e) => {
     const deltaCenterY = center.y - lastCenter.y;
 
     if (!gestureMode) {
-        // 最初にモードを決める（閾値を上げて誤判定を防ぐ）
-        const ZOOM_THRESHOLD = 0.1;  // 10%の距離変化でズーム判定
-        const SWIPE_THRESHOLD = 20;  // 20pxの横移動でスワイプ判定
+        // 最初にモードを決める（ズームを優先）
+        const ZOOM_THRESHOLD = 0.03;  // 3%の距離変化でズーム判定
+        const SWIPE_THRESHOLD = 25;   // 25pxの横移動でスワイプ判定
         
-        if (Math.abs(scale - 1) >= ZOOM_THRESHOLD) {
+        const scaleChange = Math.abs(scale - 1);
+        const horizontalMove = Math.abs(deltaCenterX);
+        const verticalMove = Math.abs(deltaCenterY);
+        
+        // ズーム判定を優先（指の距離が変化していればズーム）
+        if (scaleChange >= ZOOM_THRESHOLD) {
             gestureMode = 'zoom';
-        } else if (Math.abs(deltaCenterX) >= SWIPE_THRESHOLD && Math.abs(deltaCenterX) > Math.abs(deltaCenterY) * 2) {
-            // 横移動が縦移動の2倍以上ならスワイプ
+        } else if (horizontalMove >= SWIPE_THRESHOLD && horizontalMove > verticalMove * 2 && scaleChange < 0.02) {
+            // 明確な横移動で、かつズームがほぼない場合のみスワイプ
             gestureMode = 'swipe';
         }
         // まだ判定できない場合はnullのまま（次のmoveで再判定）
