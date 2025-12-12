@@ -7,22 +7,16 @@ async function initSlideMenu() {
   // tree-config.json を取得
   let config = {};
   try {
-    // ドキュメントのベースパスを取得
-    const basePath = document.querySelector('base')?.href || window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+    // まず ../tree-config.json を試す（プロジェクトフォルダ内のページから）
+    let response = await fetch('../tree-config.json');
     
-    // ルート相対パスでtree-config.jsonを取得
-    // GitHub Pagesでも、ローカルサーバーでも動作する
-    const configPath = new URL('/tree-config.json', basePath).href;
-    
-    const response = await fetch(configPath);
+    // 失敗時は ./tree-config.json を試す（ホームページから）
     if (!response.ok) {
-      // フォールバック: 相対パスで再度試行
-      const relativeResponse = await fetch('../tree-config.json');
-      if (!relativeResponse.ok) throw new Error('Failed to load config');
-      config = await relativeResponse.json();
-    } else {
-      config = await response.json();
+      response = await fetch('./tree-config.json');
     }
+    
+    if (!response.ok) throw new Error('Failed to load config');
+    config = await response.json();
   } catch (err) {
     console.warn('Failed to load tree-config.json, using defaults:', err);
     config = {
