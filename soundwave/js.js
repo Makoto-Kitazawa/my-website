@@ -2,6 +2,7 @@ const statusEl = document.getElementById('status');
 const recordBtn = document.getElementById('recordBtn');
 const fileInput = document.getElementById('fileInput');
 const normalizeChk = document.getElementById('normalizeChk');
+const lockMarkersChk = document.getElementById('lockMarkersChk');
 const canvas = document.getElementById('canvas');
 const clearBtn = document.getElementById('clearBtn');
 const resetViewBtn = document.getElementById('resetViewBtn');
@@ -107,13 +108,14 @@ function drawAxes() {
     
     ctx.restore();
     
-    // 時間差を表示（グラフの上部）
+    // 時間差と振動数を表示（グラフの上部）
     const timeDiff = Math.abs(markers.red.time - markers.blue.time);
+    const frequency = timeDiff > 0 ? 1 / timeDiff : 0;
     ctx.fillStyle = '#334155';
     ctx.font = `bold ${fontSize + 2}px system-ui`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText(`時間差: ${timeDiff.toFixed(4)} s`, (x0 + x1) / 2, y0 - 25);
+    ctx.fillText(`時間差: ${timeDiff.toFixed(4)} s  (振動数: ${frequency.toFixed(2)} Hz)`, (x0 + x1) / 2, y0 - 25);
     
     // マーカーをグラフ下に描画（軸のみ表示時）
     drawMarkers(x0, y1, plotW);
@@ -294,6 +296,13 @@ canvas.addEventListener('pointermove', (e) => {
             view.xmax += dxT;
             view.ymin += dyA;
             view.ymax += dyA;
+            
+            // マーカーが固定されていない場合、相対位置を保つ
+            if (!lockMarkersChk.checked) {
+                markers.blue.time += dxT;
+                markers.red.time += dxT;
+            }
+            
             redraw();
         }
     } else if (pts.length >= 2) {
@@ -336,6 +345,15 @@ canvas.addEventListener('pointermove', (e) => {
         const dxT = -deltaCenterX / plotW * xrange0;
         view.xmin = lastView.xmin + dxT;
         view.xmax = lastView.xmax + dxT;
+        
+        // マーカーが固定されていない場合、lastViewからの相対位置を保つ
+        if (!lockMarkersChk.checked && lastView) {
+            const blueRelative = (markers.blue.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
+            const redRelative = (markers.red.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
+            markers.blue.time = view.xmin + blueRelative * (view.xmax - view.xmin);
+            markers.red.time = view.xmin + redRelative * (view.xmax - view.xmin);
+        }
+        
         redraw();
     } else if (gestureMode === 'zoom') {
         // ピンチズーム
@@ -349,6 +367,15 @@ canvas.addEventListener('pointermove', (e) => {
         view.xmax = view.xmin + xrange;
         view.ymin = cData.a - (cData.a - lastView.ymin) * (yrange / yrange0);
         view.ymax = view.ymin + yrange;
+        
+        // マーカーが固定されていない場合、lastViewからの相対位置を保つ
+        if (!lockMarkersChk.checked && lastView) {
+            const blueRelative = (markers.blue.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
+            const redRelative = (markers.red.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
+            markers.blue.time = view.xmin + blueRelative * (view.xmax - view.xmin);
+            markers.red.time = view.xmin + redRelative * (view.xmax - view.xmin);
+        }
+        
         redraw();
     }
     }
