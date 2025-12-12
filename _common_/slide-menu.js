@@ -7,7 +7,12 @@ async function initSlideMenu() {
   // tree-config.json を取得
   let config = {};
   try {
-    const response = await fetch('../tree-config.json');
+    // ページの深さに応じてパスを動的に計算
+    // プロジェクトフォルダ内（深さ1）なら../ 、ホームページ（深さ0）なら./
+    const pathDepth = window.location.pathname.split('/').filter(p => p && !p.includes('.')).length;
+    const configPath = pathDepth > 1 ? '../tree-config.json' : './tree-config.json';
+    
+    const response = await fetch(configPath);
     if (!response.ok) throw new Error('Failed to load config');
     config = await response.json();
   } catch (err) {
