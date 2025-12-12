@@ -23,6 +23,10 @@ const view = { xmin: 0, xmax: 1, ymin: -1, ymax: 1 };
 const defaultView = { xmin: 0, xmax: 1, ymin: -1, ymax: 1 };
 
 // マーカー管理
+const defaultMarkers = {
+    blue: { time: 0.1 },
+    red: { time: 0.3 }
+};
 const markers = {
     blue: { time: 0.1, isDragging: false },
     red: { time: 0.3, isDragging: false }
@@ -126,13 +130,38 @@ function drawAxes() {
 function drawMarkers(x0, y1, plotW) {
     const markerY = y1 + 30; // グラフの下30pxの位置
     const markerSize = 8;
+    const x1 = x0 + plotW;
     
     // 青マーカー
-    const xBlue = x0 + (markers.blue.time - view.xmin) / (view.xmax - view.xmin) * plotW;
-    ctx.fillStyle = '#2196F3';
-    ctx.beginPath();
-    ctx.arc(xBlue, markerY, markerSize, 0, Math.PI * 2);
-    ctx.fill();
+    let xBlue = x0 + (markers.blue.time - view.xmin) / (view.xmax - view.xmin) * plotW;
+    const blueOutOfBounds = xBlue < x0 || xBlue > x1;
+    
+    if (blueOutOfBounds) {
+        // 画面外の場合、端に三角形（矢印）を表示
+        xBlue = xBlue < x0 ? x0 + 5 : x1 - 5;
+        ctx.fillStyle = '#2196F3';
+        ctx.beginPath();
+        if (markers.blue.time < view.xmin) {
+            // 左側
+            ctx.moveTo(xBlue, markerY);
+            ctx.lineTo(xBlue + 8, markerY - 6);
+            ctx.lineTo(xBlue + 8, markerY + 6);
+        } else {
+            // 右側
+            ctx.moveTo(xBlue, markerY);
+            ctx.lineTo(xBlue - 8, markerY - 6);
+            ctx.lineTo(xBlue - 8, markerY + 6);
+        }
+        ctx.closePath();
+        ctx.fill();
+    } else {
+        // 画面内の場合、通常の円
+        ctx.fillStyle = '#2196F3';
+        ctx.beginPath();
+        ctx.arc(xBlue, markerY, markerSize, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
     ctx.fillStyle = '#1976D2';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
@@ -140,11 +169,35 @@ function drawMarkers(x0, y1, plotW) {
     ctx.fillText(markers.blue.time.toFixed(4) + 's', xBlue, markerY + markerSize + 2);
     
     // 赤マーカー
-    const xRed = x0 + (markers.red.time - view.xmin) / (view.xmax - view.xmin) * plotW;
-    ctx.fillStyle = '#F44336';
-    ctx.beginPath();
-    ctx.arc(xRed, markerY, markerSize, 0, Math.PI * 2);
-    ctx.fill();
+    let xRed = x0 + (markers.red.time - view.xmin) / (view.xmax - view.xmin) * plotW;
+    const redOutOfBounds = xRed < x0 || xRed > x1;
+    
+    if (redOutOfBounds) {
+        // 画面外の場合、端に三角形（矢印）を表示
+        xRed = xRed < x0 ? x0 + 5 : x1 - 5;
+        ctx.fillStyle = '#F44336';
+        ctx.beginPath();
+        if (markers.red.time < view.xmin) {
+            // 左側
+            ctx.moveTo(xRed, markerY);
+            ctx.lineTo(xRed + 8, markerY - 6);
+            ctx.lineTo(xRed + 8, markerY + 6);
+        } else {
+            // 右側
+            ctx.moveTo(xRed, markerY);
+            ctx.lineTo(xRed - 8, markerY - 6);
+            ctx.lineTo(xRed - 8, markerY + 6);
+        }
+        ctx.closePath();
+        ctx.fill();
+    } else {
+        // 画面内の場合、通常の円
+        ctx.fillStyle = '#F44336';
+        ctx.beginPath();
+        ctx.arc(xRed, markerY, markerSize, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
     ctx.fillStyle = '#C62828';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
@@ -408,7 +461,12 @@ canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('pointerleave', endPointer);
 
 function redraw() { if (latestSamples) drawWaveform(latestSamples, latestSR, normalizeChk.checked); else drawAxes(); }
-resetViewBtn.addEventListener('click', () => { Object.assign(view, defaultView); redraw(); });
+resetViewBtn.addEventListener('click', () => { 
+    Object.assign(view, defaultView); 
+    markers.blue.time = defaultMarkers.blue.time;
+    markers.red.time = defaultMarkers.red.time;
+    redraw(); 
+});
 normalizeChk.addEventListener('change', redraw);
 thresholdRange.addEventListener('input', () => { thresholdVal.textContent = parseFloat(thresholdRange.value).toFixed(3); redraw(); });
 prerollRange.addEventListener('input', () => { prerollVal.textContent = prerollRange.value; redraw(); });
