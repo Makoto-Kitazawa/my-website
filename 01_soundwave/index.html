@@ -4,16 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script>
-    (function() {
-      var needsBase = /github\.io$/.test(location.host) && location.pathname.indexOf('/my-website/') === 0;
-      if (needsBase && !document.querySelector('base')) {
-        var base = document.createElement('base');
-        base.setAttribute('href', '/my-website/');
-        document.head.appendChild(base);
-      }
-    })();
-  </script>
+  
   <title>音声波形ビューア v1.1</title>
   <link rel="icon" type="image/svg+xml" href="../_common_/favicon.svg">
   <meta name="project:title" content="音声の波形を見てみよう">

@@ -3,16 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script>
-    (function() {
-      var needsBase = /github\.io$/.test(location.host) && location.pathname.indexOf('/my-website/') === 0;
-      if (needsBase && !document.querySelector('base')) {
-        var base = document.createElement('base');
-        base.setAttribute('href', '/my-website/');
-        document.head.appendChild(base);
-      }
-    })();
-  </script>
+  
   <title>File Tree Links</title>
   <link rel="icon" type="image/svg+xml" href="_common_/favicon.svg">
   <link href="./style.css" rel="stylesheet">

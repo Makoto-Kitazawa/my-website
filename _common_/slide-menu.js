@@ -7,16 +7,9 @@ async function initSlideMenu() {
   // tree-config.json を取得
   let config = {};
   try {
-    var baseEl = document.querySelector('base');
-    var basePath;
-    if (baseEl) {
-      basePath = new URL(baseEl.getAttribute('href'), location.origin).pathname;
-    } else if (location.pathname.indexOf('/my-website/') === 0) {
-      basePath = '/my-website/';
-    } else {
-      basePath = '/';
-    }
-    const response = await fetch(new URL('tree-config.json', location.origin + basePath).toString());
+    var repoBase = location.pathname.split('/')[1] || '';
+    var basePath = (/github\.io$/.test(location.host) && repoBase) ? ('/' + repoBase + '/') : '/';
+    const response = await fetch(location.origin + basePath + 'tree-config.json');
     if (!response.ok) throw new Error('Failed to load config');
     config = await response.json();
   } catch (err) {
