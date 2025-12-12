@@ -414,12 +414,12 @@ canvas.addEventListener('pointermove', (e) => {
         if (zoomMode === 'x' || zoomMode === 'both') xrange = clamp(xrange0 / scale, 0.0001, 2.0);
         if (zoomMode === 'y' || zoomMode === 'both') yrange = clamp(yrange0 / scale, 0.02, 4.0);
         const cData = canvasToData(center.x, center.y);
-        // マーカーが固定されていない場合、画面上の相対位置（0～1）を保持
-        let blueRatio = null, redRatio = null;
-        if (!lockMarkersChk.checked && lastView) {
-            // lastViewでのマーカーの画面上の相対位置を計算（0=左端、1=右端）
-            blueRatio = (markers.blue.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
-            redRatio = (markers.red.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
+        // マーカーが固定されていない場合、ピンチ中心からの距離を保持してスケール
+        let blueDistFromCenter = null, redDistFromCenter = null;
+        if (!lockMarkersChk.checked) {
+            // ピンチ中心からのマーカーの距離を計算
+            blueDistFromCenter = markers.blue.time - cData.t;
+            redDistFromCenter = markers.red.time - cData.t;
         }
         
         view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0);
@@ -427,10 +427,11 @@ canvas.addEventListener('pointermove', (e) => {
         view.ymin = cData.a - (cData.a - lastView.ymin) * (yrange / yrange0);
         view.ymax = view.ymin + yrange;
         
-        // マーカーが固定されていない場合、新しいviewで同じ相対位置に配置
-        if (!lockMarkersChk.checked && blueRatio !== null && redRatio !== null) {
-            markers.blue.time = view.xmin + blueRatio * (view.xmax - view.xmin);
-            markers.red.time = view.xmin + redRatio * (view.xmax - view.xmin);
+        // マーカーが固定されていない場合、ピンチ中心からの距離をズーム倍率に応じてスケール
+        if (!lockMarkersChk.checked && blueDistFromCenter !== null && redDistFromCenter !== null) {
+            const scaleRatio = xrange / xrange0; // ズーム倍率
+            markers.blue.time = cData.t + blueDistFromCenter * scaleRatio;
+            markers.red.time = cData.t + redDistFromCenter * scaleRatio;
         }
         
         redraw();
