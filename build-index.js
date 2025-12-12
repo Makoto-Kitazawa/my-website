@@ -4,6 +4,56 @@ const path = require('path');
 // 設定を読み込み
 const config = JSON.parse(fs.readFileSync('tree-config.json', 'utf8'));
 
+// HTMLエスケープ関数（XSS対策）
+function escapeHTML(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// 入力値の検証とサニタイズ
+function validateAndSanitize(value, type) {
+  if (!value || typeof value !== 'string') return '';
+  
+  // 最大長チェック
+  const maxLengths = {
+    title: 100,
+    category: 50,
+    description: 200,
+    icon: 10,
+    path: 200
+  };
+  
+  const maxLength = maxLengths[type] || 100;
+  let sanitized = value.trim().substring(0, maxLength);
+  
+  // 特定のタイプの追加検証
+  if (type === 'icon') {
+    // 絵文字と基本的な記号のみ許可（ASCII範囲外の文字を許可）
+    // 危険な文字は除外
+    if (/<|>|script|javascript:/i.test(sanitized)) {
+      return '📄'; // デフォルトアイコン
+    }
+  }
+  
+  if (type === 'path') {
+    // パスのサニタイズ - 親ディレクトリ参照を防止
+    sanitized = sanitized.replace(/\.\./g, '').replace(/^\//, '');
+  }
+  
+  // HTMLタグやスクリプトの検出
+  if (/<script|javascript:|on\w+=/i.test(sanitized)) {
+    console.warn(`⚠️  Potential XSS detected in ${type}: ${sanitized.substring(0, 50)}`);
+    return ''; // 危険な内容は空文字列に
+  }
+  
+  return sanitized;
+}
+
 // HTMLファイルからメタタグを読み取る
 function extractMetaFromHTML(htmlPath) {
   try {
@@ -12,19 +62,19 @@ function extractMetaFromHTML(htmlPath) {
     
     // project:title を抽出
     const titleMatch = html.match(/<meta\s+name="project:title"\s+content="([^"]+)"/i);
-    if (titleMatch) meta.title = titleMatch[1];
+    if (titleMatch) meta.title = validateAndSanitize(titleMatch[1], 'title');
     
     // project:category を抽出
     const categoryMatch = html.match(/<meta\s+name="project:category"\s+content="([^"]+)"/i);
-    if (categoryMatch) meta.category = categoryMatch[1];
+    if (categoryMatch) meta.category = validateAndSanitize(categoryMatch[1], 'category');
     
     // project:icon を抽出
     const iconMatch = html.match(/<meta\s+name="project:icon"\s+content="([^"]+)"/i);
-    if (iconMatch) meta.icon = iconMatch[1];
+    if (iconMatch) meta.icon = validateAndSanitize(iconMatch[1], 'icon');
     
     // project:description を抽出
     const descMatch = html.match(/<meta\s+name="project:description"\s+content="([^"]+)"/i);
-    if (descMatch) meta.description = descMatch[1];
+    if (descMatch) meta.description = validateAndSanitize(descMatch[1], 'description');
     
     return meta;
   } catch (error) {
@@ -111,7 +161,7 @@ function generateTreeHTML(groups) {
     html += '            <div class="node">\n';
     html += '              <span class="icon">🗂️</span>\n';
     html += '              <a class="entry" href="#">\n';
-    html += `                <span>${category}</span>\n`;
+    html += `                <span>${escapeHTML(category)}</span>\n`;
     html += '                <span class="tag purple">module</span>\n';
     html += '                <span class="meta">/src</span>\n';
     html += '              </a>\n';
@@ -119,11 +169,14 @@ function generateTreeHTML(groups) {
     html += '            <ul class="children">\n';
     
     for (const item of groups[category]) {
+      // パスの検証とサニタイズ
+      const safePath = validateAndSanitize(item.path, 'path');
+      
       html += '              <li>\n';
       html += '                <div class="node">\n';
-      html += `                  <span class="icon">${item.icon}</span>\n`;
-      html += `                  <a class="entry" href="${item.path}" target="_blank">\n`;
-      html += `                    <span>${item.title}</span>\n`;
+      html += `                  <span class="icon">${escapeHTML(item.icon)}</span>\n`;
+      html += `                  <a class="entry" href="${escapeHTML(safePath)}" target="_blank">\n`;
+      html += `                    <span>${escapeHTML(item.title)}</span>\n`;
       html += '                  </a>\n';
       html += '                </div>\n';
       html += '              </li>\n';
@@ -149,9 +202,9 @@ function generateTreeHTML(groups) {
       const target = link.external ? ' target="_blank"' : '';
       html += '              <li>\n';
       html += '                <div class="node">\n';
-      html += `                  <span class="icon">${link.icon}</span>\n`;
-      html += `                  <a class="entry" href="${link.url}"${target}>\n`;
-      html += `                    <span>${link.title}</span>\n`;
+      html += `                  <span class="icon">${escapeHTML(link.icon)}</span>\n`;
+      html += `                  <a class="entry" href="${escapeHTML(link.url)}"${target}>\n`;
+      html += `                    <span>${escapeHTML(link.title)}</span>\n`;
       html += '                  </a>\n';
       html += '                </div>\n';
       html += '              </li>\n';
