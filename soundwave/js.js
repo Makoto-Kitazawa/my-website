@@ -6,6 +6,7 @@ const lockMarkersChk = document.getElementById('lockMarkersChk');
 const canvas = document.getElementById('canvas');
 const clearBtn = document.getElementById('clearBtn');
 const resetViewBtn = document.getElementById('resetViewBtn');
+const centerMarkersBtn = document.getElementById('centerMarkersBtn');
 const srInfo = document.getElementById('srInfo');
 const thresholdRange = document.getElementById('thresholdRange');
 const thresholdVal = document.getElementById('thresholdVal');
@@ -414,12 +415,12 @@ canvas.addEventListener('pointermove', (e) => {
         if (zoomMode === 'x' || zoomMode === 'both') xrange = clamp(xrange0 / scale, 0.0001, 2.0);
         if (zoomMode === 'y' || zoomMode === 'both') yrange = clamp(yrange0 / scale, 0.02, 4.0);
         const cData = canvasToData(center.x, center.y);
-        // マーカーが固定されていない場合、ピンチ中心からの距離を保持してスケール
-        let blueDistFromCenter = null, redDistFromCenter = null;
-        if (!lockMarkersChk.checked) {
-            // ピンチ中心からのマーカーの距離を計算
-            blueDistFromCenter = markers.blue.time - cData.t;
-            redDistFromCenter = markers.red.time - cData.t;
+        // マーカーが固定されていない場合、画面上の相対位置を保持
+        let blueRatio = null, redRatio = null;
+        if (!lockMarkersChk.checked && lastView) {
+            // lastViewでのマーカーの画面上の相対位置を計算（0=左端、0.5=中央、1=右端）
+            blueRatio = (markers.blue.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
+            redRatio = (markers.red.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
         }
         
         view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0);
@@ -427,11 +428,10 @@ canvas.addEventListener('pointermove', (e) => {
         view.ymin = cData.a - (cData.a - lastView.ymin) * (yrange / yrange0);
         view.ymax = view.ymin + yrange;
         
-        // マーカーが固定されていない場合、ピンチ中心からの距離をズーム倍率に応じてスケール
-        if (!lockMarkersChk.checked && blueDistFromCenter !== null && redDistFromCenter !== null) {
-            const scaleRatio = xrange / xrange0; // ズーム倍率
-            markers.blue.time = cData.t + blueDistFromCenter * scaleRatio;
-            markers.red.time = cData.t + redDistFromCenter * scaleRatio;
+        // マーカーが固定されていない場合、新しいviewで同じ相対位置に配置
+        if (!lockMarkersChk.checked && blueRatio !== null && redRatio !== null) {
+            markers.blue.time = view.xmin + blueRatio * (view.xmax - view.xmin);
+            markers.red.time = view.xmin + redRatio * (view.xmax - view.xmin);
         }
         
         redraw();
@@ -467,6 +467,15 @@ resetViewBtn.addEventListener('click', () => {
     markers.blue.time = defaultMarkers.blue.time;
     markers.red.time = defaultMarkers.red.time;
     redraw(); 
+});
+centerMarkersBtn.addEventListener('click', () => {
+    // 現在のviewの中央を計算
+    const center = (view.xmin + view.xmax) / 2;
+    const currentDiff = markers.red.time - markers.blue.time;
+    // 中央を中心に2つのマーカーを配置
+    markers.blue.time = center - currentDiff / 2;
+    markers.red.time = center + currentDiff / 2;
+    redraw();
 });
 normalizeChk.addEventListener('change', redraw);
 thresholdRange.addEventListener('input', () => { thresholdVal.textContent = parseFloat(thresholdRange.value).toFixed(3); redraw(); });
