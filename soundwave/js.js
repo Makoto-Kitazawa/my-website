@@ -346,12 +346,10 @@ canvas.addEventListener('pointermove', (e) => {
         view.xmin = lastView.xmin + dxT;
         view.xmax = lastView.xmax + dxT;
         
-        // マーカーが固定されていない場合、lastViewからの相対位置を保つ
-        if (!lockMarkersChk.checked && lastView) {
-            const blueRelative = (markers.blue.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
-            const redRelative = (markers.red.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
-            markers.blue.time = view.xmin + blueRelative * (view.xmax - view.xmin);
-            markers.red.time = view.xmin + redRelative * (view.xmax - view.xmin);
+        // マーカーが固定されていない場合、画面上の位置を保つ（viewと同じ量移動）
+        if (!lockMarkersChk.checked) {
+            markers.blue.time += dxT;
+            markers.red.time += dxT;
         }
         
         redraw();
@@ -368,12 +366,11 @@ canvas.addEventListener('pointermove', (e) => {
         view.ymin = cData.a - (cData.a - lastView.ymin) * (yrange / yrange0);
         view.ymax = view.ymin + yrange;
         
-        // マーカーが固定されていない場合、lastViewからの相対位置を保つ
+        // マーカーが固定されていない場合、画面上の位置を保つ（viewの変化量を加算）
         if (!lockMarkersChk.checked && lastView) {
-            const blueRelative = (markers.blue.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
-            const redRelative = (markers.red.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
-            markers.blue.time = view.xmin + blueRelative * (view.xmax - view.xmin);
-            markers.red.time = view.xmin + redRelative * (view.xmax - view.xmin);
+            const dxT = view.xmin - lastView.xmin;
+            markers.blue.time += dxT;
+            markers.red.time += dxT;
         }
         
         redraw();
