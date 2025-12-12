@@ -1,0 +1,168 @@
+/* ===================================
+   ルートスタイルのベース
+   /index.html のスタイルを参考にした
+   ダークテーマの背景色とプログラマー風デザイン
+   =================================== */
+
+:root {
+  --bg: #2b2b2b;
+  --panel: #333842;
+  --line: #454b56;
+  --text: #e6e6e6;
+  --muted: #9aa0a6;
+  --accent: #8ab4f8;
+  --hover: #1f6feb;
+  --link: #c5d1ff;
+  --code-green: #98c379;
+  --code-purple: #c678dd;
+  --code-yellow: #e5c07b;
+}
+
+* { 
+  box-sizing: border-box; 
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+}
+
+/* ===================================
+   各プロジェクトページで使用可能な
+   共通スタイル
+   =================================== */
+
+h1, h2, h3 {
+  color: var(--text);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+h1 {
+  margin: 0 0 16px;
+}
+
+button {
+  border: 1px solid var(--line);
+  background: #262a33;
+  color: var(--text);
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, transform 80ms ease;
+}
+
+button:hover { 
+  border-color: var(--accent); 
+  color: var(--accent); 
+}
+
+button:active { 
+  transform: translateY(1px); 
+}
+
+button.primary {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+button.primary:hover {
+  background: var(--hover);
+  border-color: var(--hover);
+}
+
+button.secondary {
+  background: var(--panel);
+}
+
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+label {
+  color: var(--text);
+  font-size: 14px;
+}
+
+/* コンテナ（メインコンテンツエリア） */
+.container, .app, main {
+  max-width: 820px;
+  margin: 48px auto;
+  padding: 24px;
+  background: linear-gradient(180deg, #2e3440 0%, var(--panel) 100%);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+}
+
+/* ステータス表示 */
+.status {
+  font-size: 12px;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 12px;
+}
+
+/* コントロールパネル */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.controls .row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.controls .group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* 注釈・説明文 */
+.note, p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Canvas要素 */
+canvas {
+  display: block;
+  margin: 16px auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #1e1e1e;
+}
+
+/* 最終更新表示（フッター） */
+.last-updated {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  font-size: 12px;
+  color: #94a3b8;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 4px 8px;
+  border-radius: 6px;
+  user-select: none;
+  pointer-events: none;
+  z-index: 2;
+}

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>縦波と横波のシミュレーション</title>
+  <meta name="project:title" content="縦波と横波の違いを見てみよう">
+  <meta name="project:category" content="物理用ファイル">
+  <meta name="project:icon" content="📊">
+  <meta name="project:description" content="縦波と横波の振動パターンを可視化">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="/_common_/style_common.css">
+</head>
+<body>
+  <main class="app" role="application">
+    <h1>縦波と横波のシミュレーション</h1>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label>波の種類:</label>
+        <label><input type="radio" name="waveType" value="longitudinal" checked> 縦波（疎密波）</label>
+        <label><input type="radio" name="waveType" value="transverse"> 横波</label>
+      </div>
+      
+      <div class="control-group">
+        <label for="amplitudeSlider">振幅: <span id="amplitudeValue">30</span>px</label>
+        <input type="range" id="amplitudeSlider" min="5" max="60" value="30" step="5">
+      </div>
+      
+      <div class="control-group">
+        <label for="frequencySlider">振動数: <span id="frequencyValue">1.0</span>Hz</label>
+        <input type="range" id="frequencySlider" min="0.2" max="3.0" value="1.0" step="0.1">
+      </div>
+      
+      <div class="control-group">
+        <button id="playPauseBtn">⏸ 一時停止</button>
+        <button id="resetBtn">🔄 リセット</button>
+      </div>
+    </div>
+
+    <canvas id="waveCanvas" width="800" height="400"></canvas>
+    
+    <p class="note">
+      <strong>縦波</strong>：媒質が波の進行方向に平行に振動します（音波など）<br>
+      <strong>横波</strong>：媒質が波の進行方向に垂直に振動します（光波、水面波など）
+    </p>
+  </main>
+
+  <!-- 最終更新表示 -->
+  <div class="last-updated" id="lastUpdated"></div>
+
+  <script src="js.js" charset="utf-8"></script>
+  <script src="/_common_/js_common.js" charset="utf-8"></script>
+</body>
+</html>

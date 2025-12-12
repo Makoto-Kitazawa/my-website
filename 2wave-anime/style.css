@@ -1,0 +1,104 @@
+/* 基本スタイルは/_common_/style_common.cssから継承 */
+
+body {
+  margin: 0;
+  padding: 20px;
+  background: #2b2b2b;
+  color: #e6e6e6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Courier New", monospace;
+}
+
+.app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+  background: linear-gradient(180deg, #2e3440 0%, #333842 100%);
+  border: 1px solid #454b56;
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+}
+
+h1 {
+  text-align: center;
+  margin: 0 0 24px;
+  color: #e6e6e6;
+  font-weight: 600;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.control-group label {
+  color: #e6e6e6;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+input[type="range"] {
+  flex: 1;
+  min-width: 150px;
+  accent-color: #8ab4f8;
+}
+
+input[type="radio"] {
+  accent-color: #8ab4f8;
+  margin-right: 4px;
+}
+
+button {
+  border: 1px solid #454b56;
+  background: #262a33;
+  color: #e6e6e6;
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, transform 80ms ease;
+}
+
+button:hover {
+  border-color: #8ab4f8;
+  color: #8ab4f8;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+#waveCanvas {
+  display: block;
+  margin: 0 auto;
+  border: 1px solid #454b56;
+  border-radius: 8px;
+  background: #1e1e1e;
+  max-width: 100%;
+}
+
+.note {
+  margin-top: 20px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-left: 3px solid #8ab4f8;
+  border-radius: 4px;
+  color: #9aa0a6;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.note strong {
+  color: #e6e6e6;
+}
