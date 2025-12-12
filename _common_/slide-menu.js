@@ -7,8 +7,16 @@ async function initSlideMenu() {
   // tree-config.json を取得
   let config = {};
   try {
-    const configUrl = new URL('tree-config.json', document.baseURI).toString();
-    const response = await fetch(configUrl);
+    var baseEl = document.querySelector('base');
+    var basePath;
+    if (baseEl) {
+      basePath = new URL(baseEl.getAttribute('href'), location.origin).pathname;
+    } else if (location.pathname.indexOf('/my-website/') === 0) {
+      basePath = '/my-website/';
+    } else {
+      basePath = '/';
+    }
+    const response = await fetch(new URL('tree-config.json', location.origin + basePath).toString());
     if (!response.ok) throw new Error('Failed to load config');
     config = await response.json();
   } catch (err) {
