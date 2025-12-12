@@ -5,11 +5,10 @@
 
 async function initSlideMenu() {
   // tree-config.json を取得
+  const siteRoot = detectSiteRoot();
   let config = {};
   try {
-    var repoBase = location.pathname.split('/')[1] || '';
-    var basePath = (/github\.io$/.test(location.host) && repoBase) ? ('/' + repoBase + '/') : '/';
-    const response = await fetch(location.origin + basePath + 'tree-config.json');
+    const response = await fetch(location.origin + siteRoot + 'tree-config.json');
     if (!response.ok) throw new Error('Failed to load config');
     config = await response.json();
   } catch (err) {
@@ -48,7 +47,7 @@ async function initSlideMenu() {
   
   // ホームへのリンク
   const homeLink = document.createElement('a');
-  homeLink.href = '../index.html';
+  homeLink.href = siteRoot + 'index.html';
   homeLink.className = 'slide-menu-item';
   homeLink.innerHTML = '🏠 ホーム';
   menuContent.appendChild(homeLink);
@@ -66,7 +65,7 @@ async function initSlideMenu() {
     for (const [folderName, projectInfo] of Object.entries(config.metadata)) {
       // フォルダ名からパスを構築
       // フォルダ名が "soundwave" なら "../01_soundwave/index.html" など
-      const folderPath = getProjectPath(folderName);
+      const folderPath = getProjectPath(folderName, siteRoot);
       
       const listItem = document.createElement('li');
       const link = document.createElement('a');
@@ -183,7 +182,7 @@ async function initSlideMenu() {
  * メタデータキーからプロジェクトパスを生成
  * "soundwave" -> "../01_soundwave/index.html"
  */
-function getProjectPath(folderName) {
+function getProjectPath(folderName, siteRoot) {
   // フォルダ名パターンマッピング
   const folderMap = {
     'soundwave': '01_soundwave',
@@ -194,7 +193,14 @@ function getProjectPath(folderName) {
   };
   
   const folder = folderMap[folderName] || folderName;
-  return `../${folder}/index.html`;
+  return `${siteRoot}${folder}/index.html`;
+}
+
+function detectSiteRoot() {
+  const isGh = /github\.io$/i.test(location.host);
+  const segs = location.pathname.split('/').filter(Boolean);
+  const repo = segs.length > 0 ? segs[0] : '';
+  return (isGh && repo) ? `/${repo}/` : '/';
 }
 
 // DOMが読み込まれたら初期化
