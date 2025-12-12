@@ -26,6 +26,23 @@ async function initSlideMenu() {
   menuBtn.className = 'slide-menu-toggle';
   menuBtn.setAttribute('aria-label', 'メニューを開く');
   menuBtn.setAttribute('aria-expanded', 'false');
+  // CSSが読み込まれない環境向けのフェールセーフ（簡易表示）
+  try {
+    const testStyle = getComputedStyle(menuBtn);
+    if (!testStyle || !testStyle.position || testStyle.position === 'static') {
+      menuBtn.textContent = '≡';
+      menuBtn.style.position = 'fixed';
+      menuBtn.style.top = '0';
+      menuBtn.style.right = '0';
+      menuBtn.style.width = '48px';
+      menuBtn.style.height = '48px';
+      menuBtn.style.zIndex = '9999';
+      menuBtn.style.background = '#666';
+      menuBtn.style.color = '#fff';
+      menuBtn.style.border = 'none';
+      menuBtn.style.borderRadius = '0 0 0 12px';
+    }
+  } catch(_) {}
   
   const menuOverlay = document.createElement('div');
   menuOverlay.id = 'slide-menu-overlay';
