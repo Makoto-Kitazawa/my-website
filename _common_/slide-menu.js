@@ -7,14 +7,22 @@ async function initSlideMenu() {
   // tree-config.json を取得
   let config = {};
   try {
-    // ページの深さに応じてパスを動的に計算
-    // プロジェクトフォルダ内（深さ1）なら../ 、ホームページ（深さ0）なら./
-    const pathDepth = window.location.pathname.split('/').filter(p => p && !p.includes('.')).length;
-    const configPath = pathDepth > 1 ? '../tree-config.json' : './tree-config.json';
+    // ドキュメントのベースパスを取得
+    const basePath = document.querySelector('base')?.href || window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+    
+    // ルート相対パスでtree-config.jsonを取得
+    // GitHub Pagesでも、ローカルサーバーでも動作する
+    const configPath = new URL('/tree-config.json', basePath).href;
     
     const response = await fetch(configPath);
-    if (!response.ok) throw new Error('Failed to load config');
-    config = await response.json();
+    if (!response.ok) {
+      // フォールバック: 相対パスで再度試行
+      const relativeResponse = await fetch('../tree-config.json');
+      if (!relativeResponse.ok) throw new Error('Failed to load config');
+      config = await relativeResponse.json();
+    } else {
+      config = await response.json();
+    }
   } catch (err) {
     console.warn('Failed to load tree-config.json, using defaults:', err);
     config = {
