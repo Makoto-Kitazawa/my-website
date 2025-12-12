@@ -21,6 +21,13 @@ let latestSR = 48000;
 const view = { xmin: 0, xmax: 1, ymin: -1, ymax: 1 };
 const defaultView = { xmin: 0, xmax: 1, ymin: -1, ymax: 1 };
 
+// マーカー管理
+const markers = {
+    blue: { time: 0.1, isDragging: false },
+    red: { time: 0.3, isDragging: false }
+};
+let activeMarker = null;
+
 let zoomMode = 'x';  // デフォルトは横軸のみ（HTMLの選択と一致）
 zoomModeSel.addEventListener('change', () => { zoomMode = zoomModeSel.value; });
 
@@ -66,7 +73,81 @@ function drawAxes() {
     for (let a = Math.ceil(view.ymin / yStep) * yStep; a <= view.ymax + 1e-12; a += yStep) { const y = y0 + (1 - (a - view.ymin) / (view.ymax - view.ymin)) * plotH; ctx.fillText(formatTick(a, yStep), x0 - 6, y); }
     ctx.textAlign = 'center'; ctx.save(); ctx.fillText('時間 [s]', (x0+x1)/2, y1 + 40); ctx.translate(18, (y0+y1)/2); ctx.rotate(-Math.PI/2); ctx.fillText('音圧（相対振幅）', 0, 0); ctx.restore();
 
+    // マーカーの縦線を描画（プロット領域内）
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x0, y0, plotW, plotH);
+    ctx.clip();
+    
+    // 青マーカーの縦線
+    const xBlue = x0 + (markers.blue.time - view.xmin) / (view.xmax - view.xmin) * plotW;
+    if (xBlue >= x0 && xBlue <= x1) {
+        ctx.strokeStyle = '#2196F3';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.beginPath();
+        ctx.moveTo(xBlue, y0);
+        ctx.lineTo(xBlue, y1);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    
+    // 赤マーカーの縦線
+    const xRed = x0 + (markers.red.time - view.xmin) / (view.xmax - view.xmin) * plotW;
+    if (xRed >= x0 && xRed <= x1) {
+        ctx.strokeStyle = '#F44336';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 3]);
+        ctx.beginPath();
+        ctx.moveTo(xRed, y0);
+        ctx.lineTo(xRed, y1);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    
+    ctx.restore();
+    
+    // 時間差を表示（グラフの上部）
+    const timeDiff = Math.abs(markers.red.time - markers.blue.time);
+    ctx.fillStyle = '#334155';
+    ctx.font = `bold ${fontSize + 2}px system-ui`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`時間差: ${timeDiff.toFixed(4)} s`, (x0 + x1) / 2, y0 - 25);
+    
+    // マーカーをグラフ下に描画（軸のみ表示時）
+    drawMarkers(x0, y1, plotW);
+
     return {x0,y0,x1,y1, plotW, plotH};
+}
+
+function drawMarkers(x0, y1, plotW) {
+    const markerY = y1 + 30; // グラフの下30pxの位置
+    const markerSize = 8;
+    
+    // 青マーカー
+    const xBlue = x0 + (markers.blue.time - view.xmin) / (view.xmax - view.xmin) * plotW;
+    ctx.fillStyle = '#2196F3';
+    ctx.beginPath();
+    ctx.arc(xBlue, markerY, markerSize, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1976D2';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.font = '10px system-ui';
+    ctx.fillText(markers.blue.time.toFixed(4) + 's', xBlue, markerY + markerSize + 2);
+    
+    // 赤マーカー
+    const xRed = x0 + (markers.red.time - view.xmin) / (view.xmax - view.xmin) * plotW;
+    ctx.fillStyle = '#F44336';
+    ctx.beginPath();
+    ctx.arc(xRed, markerY, markerSize, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#C62828';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.font = '10px system-ui';
+    ctx.fillText(markers.red.time.toFixed(4) + 's', xRed, markerY + markerSize + 2);
 }
 
 function drawWaveform(samples, sampleRate, normalize=false) {
@@ -96,6 +177,9 @@ function drawWaveform(samples, sampleRate, normalize=false) {
     if (!moved) { ctx.moveTo(x, y); moved = true; } else { ctx.lineTo(x, y); }
     }
     if (moved) ctx.stroke(); ctx.restore();
+    
+    // マーカーをグラフ下に描画
+    drawMarkers(x0, y1, plotW);
 }
 
 // -------------- ズーム＆パン（Pointer Events） --------------
@@ -126,17 +210,46 @@ canvas.addEventListener('pointerdown', (e) => {
     pointers.set(e.pointerId, {x: e.offsetX, y: e.offsetY});
     
     if (pointers.size === 1) {
-        lastView = {...view};
-        const now = performance.now();
-        if (now - doubleTapTimer < 250) {
-            Object.assign(view, defaultView);
-            redraw();
+        // マーカー領域のクリック判定（グラフの下10%の領域）
+        const displayHeight = canvas.height / (window.devicePixelRatio || 1);
+        const displayWidth = canvas.width / (window.devicePixelRatio || 1);
+        const margin = Math.min(56, displayWidth * 0.08);
+        const plotW = displayWidth - margin*2, plotH = displayHeight - margin*2;
+        const x0 = margin, y1 = margin + plotH;
+        
+        const markerAreaY = y1 + 30; // マーカー領域のY位置
+        const markerClickRadius = 20; // クリック判定範囲
+        
+        // 青マーカーの判定
+        const xBlue = x0 + (markers.blue.time - view.xmin) / (view.xmax - view.xmin) * plotW;
+        if (Math.abs(e.offsetY - markerAreaY) < markerClickRadius && Math.abs(e.offsetX - xBlue) < markerClickRadius) {
+            activeMarker = 'blue';
+            markers.blue.isDragging = true;
         }
-        doubleTapTimer = now;
+        
+        // 赤マーカーの判定
+        const xRed = x0 + (markers.red.time - view.xmin) / (view.xmax - view.xmin) * plotW;
+        if (Math.abs(e.offsetY - markerAreaY) < markerClickRadius && Math.abs(e.offsetX - xRed) < markerClickRadius) {
+            activeMarker = 'red';
+            markers.red.isDragging = true;
+        }
+        
+        if (!activeMarker) {
+            lastView = {...view};
+            const now = performance.now();
+            if (now - doubleTapTimer < 250) {
+                Object.assign(view, defaultView);
+                redraw();
+            }
+            doubleTapTimer = now;
+        }
     }
     
     if (pointers.size === 2) {
         // 2本指になった瞬間に初期値を記録
+        activeMarker = null;
+        markers.blue.isDragging = false;
+        markers.red.isDragging = false;
         const {center, dist} = getCenterAndDist();
         lastCenter = center;
         lastDist = dist;
@@ -155,20 +268,34 @@ canvas.addEventListener('pointermove', (e) => {
     const pts = Array.from(pointers.values());
 
     if (pts.length === 1) {
-        // 1本指パン（前回からの相対移動を現在のviewに累積）
-        const deltaX = curr.x - prev.x, deltaY = curr.y - prev.y;
-        const xrange = view.xmax - view.xmin, yrange = view.ymax - view.ymin;
-        const displayWidth = canvas.width / (window.devicePixelRatio || 1);
-        const displayHeight = canvas.height / (window.devicePixelRatio || 1);
-        const margin = Math.min(56, displayWidth * 0.08);
-        const plotW = displayWidth - margin*2, plotH = displayHeight - margin*2;
-        const dxT = -deltaX / plotW * xrange;
-        const dyA = deltaY / plotH * yrange;
-        view.xmin += dxT;
-        view.xmax += dxT;
-        view.ymin += dyA;
-        view.ymax += dyA;
-        redraw();
+        // マーカーをドラッグ中
+        if (activeMarker) {
+            const displayWidth = canvas.width / (window.devicePixelRatio || 1);
+            const displayHeight = canvas.height / (window.devicePixelRatio || 1);
+            const margin = Math.min(56, displayWidth * 0.08);
+            const plotW = displayWidth - margin*2;
+            const x0 = margin;
+            
+            // X座標から時間を計算
+            const newTime = view.xmin + (curr.x - x0) / plotW * (view.xmax - view.xmin);
+            markers[activeMarker].time = newTime;
+            redraw();
+        } else {
+            // 1本指パン（前回からの相対移動を現在のviewに累積）
+            const deltaX = curr.x - prev.x, deltaY = curr.y - prev.y;
+            const xrange = view.xmax - view.xmin, yrange = view.ymax - view.ymin;
+            const displayWidth = canvas.width / (window.devicePixelRatio || 1);
+            const displayHeight = canvas.height / (window.devicePixelRatio || 1);
+            const margin = Math.min(56, displayWidth * 0.08);
+            const plotW = displayWidth - margin*2, plotH = displayHeight - margin*2;
+            const dxT = -deltaX / plotW * xrange;
+            const dyA = deltaY / plotH * yrange;
+            view.xmin += dxT;
+            view.xmax += dxT;
+            view.ymin += dyA;
+            view.ymax += dyA;
+            redraw();
+        }
     } else if (pts.length >= 2) {
     const {center, dist} = getCenterAndDist();
     if (!center || !lastCenter || !lastDist) return;
@@ -231,6 +358,11 @@ function endPointer(e) {
     pointers.delete(e.pointerId);
     if (pointers.size < 2) {
         gestureMode = null; // リセット
+    }
+    // マーカードラッグの終了
+    if (activeMarker) {
+        markers[activeMarker].isDragging = false;
+        activeMarker = null;
     }
     lastView = {...view};
     if (pointers.size >= 2) {
