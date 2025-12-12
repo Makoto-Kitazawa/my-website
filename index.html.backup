@@ -42,7 +42,7 @@
           <li>
             <div class="node">
               <span class="icon">🗂️</span>
-              <a class="entry" href="#">
+              <a class="entry" href="physics/">
                 <span>物理用ファイル</span>
                 <span class="tag purple">module</span>
                 <span class="meta">/src</span>
@@ -52,19 +52,12 @@
               <li>
                 <div class="node">
                   <span class="icon">📄</span>
-                  <a class="entry" href="beatanime/index.html" target="_blank">
-                    <span>うなりを視覚的に見てみよう</span>
+                  <a class="entry" href="soundwave/index.html" target="_blank">
+                    <span>音声の波形を見てみよう</span>
                   </a>
                 </div>
               </li>
-              <li>
-                <div class="node">
-                  <span class="icon">📄</span>
-                  <a class="entry" href="doppler-effect/index.html" target="_blank">
-                    <span>ドップラー効果を視覚的に見てみよう</span>
-                  </a>
-                </div>
-              </li>
+              <!-- -->
               <li>
                 <div class="node">
                   <span class="icon">📄</span>
@@ -73,20 +66,31 @@
                   </a>
                 </div>
               </li>
+              <!-- -->
               <li>
                 <div class="node">
                   <span class="icon">📄</span>
-                  <a class="entry" href="soundwave/index.html" target="_blank">
-                    <span>音声の波形を見てみよう</span>
+                  <a class="entry" href="doppler-effect/index.html" target="_blank">
+                    <span>ドップラー効果を視覚的に見てみよう</span>
                   </a>
                 </div>
               </li>
+              <!-- -->
+              <li>
+                <div class="node">
+                  <span class="icon">📄</span>
+                  <a class="entry" href="beatanime/index.html" target="_blank">
+                    <span>うなりを視覚的に見てみよう</span>
+                  </a>
+                </div>
+              </li>
+              <!-- -->
             </ul>
           </li>
           <li>
             <div class="node">
               <span class="icon">🗂️</span>
-              <a class="entry" href="#">
+              <a class="entry" href="etc/">
                 <span>その他</span>
                 <span class="meta">/etc</span>
               </a>
@@ -112,7 +116,6 @@
           </li>
         </ul>
       </li>
-
     </ul>
   </main>
 
@@ -131,3 +134,4 @@
     document.getElementById('lastUpdated').textContent = `最終更新：${yyyy}/${mm}/${dd} ${hh}:${min}`;
   </script>
 </html>
+
