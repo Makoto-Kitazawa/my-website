@@ -7,14 +7,7 @@ async function initSlideMenu() {
   // tree-config.json を取得
   let config = {};
   try {
-    // まず ../tree-config.json を試す（プロジェクトフォルダ内のページから）
-    let response = await fetch('../tree-config.json');
-    
-    // 失敗時は ./tree-config.json を試す（ホームページから）
-    if (!response.ok) {
-      response = await fetch('./tree-config.json');
-    }
-    
+    const response = await fetch('tree-config.json');
     if (!response.ok) throw new Error('Failed to load config');
     config = await response.json();
   } catch (err) {
