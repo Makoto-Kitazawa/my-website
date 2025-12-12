@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 背景 -->
+  <rect width="64" height="64" fill="#2e3440" rx="8"/>
+  
+  <!-- 波形（背景） -->
+  <path d="M 4 32 Q 12 24, 20 32 T 36 32 T 52 32 T 68 32" 
+        stroke="#8ab4f8" 
+        stroke-width="3" 
+        fill="none" 
+        opacity="0.4"/>
+  
+  <!-- P文字 -->
+  <text x="32" y="48" 
+        font-family="Arial, sans-serif" 
+        font-size="42" 
+        font-weight="bold" 
+        fill="#e6e6e6" 
+        text-anchor="middle">P</text>
+</svg>

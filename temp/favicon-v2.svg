@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 背景 -->
+  <rect width="64" height="64" fill="#2e3440" rx="8"/>
+  
+  <!-- P文字（太字） -->
+  <path d="M 18 12 L 18 52 L 24 52 L 24 36 L 36 36 C 44 36, 48 32, 48 24 C 48 16, 44 12, 36 12 Z M 24 18 L 34 18 C 38 18, 42 20, 42 24 C 42 28, 38 30, 34 30 L 24 30 Z" 
+        fill="#8ab4f8"/>
+  
+  <!-- 波形（右側に流れる） -->
+  <path d="M 48 24 Q 52 20, 56 24 T 64 24" 
+        stroke="#e6e6e6" 
+        stroke-width="2.5" 
+        fill="none" 
+        stroke-linecap="round"/>
+</svg>

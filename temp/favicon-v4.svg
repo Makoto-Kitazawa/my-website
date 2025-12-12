@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 背景 -->
+  <rect width="64" height="64" fill="#2e3440" rx="8"/>
+  
+  <!-- 波形グリッド（背景パターン） -->
+  <path d="M 0 20 Q 8 16, 16 20 T 32 20 T 48 20 T 64 20" 
+        stroke="#454b56" stroke-width="1.5" fill="none" opacity="0.5"/>
+  <path d="M 0 44 Q 8 40, 16 44 T 32 44 T 48 44 T 64 44" 
+        stroke="#454b56" stroke-width="1.5" fill="none" opacity="0.5"/>
+  
+  <!-- メイン波形（強調） -->
+  <path d="M 0 32 Q 8 24, 16 32 T 32 32 T 48 32 T 64 32" 
+        stroke="#8ab4f8" stroke-width="3" fill="none"/>
+  
+  <!-- P文字（白、太字） -->
+  <text x="32" y="48" 
+        font-family="Arial, sans-serif" 
+        font-size="40" 
+        font-weight="bold" 
+        fill="#ffffff" 
+        text-anchor="middle" 
+        stroke="#2e3440" 
+        stroke-width="1">P</text>
+</svg>
