@@ -44,6 +44,14 @@ function hideInstructions() {
 
 // 移動履歴
 let moveHistory = [];
+let isNorm1Mode = false;
+
+// ノルムモードの切り替え
+document.getElementById('norm1Mode').addEventListener('change', (e) => {
+  isNorm1Mode = e.target.checked;
+  updateDisplacement();
+  draw();
+});
 
 function addToHistory(displacement, distance) {
   moveHistory.push({
@@ -159,7 +167,16 @@ function updateDisplacement() {
   
   const dx = circle.endPos.x - circle.startPos.x;
   const dy = circle.endPos.y - circle.startPos.y;
-  const magnitude = Math.sqrt(dx * dx + dy * dy);
+  
+  // ノルムの計算（L1またはL2）
+  let magnitude;
+  if (isNorm1Mode) {
+    // L1ノルム（マンハッタン距離）
+    magnitude = Math.abs(dx) + Math.abs(dy);
+  } else {
+    // L2ノルム（ユークリッド距離）
+    magnitude = Math.sqrt(dx * dx + dy * dy);
+  }
   
   // ピクセル座標を実座標に変換（グリッド1マス = 1単位）
   const realDx = dx / GRID_SIZE;
@@ -321,8 +338,8 @@ function drawCircle() {
 // 軌跡の描画
 function drawTrajectory() {
   ctx.strokeStyle = '#50c878';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([5, 5]);
+  ctx.lineWidth = 12;
+  ctx.setLineDash([10, 8]);
   
   ctx.beginPath();
   for (let i = 0; i < circle.trajectory.length; i++) {
@@ -349,7 +366,7 @@ function drawDisplacementArrow() {
   
   ctx.strokeStyle = '#4a90e2';
   ctx.fillStyle = '#4a90e2';
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 15;
   
   // 矢印の線
   ctx.beginPath();
@@ -359,7 +376,7 @@ function drawDisplacementArrow() {
   
   // 矢印の先端
   const angle = Math.atan2(endY - startY, endX - startX);
-  const arrowSize = 15;
+  const arrowSize = 40;
   
   ctx.beginPath();
   ctx.moveTo(endX, endY);

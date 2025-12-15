@@ -73,6 +73,31 @@ canvas:active {
   background: #2d6aa3;
 }
 
+.norm-switch {
+  margin-bottom: 12px;
+  padding: 8px;
+  background: rgba(74, 144, 226, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(74, 144, 226, 0.3);
+}
+
+.norm-switch label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 12px;
+  color: #ccc;
+}
+
+.norm-switch input[type="checkbox"] {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.norm-switch span {
+  user-select: none;
+}
+
 .displacement-info {
   margin-top: 8px;
 }
