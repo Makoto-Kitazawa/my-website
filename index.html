@@ -100,7 +100,7 @@
               <li>
                 <div class="node">
                   <span class="icon">📊</span>
-                  <a class="entry" href="07_g-acceleration/index.html" target="_blank">
+                  <a class="entry project-link" href="07_g-acceleration/index.html" data-project-path="07_g-acceleration/index.html" target="_blank">
                     <span>加速度を視覚的に見てみよう</span>
                   </a>
                 </div>
@@ -146,12 +146,53 @@
 </body>
     <script>
       // 最終更新日を表示
-    const updated = new Date(document.lastModified);
-    const yyyy = updated.getFullYear();
-    const mm = String(updated.getMonth() + 1).padStart(2, '0');
-    const dd = String(updated.getDate()).padStart(2, '0');
-    const hh = String(updated.getHours()).padStart(2, '0');
-    const min = String(updated.getMinutes()).padStart(2, '0');
-    document.getElementById('lastUpdated').textContent = `最終更新：${yyyy}/${mm}/${dd} ${hh}:${min}`;
-  </script>
+      const updated = new Date(document.lastModified);
+      const yyyy = updated.getFullYear();
+      const mm = String(updated.getMonth() + 1).padStart(2, '0');
+      const dd = String(updated.getDate()).padStart(2, '0');
+      const hh = String(updated.getHours()).padStart(2, '0');
+      const min = String(updated.getMinutes()).padStart(2, '0');
+      document.getElementById('lastUpdated').textContent = `最終更新：${yyyy}/${mm}/${dd} ${hh}:${min}`;
+
+      // プロジェクトのステータスを自動判定してリンク表示を制御
+      async function initializeProjectLinks() {
+        const projectLinks = document.querySelectorAll('.project-link');
+        
+        for (const link of projectLinks) {
+          const projectPath = link.getAttribute('data-project-path');
+          if (!projectPath) continue;
+          
+          try {
+            const response = await fetch(projectPath);
+            const html = await response.text();
+            
+            // メタタグから status を抽出
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const statusMeta = doc.querySelector('meta[name="project:status"]');
+            const status = statusMeta ? statusMeta.getAttribute('content') : 'ready';
+            
+            // ステータスに応じてリンク表示を制御
+            if (status === 'preparing') {
+              link.href = '#';
+              link.title = '準備中';
+              link.style.opacity = '0.6';
+              link.style.cursor = 'not-allowed';
+              link.addEventListener('click', (e) => e.preventDefault());
+            }
+            // 'ready' の場合は元のhrefを保持
+          } catch (error) {
+            console.error(`Failed to fetch ${projectPath}:`, error);
+            // エラーの場合も元のhrefを保持
+          }
+        }
+      }
+      
+      // DOM読み込み後に実行
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeProjectLinks);
+      } else {
+        initializeProjectLinks();
+      }
+    </script>
 </html>
