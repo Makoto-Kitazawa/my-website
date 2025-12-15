@@ -28,6 +28,37 @@ let samplingInterval = null;
 const SAMPLING_RATE = 500; // 1Hz = 1000ms
 let zoomScale = 1;
 
+// デバイスの向き判定関数
+function getDeviceOrientation() {
+  // window.orientationは非推奨だが、互換性のため使用
+  // 代わりにscreen.orientationを優先的に使用
+  if (screen.orientation && screen.orientation.type) {
+    const orientation = screen.orientation.type;
+    return orientation.includes('landscape') ? 'landscape' : 'portrait';
+  }
+  // フォールバック: window.innerWidth/Heightで判定
+  return window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+}
+
+// デバイス向きに応じた加速度のマッピング
+function mapAccelerationToScreen(rawAccelX, rawAccelY) {
+  const orientation = getDeviceOrientation();
+  
+  if (orientation === 'landscape') {
+    // 横向き：デバイスのx軸とy軸を入れ替え、y軸を反転
+    return {
+      x: rawAccelY,
+      y: -rawAccelX
+    };
+  } else {
+    // 縦向き：そのまま使用
+    return {
+      x: rawAccelX,
+      y: rawAccelY
+    };
+  }
+}
+
 // キャンバスサイズの設定
 function resizeCanvas() {
   canvas.width = window.innerWidth;
@@ -37,6 +68,12 @@ function resizeCanvas() {
 
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
+
+// 画面回転時の対応
+window.addEventListener('orientationchange', () => {
+  resizeCanvas();
+  draw();
+});
 
 // 説明バナーの制御
 const instructionBanner = document.getElementById('instructionBanner');
@@ -85,17 +122,20 @@ function handleDeviceMotion(event) {
 function updateAccelerationSample() {
   if (isPaused) return;
   
-  let accelX = latestAcceleration.x;
-  let accelY = latestAcceleration.y;
+  let rawAccelX = latestAcceleration.x;
+  let rawAccelY = latestAcceleration.y;
   
-  acceleration.x = accelX;
-  acceleration.y = accelY;
+  // デバイス向きに応じた加速度のマッピング
+  const mappedAccel = mapAccelerationToScreen(rawAccelX, rawAccelY);
+  
+  acceleration.x = mappedAccel.x;
+  acceleration.y = mappedAccel.y;
   
   // 加速度の大きさ（L2ノルム）
-  acceleration.magnitude = Math.sqrt(accelX * accelX + accelY * accelY);
+  acceleration.magnitude = Math.sqrt(acceleration.x * acceleration.x + acceleration.y * acceleration.y);
   
   // 角度（x軸からの角度、度）
-  acceleration.angle = Math.atan2(accelY, accelX) * (180 / Math.PI);
+  acceleration.angle = Math.atan2(acceleration.y, acceleration.x) * (180 / Math.PI);
   
   updateAccelerationDisplay();
   draw();
