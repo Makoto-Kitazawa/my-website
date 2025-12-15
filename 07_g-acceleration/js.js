@@ -26,6 +26,7 @@ let gravityY = 0;
 let isPaused = false;
 let samplingInterval = null;
 const SAMPLING_RATE = 1000; // 1Hz = 1000ms
+let zoomScale = 1;
 
 // キャンバスサイズの設定
 function resizeCanvas() {
@@ -126,6 +127,43 @@ canvas.addEventListener('click', () => {
   isPaused = !isPaused;
   draw();
 });
+
+// ピンチズーム機能
+let lastDistance = 0;
+
+canvas.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    
+    const touch1 = e.touches[0];
+    const touch2 = e.touches[1];
+    
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    const currentDistance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (lastDistance > 0) {
+      const scale = currentDistance / lastDistance;
+      zoomScale = Math.max(0.5, Math.min(3, zoomScale * scale));
+      draw();
+    }
+    
+    lastDistance = currentDistance;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => {
+  lastDistance = 0;
+});
+
+// マウスホイールでのズーム（デスクトップテスト用）
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  
+  const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+  zoomScale = Math.max(0.5, Math.min(3, zoomScale * zoomFactor));
+  draw();
+}, { passive: false });
 
 // DeviceMotionイベントリスナーの登録
 function startSampling() {
@@ -245,7 +283,9 @@ function drawAccelerationArrow() {
   const startY = originY;
   
   // 加速度値をピクセルに変換（スケーリング）
-  const scale = 10; // 1m/s^2 = 10ピクセル
+  // デバイス座標系: x(右正), y(上正) → キャンバス座標系: x(右正), y(下正)
+  // よってy座標は反転させる必要がある
+  const scale = 10 * zoomScale; // 1m/s^2 = 10ピクセル
   const endX = startX + acceleration.x * scale;
   const endY = startY - acceleration.y * scale;
   
