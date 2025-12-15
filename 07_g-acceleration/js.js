@@ -25,7 +25,7 @@ let gravityY = 0;
 
 let isPaused = false;
 let samplingInterval = null;
-const SAMPLING_RATE = 1000; // 1Hz = 1000ms
+const SAMPLING_RATE = 500; // 1Hz = 1000ms
 let zoomScale = 1;
 
 // キャンバスサイズの設定
@@ -221,11 +221,13 @@ function draw() {
 
 // 方眼の描画
 function drawGrid() {
+  const scaledGridSize = GRID_SIZE * zoomScale;  // ズーム時にグリッドサイズも変更
+  
   ctx.strokeStyle = '#444';
   ctx.lineWidth = 1;
   
   // 縦線
-  for (let x = originX % GRID_SIZE; x < canvas.width; x += GRID_SIZE) {
+  for (let x = originX % scaledGridSize; x < canvas.width; x += scaledGridSize) {
     ctx.beginPath();
     ctx.moveTo(x, 0);
     ctx.lineTo(x, canvas.height);
@@ -233,7 +235,7 @@ function drawGrid() {
   }
   
   // 横線
-  for (let y = originY % GRID_SIZE; y < canvas.height; y += GRID_SIZE) {
+  for (let y = originY % scaledGridSize; y < canvas.height; y += scaledGridSize) {
     ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.lineTo(canvas.width, y);
@@ -263,16 +265,16 @@ function drawGrid() {
   ctx.textBaseline = 'middle';
   
   // x軸のメモリ
-  for (let i = -Math.ceil(originX / GRID_SIZE); i <= Math.ceil((canvas.width - originX) / GRID_SIZE); i++) {
+  for (let i = -Math.ceil(originX / scaledGridSize); i <= Math.ceil((canvas.width - originX) / scaledGridSize); i++) {
     if (i === 0) continue;
-    const x = originX + i * GRID_SIZE;
+    const x = originX + i * scaledGridSize;
     ctx.fillText(i.toString(), x, originY + 15);
   }
   
   // y軸のメモリ
-  for (let i = -Math.ceil((canvas.height - originY) / GRID_SIZE); i <= Math.ceil(originY / GRID_SIZE); i++) {
+  for (let i = -Math.ceil((canvas.height - originY) / scaledGridSize); i <= Math.ceil(originY / scaledGridSize); i++) {
     if (i === 0) continue;
-    const y = originY - i * GRID_SIZE;
+    const y = originY - i * scaledGridSize;
     ctx.fillText(i.toString(), originX - 20, y);
   }
 }
@@ -283,16 +285,17 @@ function drawAccelerationArrow() {
   const startY = originY;
   
   // 加速度値をピクセルに変換（スケーリング）
-  // デバイス座標系: x(右正), y(上正) → キャンバス座標系: x(右正), y(下正)
-  // よってy座標は反転させる必要がある
-  const scale = 10 * zoomScale; // 1m/s^2 = 10ピクセル
+  // グリッド1マス = GRID_SIZEピクセル = 1単位
+  // 1m/s^2 に対して GRID_SIZE ピクセル分表示
+  const scale = GRID_SIZE * zoomScale;
   const endX = startX + acceleration.x * scale;
-  const endY = startY - acceleration.y * scale;
+  const endY = startY + acceleration.y * scale;
   
   const arrowColor = '#4a90e2'; // 矢印の色
   const borderColor = '#2a5d9e'; // 縁取りの色（濃い青）
 
-  ctx.lineWidth = 17; // 縁取り用の太さ
+  ctx.setLineDash([]);  // 破線をリセット
+  ctx.lineWidth = 17 * zoomScale; // 縁取り用の太さ
   ctx.strokeStyle = borderColor;
 
   // 矢印の線（縁取り）
@@ -301,7 +304,8 @@ function drawAccelerationArrow() {
   ctx.lineTo(endX, endY);
   ctx.stroke();
 
-  ctx.lineWidth = 15; // 矢印本体の太さ
+  ctx.setLineDash([]);  // 破線をリセット
+  ctx.lineWidth = 15 * zoomScale; // 矢印本体の太さ
   ctx.strokeStyle = arrowColor;
 
   // 矢印の線（本体）
