@@ -231,6 +231,27 @@ for (const [cat, items] of Object.entries(groups)) {
   console.log(`   ${cat}: ${items.length} items`);
 }
 
+// tree-config.jsonのmetadataセクションを最新のHTMLメタ情報で更新
+console.log('🔄 Updating tree-config.json metadata...');
+const updatedMetadata = {};
+for (const item of tree) {
+  if (item.type === 'page') {
+    updatedMetadata[item.name] = {
+      title: item.title,
+      category: item.category,
+      icon: item.icon,
+      description: item.description
+    };
+  }
+}
+
+// 既存のconfigを更新
+config.metadata = updatedMetadata;
+
+// tree-config.jsonに書き戻し
+fs.writeFileSync('tree-config.json', JSON.stringify(config, null, 2));
+console.log('✅ tree-config.json updated successfully!');
+
 console.log('🔨 Generating HTML...');
 const treeHTML = generateTreeHTML(groups);
 

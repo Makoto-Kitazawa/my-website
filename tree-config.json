@@ -17,29 +17,35 @@
     ".devcontainer"
   ],
   "metadata": {
-    "soundwave": {
+    "01_soundwave": {
       "title": "音声の波形を見てみよう",
       "category": "物理用ファイル",
-      "icon": "📄",
+      "icon": "🎵",
       "description": "マイクやファイルから音声波形を表示"
     },
-    "soundsource": {
+    "02_soundsource": {
       "title": "任意の波形の音波を出してみよう",
       "category": "物理用ファイル",
-      "icon": "📄",
+      "icon": "🎛️",
       "description": "カスタム波形の音を生成"
     },
-    "doppler-effect": {
-      "title": "ドップラー効果を視覚的に見てみよう",
+    "03_2wave-anime": {
+      "title": "縦波と横波の違いを見てみよう",
       "category": "物理用ファイル",
-      "icon": "📄",
-      "description": "音源の移動による周波数変化を可視化"
+      "icon": "📊",
+      "description": "縦波と横波の振動パターンを可視化"
     },
-    "beatanime": {
+    "04_beatanime": {
       "title": "うなりを視覚的に見てみよう",
       "category": "物理用ファイル",
-      "icon": "📄",
+      "icon": "🎼",
       "description": "2つの周波数が近い音波の干渉"
+    },
+    "05_doppler-effect": {
+      "title": "ドップラー効果を視覚的に見てみよう",
+      "category": "物理用ファイル",
+      "icon": "🔊",
+      "description": "音源の移動による周波数変化を可視化"
     }
   },
   "otherLinks": [
@@ -56,7 +62,10 @@
       "external": true
     }
   ],
-  "categoryOrder": ["物理用ファイル", "その他"],
+  "categoryOrder": [
+    "物理用ファイル",
+    "その他"
+  ],
   "rootLabel": "Physics Project filesystem",
   "version": "v1.0.1"
 }
