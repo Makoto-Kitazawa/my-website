@@ -362,20 +362,36 @@ function drawAccelerationArrow() {
 
 // 一時停止オーバーレイを描画
 function drawPausedOverlay() {
-  // 半透明の黒いオーバーレイ
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // 半透明の黒いオーバーレイ（下部のみ）
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+  const pausedHeight = 120;
+  ctx.fillRect(0, canvas.height - pausedHeight, canvas.width, pausedHeight);
   
-  // 一時停止テキスト
+  const textY = canvas.height - 60;
+  const centerX = canvas.width / 2;
+  
+  // 一時停止マーク（■■）
+  const markSize = 12;
+  const markSpacing = 6;
+  const markY = textY - 40;
+  
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 48px Arial';
+  // 左の四角
+  ctx.fillRect(centerX - markSize - markSpacing / 2 - 5, markY - markSize / 2, markSize, markSize);
+  // 右の四角
+  ctx.fillRect(centerX + markSpacing / 2 + 5, markY - markSize / 2, markSize, markSize);
+  
+  // テキスト
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 32px Arial';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('一時停止中', canvas.width / 2, canvas.height / 2);
+  ctx.fillText('一時停止中', centerX, textY);
   
-  ctx.font = '20px Arial';
+  // 指示テキスト
   ctx.fillStyle = '#aaa';
-  ctx.fillText('タップして再開', canvas.width / 2, canvas.height / 2 + 50);
+  ctx.font = '14px Arial';
+  ctx.fillText('タップして再開', centerX, textY + 35);
 }
 
 // 初期描画
