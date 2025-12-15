@@ -331,6 +331,9 @@ function drawAccelerationArrow() {
   const endX = startX - acceleration.x * scale;  // x軸を反転（iOS仕様対応）
   const endY = startY + acceleration.y * scale;
   
+  // 角度を表す扇形を描画
+  drawAngleArc(startX, startY);
+  
   const arrowColor = '#4a90e2'; // 矢印の色
   const borderColor = '#2a5d9e'; // 縁取りの色（濃い青）
 
@@ -398,6 +401,29 @@ function drawAccelerationArrow() {
   ctx.beginPath();
   ctx.arc(startX, startY, 5, 0, Math.PI * 2); // 半径5の円（本体）
   ctx.fill();
+}
+
+// 角度を表す扇形を描画
+function drawAngleArc(centerX, centerY) {
+  // x軸からの角度（ラジアン）
+  // キャンバス座標系：x軸正方向が0度、反時計回りが正
+  const angleInRadians = Math.atan2(acceleration.y, -acceleration.x);  // -を付けてx軸反転に対応
+  
+  const arcRadius = 60 * zoomScale;  // 扇形の半径
+  const arcColor = 'rgba(74, 144, 226, 0.2)';  // 薄い青
+  const arcBorderColor = 'rgba(74, 144, 226, 0.6)';  // より濃い青
+
+  // 扇形を描画
+  ctx.fillStyle = arcColor;
+  ctx.strokeStyle = arcBorderColor;
+  ctx.lineWidth = 2;
+  
+  ctx.beginPath();
+  ctx.moveTo(centerX, centerY);  // 中心から開始
+  ctx.arc(centerX, centerY, arcRadius, 0, angleInRadians);  // 0度からangleInRadiansまで
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
 }
 
 // 一時停止オーバーレイを描画
