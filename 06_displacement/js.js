@@ -408,120 +408,131 @@ document.getElementById('screenshotBtn').addEventListener('click', () => {
 
 // 情報パネルをcanvasに描画する関数
 function drawInfoPanelOnCanvas() {
-  const panelX = canvas.width - 220;
-  const panelY = canvas.height - 340;
-  const panelWidth = 200;
-  const panelHeight = 320;
+  // 画面サイズに応じてパネルのサイズと位置を調整
+  const isMobile = canvas.width < 768 || canvas.height < 600;
+  const panelWidth = isMobile ? 180 : 200;
+  const panelHeight = isMobile ? 300 : 320;
+  const margin = isMobile ? 10 : 20;
+  
+  const panelX = canvas.width - panelWidth - margin;
+  const panelY = canvas.height - panelHeight - (isMobile ? 50 : 40);
+  
+  // パネルが画面外に出ないようにチェック
+  const adjustedX = Math.max(10, Math.min(panelX, canvas.width - panelWidth - 10));
+  const adjustedY = Math.max(10, Math.min(panelY, canvas.height - panelHeight - 10));
+  
+  const fontSize = isMobile ? 11 : 14;
+  const titleFontSize = isMobile ? 14 : 16;
   
   // パネル背景
   ctx.fillStyle = 'rgba(30, 30, 30, 0.95)';
   ctx.strokeStyle = '#444';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.roundRect(panelX, panelY, panelWidth, panelHeight, 12);
+  ctx.roundRect(adjustedX, adjustedY, panelWidth, panelHeight, 12);
   ctx.fill();
   ctx.stroke();
   
-  let yPos = panelY + 20;
+  let yPos = adjustedY + 20;
   
   // リセットボタン（視覚的に表示）
   ctx.fillStyle = '#4a90e2';
   ctx.beginPath();
-  ctx.roundRect(panelX + 10, yPos, panelWidth - 20, 35, 6);
+  ctx.roundRect(adjustedX + 10, yPos, panelWidth - 20, 35, 6);
   ctx.fill();
   ctx.fillStyle = '#fff';
-  ctx.font = 'bold 14px Arial';
+  ctx.font = `bold ${fontSize}px Arial`;
   ctx.textAlign = 'center';
-  ctx.fillText('リセット', panelX + panelWidth / 2, yPos + 23);
+  ctx.fillText('リセット', adjustedX + panelWidth / 2, yPos + 23);
   
   yPos += 50;
   
   // 変位セクション
   ctx.fillStyle = '#4a90e2';
-  ctx.font = 'bold 16px Arial';
+  ctx.font = `bold ${titleFontSize}px Arial`;
   ctx.textAlign = 'center';
-  ctx.fillText('変位', panelX + panelWidth / 2, yPos);
+  ctx.fillText('変位', adjustedX + panelWidth / 2, yPos);
   
   yPos += 10;
   ctx.strokeStyle = '#444';
   ctx.beginPath();
-  ctx.moveTo(panelX + 10, yPos);
-  ctx.lineTo(panelX + panelWidth - 10, yPos);
+  ctx.moveTo(adjustedX + 10, yPos);
+  ctx.lineTo(adjustedX + panelWidth - 10, yPos);
   ctx.stroke();
   
   yPos += 20;
-  ctx.font = '14px Arial';
+  ctx.font = `${fontSize}px Arial`;
   ctx.textAlign = 'left';
   ctx.fillStyle = '#aaa';
-  ctx.fillText('x:', panelX + 20, yPos);
+  ctx.fillText('x:', adjustedX + 20, yPos);
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'right';
-  ctx.fillText(document.getElementById('dispX').textContent, panelX + panelWidth - 20, yPos);
+  ctx.fillText(document.getElementById('dispX').textContent, adjustedX + panelWidth - 20, yPos);
   
   yPos += 25;
   ctx.textAlign = 'left';
   ctx.fillStyle = '#aaa';
-  ctx.fillText('y:', panelX + 20, yPos);
+  ctx.fillText('y:', adjustedX + 20, yPos);
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'right';
-  ctx.fillText(document.getElementById('dispY').textContent, panelX + panelWidth - 20, yPos);
+  ctx.fillText(document.getElementById('dispY').textContent, adjustedX + panelWidth - 20, yPos);
   
   yPos += 25;
   ctx.textAlign = 'left';
   ctx.fillStyle = '#aaa';
-  ctx.fillText('大きさ:', panelX + 20, yPos);
+  ctx.fillText('大きさ:', adjustedX + 20, yPos);
   ctx.fillStyle = '#4a90e2';
   ctx.textAlign = 'right';
-  ctx.fillText(document.getElementById('dispMag').textContent, panelX + panelWidth - 20, yPos);
+  ctx.fillText(document.getElementById('dispMag').textContent, adjustedX + panelWidth - 20, yPos);
   
   yPos += 20;
   ctx.strokeStyle = '#444';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(panelX + 10, yPos);
-  ctx.lineTo(panelX + panelWidth - 10, yPos);
+  ctx.moveTo(adjustedX + 10, yPos);
+  ctx.lineTo(adjustedX + panelWidth - 10, yPos);
   ctx.stroke();
   
   // 移動距離セクション
   yPos += 20;
   ctx.fillStyle = '#4a90e2';
-  ctx.font = 'bold 16px Arial';
+  ctx.font = `bold ${titleFontSize}px Arial`;
   ctx.textAlign = 'center';
-  ctx.fillText('移動距離', panelX + panelWidth / 2, yPos);
+  ctx.fillText('移動距離', adjustedX + panelWidth / 2, yPos);
   
   yPos += 10;
   ctx.strokeStyle = '#444';
   ctx.beginPath();
-  ctx.moveTo(panelX + 10, yPos);
-  ctx.lineTo(panelX + panelWidth - 10, yPos);
+  ctx.moveTo(adjustedX + 10, yPos);
+  ctx.lineTo(adjustedX + panelWidth - 10, yPos);
   ctx.stroke();
   
   yPos += 20;
-  ctx.font = '14px Arial';
+  ctx.font = `${fontSize}px Arial`;
   ctx.textAlign = 'left';
   ctx.fillStyle = '#aaa';
-  ctx.fillText('総距離:', panelX + 20, yPos);
+  ctx.fillText('総距離:', adjustedX + 20, yPos);
   ctx.fillStyle = '#50c878';
   ctx.textAlign = 'right';
-  ctx.fillText(document.getElementById('totalDist').textContent, panelX + panelWidth - 20, yPos);
+  ctx.fillText(document.getElementById('totalDist').textContent, adjustedX + panelWidth - 20, yPos);
   
   yPos += 20;
   ctx.strokeStyle = '#444';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(panelX + 10, yPos);
-  ctx.lineTo(panelX + panelWidth - 10, yPos);
+  ctx.moveTo(adjustedX + 10, yPos);
+  ctx.lineTo(adjustedX + panelWidth - 10, yPos);
   ctx.stroke();
   
   // 履歴セクション
   yPos += 20;
   ctx.fillStyle = '#4a90e2';
-  ctx.font = 'bold 16px Arial';
+  ctx.font = `bold ${titleFontSize}px Arial`;
   ctx.textAlign = 'left';
-  ctx.fillText('履歴', panelX + 20, yPos);
+  ctx.fillText('履歴', adjustedX + 20, yPos);
   ctx.fillStyle = '#888';
-  ctx.font = '12px Arial';
-  ctx.fillText(`(${moveHistory.length}回)`, panelX + 70, yPos);
+  ctx.font = `${fontSize - 2}px Arial`;
+  ctx.fillText(`(${moveHistory.length}回)`, adjustedX + 70, yPos);
   
   yPos += 5;
   
@@ -530,18 +541,24 @@ function drawInfoPanelOnCanvas() {
   if (recentHistory.length === 0) {
     yPos += 15;
     ctx.fillStyle = '#666';
-    ctx.font = 'italic 12px Arial';
+    ctx.font = `italic ${fontSize - 2}px Arial`;
     ctx.textAlign = 'center';
-    ctx.fillText('まだ移動していません', panelX + panelWidth / 2, yPos);
+    ctx.fillText('まだ移動していません', adjustedX + panelWidth / 2, yPos);
   } else {
-    ctx.font = '11px monospace';
+    ctx.font = `${fontSize - 3}px monospace`;
     recentHistory.forEach(h => {
       yPos += 15;
       ctx.fillStyle = '#4a90e2';
       ctx.textAlign = 'left';
-      ctx.fillText(`#${h.number}`, panelX + 15, yPos);
+      ctx.fillText(`#${h.number}`, adjustedX + 15, yPos);
       ctx.fillStyle = '#ccc';
-      ctx.fillText(`変位:${h.magnitude.toFixed(1)} 距離:${h.distance.toFixed(1)}`, panelX + 45, yPos);
+      const text = `変位:${h.magnitude.toFixed(1)} 距離:${h.distance.toFixed(1)}`;
+      // テキストが長い場合は省略
+      if (isMobile) {
+        ctx.fillText(text.substring(0, 25), adjustedX + 45, yPos);
+      } else {
+        ctx.fillText(text, adjustedX + 45, yPos);
+      }
     });
   }
 }
