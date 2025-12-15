@@ -45,10 +45,10 @@ function mapAccelerationToScreen(rawAccelX, rawAccelY) {
   const orientation = getDeviceOrientation();
   
   if (orientation === 'landscape') {
-    // 横向き：デバイスのx軸とy軸を入れ替え、y軸を反転
+    // 横向き：デバイスのx軸とy軸を入れ替える
     return {
       x: rawAccelY,
-      y: -rawAccelX
+      y: rawAccelX
     };
   } else {
     // 縦向き：そのまま使用
@@ -328,8 +328,8 @@ function drawAccelerationArrow() {
   // グリッド1マス = GRID_SIZEピクセル = 1単位
   // 1m/s^2 に対して GRID_SIZE ピクセル分表示
   const scale = GRID_SIZE * zoomScale;
-  const endX = startX - acceleration.x * scale;  // x軸を反転（iOS仕様対応）
-  const endY = startY + acceleration.y * scale;
+  const endX = startX + acceleration.x * scale;  // x正は右
+  const endY = startY - acceleration.y * scale;  // y正は上（キャンバスはy軸が下が正）
   
   // 角度を表す扇形を描画
   drawAngleArc(startX, startY);
@@ -407,7 +407,9 @@ function drawAccelerationArrow() {
 function drawAngleArc(centerX, centerY) {
   // x軸からの角度（ラジアン）
   // キャンバス座標系：x軸正方向が0度、反時計回りが正
-  const angleInRadians = Math.atan2(acceleration.y, -acceleration.x);  // -を付けてx軸反転に対応
+  // ただし、キャンバスのy軸は下が正なため、Math.atan2(acceleration.y, acceleration.x) だと反時計回りが負になる
+  // 画面座標でのy軸反転を考慮: y軸正は上、なのでMath.atan2(-acceleration.y, acceleration.x)を使う
+  const angleInRadians = Math.atan2(-acceleration.y, acceleration.x);
   
   const arcRadius = 60 * zoomScale;  // 扇形の半径
   const arcColor = 'rgba(74, 144, 226, 0.2)';  // 薄い青
@@ -420,7 +422,7 @@ function drawAngleArc(centerX, centerY) {
   
   ctx.beginPath();
   ctx.moveTo(centerX, centerY);  // 中心から開始
-  ctx.arc(centerX, centerY, arcRadius, 0, angleInRadians, true);  // 反時計回り（第5引数=true）
+  ctx.arc(centerX, centerY, arcRadius, 0, angleInRadians, angleInRadians < 0);  // 正の角度なら時計回り
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
