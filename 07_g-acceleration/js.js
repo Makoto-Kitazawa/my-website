@@ -420,7 +420,7 @@ function drawAngleArc(centerX, centerY) {
   
   ctx.beginPath();
   ctx.moveTo(centerX, centerY);  // 中心から開始
-  ctx.arc(centerX, centerY, arcRadius, 0, angleInRadians);  // 0度からangleInRadiansまで
+  ctx.arc(centerX, centerY, arcRadius, 0, angleInRadians, true);  // 反時計回り（第5引数=true）
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
