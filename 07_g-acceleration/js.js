@@ -27,6 +27,7 @@ let isPaused = false;
 let samplingInterval = null;
 const SAMPLING_RATE = 500; // 1Hz = 1000ms
 let zoomScale = 1;
+let angleMode = 'physics'; // 'physics' または 'math'
 
 // デバイスの向き判定関数
 function getDeviceOrientation() {
@@ -102,6 +103,15 @@ document.getElementById('removeGravity').addEventListener('change', (e) => {
   updateAccelerationDisplay();
 });
 
+// 角度表示モード選択
+document.querySelectorAll('input[name="angleMode"]').forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    angleMode = e.target.value;
+    updateAccelerationDisplay();
+    draw();
+  });
+});
+
 // DeviceMotion APIで加速度データを取得（最新値を保存するのみ）
 function handleDeviceMotion(event) {
   hideInstructions();
@@ -134,7 +144,8 @@ function updateAccelerationSample() {
   // 加速度の大きさ（L2ノルム）
   acceleration.magnitude = Math.sqrt(acceleration.x * acceleration.x + acceleration.y * acceleration.y);
   
-  // 角度（x軸からの角度、度）
+  // 角度を計算（後で displayMode に応じて表示）
+  // 内部では数学的角度（x軸正から反時計回り）を保持
   acceleration.angle = Math.atan2(acceleration.y, acceleration.x) * (180 / Math.PI);
   
   updateAccelerationDisplay();
@@ -146,7 +157,22 @@ function updateAccelerationDisplay() {
   document.getElementById('accelX').textContent = acceleration.x.toFixed(2);
   document.getElementById('accelY').textContent = acceleration.y.toFixed(2);
   document.getElementById('accelMag').textContent = acceleration.magnitude.toFixed(2);
-  document.getElementById('accelAngle').textContent = acceleration.angle.toFixed(1);
+  
+  // 角度表示を切り替え
+  let displayAngle;
+  if (angleMode === 'physics') {
+    // 物理的視点：y軸負から時計方向（0-360度）
+    // 数学的角度を物理的角度に変換: physics_angle = 90 - math_angle
+    displayAngle = 90 - acceleration.angle;
+    // 0-360度の範囲に正規化
+    while (displayAngle < 0) displayAngle += 360;
+    while (displayAngle >= 360) displayAngle -= 360;
+  } else {
+    // 数学的視点：x軸正から反時計回り
+    displayAngle = acceleration.angle;
+  }
+  
+  document.getElementById('accelAngle').textContent = displayAngle.toFixed(1);
 }
 
 // リセット
@@ -405,24 +431,33 @@ function drawAccelerationArrow() {
 
 // 角度を表す扇形を描画
 function drawAngleArc(centerX, centerY) {
-  // x軸からの角度（ラジアン）
-  // キャンバス座標系：x軸正方向が0度、反時計回りが正
-  // ただし、キャンバスのy軸は下が正なため、Math.atan2(acceleration.y, acceleration.x) だと反時計回りが負になる
-  // 画面座標でのy軸反転を考慮: y軸正は上、なのでMath.atan2(-acceleration.y, acceleration.x)を使う
-  const angleInRadians = Math.atan2(-acceleration.y, acceleration.x);
-  
   const arcRadius = 60 * zoomScale;  // 扇形の半径
   const arcColor = 'rgba(74, 144, 226, 0.2)';  // 薄い青
   const arcBorderColor = 'rgba(74, 144, 226, 0.6)';  // より濃い青
 
-  // 扇形を描画
   ctx.fillStyle = arcColor;
   ctx.strokeStyle = arcBorderColor;
   ctx.lineWidth = 2;
-  
   ctx.beginPath();
   ctx.moveTo(centerX, centerY);  // 中心から開始
-  ctx.arc(centerX, centerY, arcRadius, 0, angleInRadians, angleInRadians < 0);  // 正の角度なら時計回り
+  
+  if (angleMode === 'physics') {
+    // 物理的視点：y軸正（下、π/2）から時計方向
+    // キャンバス座標では y軸が下が正なので、下は π/2
+    const mathAngleRad = Math.atan2(acceleration.y, acceleration.x);
+    // キャンバス座標への変換: -y方向が0度（上）
+    // キャンバスy軸反転を考慮: canvasAngle = -mathAngle
+    const canvasAngleRad = -mathAngleRad;
+    // y軸正（π/2）から canvasAngleRad まで時計回り（キャンバス座標では反時計回り）
+    const startAngle = Math.PI / 2;
+    const endAngle = canvasAngleRad;
+    ctx.arc(centerX, centerY, arcRadius, startAngle, endAngle, true);  // true=反時計回り（物理的には時計回り）
+  } else {
+    // 数学的視点：x軸正から反時計回り
+    const angleInRadians = Math.atan2(-acceleration.y, acceleration.x);
+    ctx.arc(centerX, centerY, arcRadius, 0, angleInRadians, angleInRadians < 0);
+  }
+  
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
