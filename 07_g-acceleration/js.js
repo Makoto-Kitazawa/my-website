@@ -14,9 +14,18 @@ let acceleration = {
   angle: 0 // 度
 };
 
+let latestAcceleration = {
+  x: 0,
+  y: 0
+};
+
 let removeGravity = false;
 let gravityX = 0;
 let gravityY = 0;
+
+let isPaused = false;
+let samplingInterval = null;
+const SAMPLING_RATE = 1000; // 1Hz = 1000ms
 
 // キャンバスサイズの設定
 function resizeCanvas() {
@@ -45,22 +54,38 @@ function hideInstructions() {
 // 重力加速度除外チェックボックス
 document.getElementById('removeGravity').addEventListener('change', (e) => {
   removeGravity = e.target.checked;
+  // 表示をリセット
+  acceleration = {
+    x: 0,
+    y: 0,
+    magnitude: 0,
+    angle: 0
+  };
+  updateAccelerationDisplay();
 });
 
-// DeviceMotion APIで加速度データを取得
+// DeviceMotion APIで加速度データを取得（最新値を保存するのみ）
 function handleDeviceMotion(event) {
   hideInstructions();
   
-  let accelX = event.acceleration.x || 0;
-  let accelY = event.acceleration.y || 0;
-  // z軸（上下方向）は使用しない
-  
-  // 重力加速度を除外する場合
-  if (removeGravity && event.accelerationIncludingGravity) {
-    // accelerationIncludingGravityとaccelerationの差から重力を推定
-    gravityX = (event.accelerationIncludingGravity.x || 0) - accelX;
-    gravityY = (event.accelerationIncludingGravity.y || 0) - accelY;
+  // 重力加速度を除外するかどうかで使い分ける
+  if (removeGravity) {
+    // 重力を除いた加速度を使用
+    latestAcceleration.x = event.acceleration.x || 0;
+    latestAcceleration.y = event.acceleration.y || 0;
+  } else {
+    // 重力を含んだ加速度を使用
+    latestAcceleration.x = event.accelerationIncludingGravity.x || 0;
+    latestAcceleration.y = event.accelerationIncludingGravity.y || 0;
   }
+}
+
+// 1Hzでサンプリングして加速度を更新
+function updateAccelerationSample() {
+  if (isPaused) return;
+  
+  let accelX = latestAcceleration.x;
+  let accelY = latestAcceleration.y;
   
   acceleration.x = accelX;
   acceleration.y = accelY;
@@ -91,12 +116,26 @@ document.getElementById('resetBtn').addEventListener('click', () => {
     magnitude: 0,
     angle: 0
   };
+  isPaused = false;
   updateAccelerationDisplay();
   draw();
 });
 
+// キャンバスのタップで一時停止/再開
+canvas.addEventListener('click', () => {
+  isPaused = !isPaused;
+  draw();
+});
+
 // DeviceMotionイベントリスナーの登録
-window.addEventListener('devicemotion', handleDeviceMotion);
+function startSampling() {
+  if (samplingInterval) clearInterval(samplingInterval);
+  
+  window.addEventListener('devicemotion', handleDeviceMotion);
+  
+  // 1Hzでサンプリング
+  samplingInterval = setInterval(updateAccelerationSample, SAMPLING_RATE);
+}
 
 // iOSでのPermissionリクエスト（iOS 13以降）
 if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
@@ -107,12 +146,15 @@ if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.request
       DeviceMotionEvent.requestPermission()
         .then(permissionState => {
           if (permissionState === 'granted') {
-            window.addEventListener('devicemotion', handleDeviceMotion);
+            startSampling();
           }
         })
         .catch(console.error);
     }
   }, { once: true });
+} else {
+  // Android等の場合は直接開始
+  startSampling();
 }
 
 // 描画
@@ -131,6 +173,11 @@ function draw() {
   // 加速度ベクトル（青い矢印）
   if (acceleration.magnitude > 0.1) { // ノイズ除外
     drawAccelerationArrow();
+  }
+  
+  // 一時停止表示
+  if (isPaused) {
+    drawPausedOverlay();
   }
 }
 
@@ -267,6 +314,24 @@ function drawAccelerationArrow() {
   ctx.beginPath();
   ctx.arc(startX, startY, 5, 0, Math.PI * 2); // 半径5の円（本体）
   ctx.fill();
+}
+
+// 一時停止オーバーレイを描画
+function drawPausedOverlay() {
+  // 半透明の黒いオーバーレイ
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // 一時停止テキスト
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 48px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('一時停止中', canvas.width / 2, canvas.height / 2);
+  
+  ctx.font = '20px Arial';
+  ctx.fillStyle = '#aaa';
+  ctx.fillText('タップして再開', canvas.width / 2, canvas.height / 2 + 50);
 }
 
 // 初期描画
