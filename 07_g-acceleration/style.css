@@ -1,0 +1,241 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #1a1a1a;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  touch-action: none;
+}
+
+canvas {
+  display: block;
+  cursor: default;
+}
+
+/* 情報パネル */
+.info-panel {
+  position: fixed;
+  right: 20px;
+  bottom: 40px;
+  background: rgba(30, 30, 30, 0.95);
+  border: 2px solid #444;
+  border-radius: 12px;
+  padding: 16px;
+  color: #fff;
+  font-size: 14px;
+  min-width: 200px;
+  max-width: 220px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+/* 画面幅が狭い時の対応 */
+@media (max-width: 768px) or (max-height: 600px) {
+  .info-panel {
+    right: 10px;
+    bottom: 50px;
+    min-width: 160px;
+    max-width: 180px;
+    padding: 12px;
+    font-size: 12px;
+  }
+
+  .info-value {
+    font-size: 13px;
+  }
+
+  .info-unit {
+    font-size: 10px;
+  }
+}
+
+/* ボタン */
+#resetBtn {
+  width: 100%;
+  padding: 10px;
+  background: rgba(74, 144, 226, 0.9);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 16px;
+  transition: background 0.2s;
+}
+
+#resetBtn:hover {
+  background: rgba(74, 144, 226, 1);
+}
+
+#resetBtn:active {
+  background: rgba(74, 144, 226, 0.8);
+}
+
+/* 重力加速度除外チェックボックス */
+.gravity-mode {
+  margin-bottom: 16px;
+  padding: 8px;
+  background: rgba(74, 144, 226, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid #4a90e2;
+}
+
+.gravity-mode label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 12px;
+  user-select: none;
+}
+
+.gravity-mode input[type="checkbox"] {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+/* 情報セクション */
+.acceleration-info {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #444;
+}
+
+.info-label {
+  color: #4a90e2;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 6px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.info-key {
+  color: #aaa;
+  min-width: 40px;
+}
+
+.info-value {
+  color: #fff;
+  font-family: 'Courier New', monospace;
+  text-align: right;
+  min-width: 60px;
+}
+
+.info-value.blue {
+  color: #4a90e2;
+  font-weight: bold;
+}
+
+.info-unit {
+  color: #666;
+  font-size: 11px;
+  margin-left: 4px;
+  min-width: 40px;
+}
+
+/* スクリーンショットボタン */
+.screenshot-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  background: rgba(74, 144, 226, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 99;
+  transition: background 0.2s;
+}
+
+.screenshot-btn:hover {
+  background: rgba(74, 144, 226, 1);
+}
+
+.screenshot-btn:active {
+  background: rgba(80, 200, 120, 0.9);
+}
+
+/* 説明バナー */
+.instruction-banner {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 30, 30, 0.95);
+  border: 2px solid #4a90e2;
+  border-radius: 8px;
+  padding: 12px 20px;
+  color: #fff;
+  font-size: 13px;
+  z-index: 101;
+  max-width: 90%;
+  text-align: center;
+  transition: all 0.4s ease-out;
+  animation: slideDown 0.4s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.instruction-banner.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-20px);
+}
+
+.instruction-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.icon-blue {
+  color: #4a90e2;
+  font-weight: bold;
+}
+
+.separator {
+  color: #555;
+}
+
+/* 最終更新表示 */
+.last-updated {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  font-size: 11px;
+  color: #666;
+  font-family: 'Courier New', monospace;
+  z-index: 50;
+}

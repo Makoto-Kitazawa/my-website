@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>変位の可視化</title>
+  <title>加速度の可視化</title>
   <link rel="icon" type="image/svg+xml" href="../_common_/favicon.svg">
-  <meta name="project:title" content="変位を視覚的に見てみよう">
+  <meta name="project:title" content="加速度を視覚的に見てみよう">
   <meta name="project:category" content="物理用ファイル">
-  <meta name="project:icon" content="📐">
-  <meta name="project:description" content="物体の移動による変位を可視化">
+  <meta name="project:icon" content="📊">
+  <meta name="project:description" content="端末の加速度センサーの値を可視化">
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="../_common_/style_slide-menu.css">
 </head>
@@ -18,48 +18,39 @@
   <!-- 説明バナー -->
   <div class="instruction-banner" id="instructionBanner">
     <div class="instruction-text">
-      <span class="icon-red">●</span> 赤い円をドラッグして動かしてみましょう
+      端末を動かすと加速度が表示されます
       <span class="separator">|</span>
-      <span class="icon-green">- - -</span> 緑の点線：移動の軌跡
-      <span class="separator">|</span>
-      <span class="icon-blue">→</span> 青い矢印：変位ベクトル
+      <span class="icon-blue">→</span> 青い矢印：加速度ベクトル
     </div>
   </div>
   
   <!-- 情報表示エリア -->
   <div class="info-panel">
     <button id="resetBtn">リセット</button>
-    <div class="norm-switch">
-      <label><input type="radio" name="normMode" value="l2" id="normL2" checked> 標準</label>
-      <label><input type="radio" name="normMode" value="l1" id="normL1"> L1ノルム</label>
-      <label><input type="radio" name="normMode" value="linf" id="normLinf"> L∞ノルム</label>
+    <div class="gravity-mode">
+      <label><input type="checkbox" id="removeGravity"> 重力加速度を除外</label>
     </div>
-    <div class="displacement-info">
-      <div class="info-label">変位</div>
+    <div class="acceleration-info">
+      <div class="info-label">加速度</div>
       <div class="info-row">
         <span class="info-key">x:</span>
-        <span class="info-value" id="dispX">0.0</span>
+        <span class="info-value" id="accelX">0.0</span>
+        <span class="info-unit">m/s²</span>
       </div>
       <div class="info-row">
         <span class="info-key">y:</span>
-        <span class="info-value" id="dispY">0.0</span>
+        <span class="info-value" id="accelY">0.0</span>
+        <span class="info-unit">m/s²</span>
       </div>
       <div class="info-row">
         <span class="info-key">大きさ:</span>
-        <span class="info-value blue" id="dispMag">0.0</span>
+        <span class="info-value blue" id="accelMag">0.0</span>
+        <span class="info-unit">m/s²</span>
       </div>
-    </div>
-    <div class="displacement-info">
-      <div class="info-label">移動距離</div>
       <div class="info-row">
-        <span class="info-key">総距離:</span>
-        <span class="info-value green" id="totalDist">0.0</span>
-      </div>
-    </div>
-    <div class="history-section">
-      <div class="info-label">履歴 <span class="history-count" id="historyCount">(0回)</span></div>
-      <div class="history-list" id="historyList">
-        <div class="history-empty">まだ移動していません</div>
+        <span class="info-key">角度:</span>
+        <span class="info-value blue" id="accelAngle">0.0</span>
+        <span class="info-unit">°</span>
       </div>
     </div>
   </div>

@@ -44,13 +44,34 @@ function hideInstructions() {
 
 // 移動履歴
 let moveHistory = [];
-let isNorm1Mode = false;
+
+let normMode = 'l2'; // 'l2'（標準）, 'l1', 'linf'
 
 // ノルムモードの切り替え
-document.getElementById('norm1Mode').addEventListener('change', (e) => {
-  isNorm1Mode = e.target.checked;
-  updateDisplacement();
-  draw();
+const normL2 = document.getElementById('normL2');
+const normL1 = document.getElementById('normL1');
+const normLinf = document.getElementById('normLinf');
+
+normL2.addEventListener('change', (e) => {
+  if (e.target.checked) {
+    normMode = 'l2';
+    updateDisplacement();
+    draw();
+  }
+});
+normL1.addEventListener('change', (e) => {
+  if (e.target.checked) {
+    normMode = 'l1';
+    updateDisplacement();
+    draw();
+  }
+});
+normLinf.addEventListener('change', (e) => {
+  if (e.target.checked) {
+    normMode = 'linf';
+    updateDisplacement();
+    draw();
+  }
 });
 
 function addToHistory(displacement, distance) {
@@ -168,11 +189,14 @@ function updateDisplacement() {
   const dx = circle.endPos.x - circle.startPos.x;
   const dy = circle.endPos.y - circle.startPos.y;
   
-  // ノルムの計算（L1またはL2）
+  // ノルムの計算（L2, L1, L∞）
   let magnitude;
-  if (isNorm1Mode) {
+  if (normMode === 'l1') {
     // L1ノルム（マンハッタン距離）
     magnitude = Math.abs(dx) + Math.abs(dy);
+  } else if (normMode === 'linf') {
+    // L∞ノルム（チェビシェフ距離）
+    magnitude = Math.max(Math.abs(dx), Math.abs(dy));
   } else {
     // L2ノルム（ユークリッド距離）
     magnitude = Math.sqrt(dx * dx + dy * dy);
@@ -363,21 +387,33 @@ function drawDisplacementArrow() {
   const startY = originY - circle.startPos.y;
   const endX = originX + circle.endPos.x;
   const endY = originY - circle.endPos.y;
-  
-  ctx.strokeStyle = '#4a90e2';
-  ctx.fillStyle = '#4a90e2';
-  ctx.lineWidth = 15;
-  
-  // 矢印の線
+
+  const arrowColor = '#4a90e2'; // 矢印の色
+  const borderColor = '#2a5d9e'; // 縁取りの色（濃い青）
+
+  ctx.lineWidth = 17; // 縁取り用の太さ
+  ctx.strokeStyle = borderColor;
+
+  // 矢印の線（縁取り）
   ctx.beginPath();
   ctx.moveTo(startX, startY);
   ctx.lineTo(endX, endY);
   ctx.stroke();
-  
-  // 矢印の先端
+
+  ctx.lineWidth = 15; // 矢印本体の太さ
+  ctx.strokeStyle = arrowColor;
+
+  // 矢印の線（本体）
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  ctx.lineTo(endX, endY);
+  ctx.stroke();
+
+  // 矢印の先端（縁取り）
   const angle = Math.atan2(endY - startY, endX - startX);
   const arrowSize = 40;
-  
+
+  ctx.fillStyle = borderColor;
   ctx.beginPath();
   ctx.moveTo(endX, endY);
   ctx.lineTo(
@@ -389,6 +425,33 @@ function drawDisplacementArrow() {
     endY - arrowSize * Math.sin(angle + Math.PI / 6)
   );
   ctx.closePath();
+  ctx.fill();
+
+  // 矢印の先端（本体）
+  ctx.fillStyle = arrowColor;
+  ctx.beginPath();
+  ctx.moveTo(endX, endY);
+  ctx.lineTo(
+    endX - arrowSize * Math.cos(angle - Math.PI / 6),
+    endY - arrowSize * Math.sin(angle - Math.PI / 6)
+  );
+  ctx.lineTo(
+    endX - arrowSize * Math.cos(angle + Math.PI / 6),
+    endY - arrowSize * Math.sin(angle + Math.PI / 6)
+  );
+  ctx.closePath();
+  ctx.fill();
+
+  // 始点に丸を描画（縁取り）
+  ctx.fillStyle = borderColor;
+  ctx.beginPath();
+  ctx.arc(startX, startY, 6, 0, Math.PI * 2); // 半径6の円（縁取り）
+  ctx.fill();
+
+  // 始点に丸を描画（本体）
+  ctx.fillStyle = arrowColor;
+  ctx.beginPath();
+  ctx.arc(startX, startY, 5, 0, Math.PI * 2); // 半径5の円（本体）
   ctx.fill();
 }
 
