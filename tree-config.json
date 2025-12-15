@@ -46,6 +46,12 @@
       "category": "物理用ファイル",
       "icon": "🔊",
       "description": "音源の移動による周波数変化を可視化"
+    },
+    "06_displacement": {
+      "title": "変位を視覚的に見てみよう",
+      "category": "物理用ファイル",
+      "icon": "📐",
+      "description": "物体の移動による変位を可視化"
     }
   },
   "otherLinks": [
