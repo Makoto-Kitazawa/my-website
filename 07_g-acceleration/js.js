@@ -288,7 +288,7 @@ function drawAccelerationArrow() {
   // グリッド1マス = GRID_SIZEピクセル = 1単位
   // 1m/s^2 に対して GRID_SIZE ピクセル分表示
   const scale = GRID_SIZE * zoomScale;
-  const endX = startX + acceleration.x * scale;
+  const endX = startX - acceleration.x * scale;  // x軸を反転（iOS仕様対応）
   const endY = startY + acceleration.y * scale;
   
   const arrowColor = '#4a90e2'; // 矢印の色
