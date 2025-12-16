@@ -77,23 +77,36 @@ html, body {
     bottom: 16px;
     left: 50%;
     transform: translateX(-50%);
+    -webkit-transform: translateX(-50%);
     color: #e2e8f0;
     font-size: 14px;
     background: rgba(0, 0, 0, 0.3);
     padding: 8px 12px;
     border-radius: 8px;
     display: flex;
+    -webkit-display: flex;
     flex-direction: column;
-    gap: 8px;
+    -webkit-flex-direction: column;
     user-select: none;
+    -webkit-user-select: none;
     z-index: 2;
+}
+
+.controls > * + * {
+    margin-top: 8px;
 }
 
 .controls-row {
     display: flex;
+    -webkit-display: flex;
     align-items: center;
-    gap: 12px;
+    -webkit-align-items: center;
     justify-content: flex-start;
+    -webkit-justify-content: flex-start;
+}
+
+.controls-row > * + * {
+    margin-left: 12px;
 }
 
 .controls-break {
@@ -103,16 +116,34 @@ html, body {
 
 .controls input[type="range"] {
     width: 120px;
+    -webkit-appearance: slider-horizontal;
+}
+
+.controls input[type="checkbox"] {
+    -webkit-appearance: checkbox;
+    appearance: checkbox;
+}
+
+.controls label {
+    display: flex;
+    -webkit-display: flex;
+    align-items: center;
+    -webkit-align-items: center;
+    white-space: nowrap;
 }
 
 .speed-value {
     min-width: 70px;
     text-align: right;
+    flex-shrink: 0;
+    -webkit-flex-shrink: 0;
 }
 
 .frequency-value {
     min-width: 70px;
     text-align: right;
+    flex-shrink: 0;
+    -webkit-flex-shrink: 0;
 }
 
 .last-updated {
@@ -141,24 +172,32 @@ html, body {
     color: white;
     cursor: pointer;
     display: flex;
+    -webkit-display: flex;
     align-items: center;
+    -webkit-align-items: center;
     justify-content: center;
+    -webkit-justify-content: center;
     transition: all 0.3s;
+    -webkit-transition: all 0.3s;
     z-index: 100;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    -webkit-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .screenshot-btn:hover {
     background: rgba(74, 144, 226, 1);
     transform: scale(1.05);
+    -webkit-transform: scale(1.05);
 }
 
 .screenshot-btn:active {
     transform: scale(0.95);
+    -webkit-transform: scale(0.95);
 }
 
 .screenshot-btn svg {
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+    -webkit-filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
 @media (max-width: 768px) {
