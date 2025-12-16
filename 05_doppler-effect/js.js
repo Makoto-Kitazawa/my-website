@@ -165,11 +165,10 @@ function startObserverMode() {
     const startY = rect.top + rect.height * 0.6;
     
     observerCircle = document.createElement('div');
-    observerCircle.className = 'observer-circle';
+    observerCircle.className = 'observer-pentagon';
     observerCircle.style.position = 'fixed';
-    observerCircle.style.width = '20px';
-    observerCircle.style.height = '20px';
-    observerCircle.style.borderRadius = '50%';
+    observerCircle.style.width = '30px';
+    observerCircle.style.height = '30px';
     observerCircle.style.background = '#22c55e';
     observerCircle.style.left = startX + 'px';
     observerCircle.style.top = startY + 'px';
@@ -220,37 +219,6 @@ function stopObserverMode() {
     
     observerMode.checked = false;
 }
-
-// スクリーンショット機能
-document.getElementById('screenshotBtn').addEventListener('click', async () => {
-    const screenshotBtn = document.getElementById('screenshotBtn');
-    
-    // html2canvasを動的にロード
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    
-    script.onload = () => {
-        html2canvas(document.body, {
-            allowTaint: true,
-            useCORS: true,
-            backgroundColor: '#0f172a'
-        }).then(canvas => {
-            const link = document.createElement('a');
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-            link.download = `doppler_effect_${timestamp}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            
-            // フィードバックアニメーション
-            screenshotBtn.style.background = '#50c878';
-            setTimeout(() => {
-                screenshotBtn.style.background = 'rgba(74, 144, 226, 0.9)';
-            }, 200);
-        });
-    };
-    
-    document.head.appendChild(script);
-});
 
 // 初期化
 speedSlider.dispatchEvent(new Event('input'));

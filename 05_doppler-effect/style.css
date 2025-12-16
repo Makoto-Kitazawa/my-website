@@ -40,23 +40,27 @@ html, body {
 
 .ripple {
     position: absolute;
-    outline: 30px solid rgba(255, 255, 255, 0.6); /* 太さを30pxに変更 */
+    box-shadow: 0 0 0 30px rgba(255, 255, 255, 0.6);
     border-radius: 50%;
     pointer-events: none;
     transform: translate(-50%, -50%) scale(0.001);
     opacity: 1;
     will-change: transform, opacity;
     animation: rippleLine var(--ripple-duration, 800ms) linear forwards;
+    -webkit-transform: translate(-50%, -50%) scale(0.001);
+    -webkit-animation: rippleLine var(--ripple-duration, 800ms) linear forwards;
 }
 
 @keyframes rippleLine {
     0% {
     transform: translate(-50%, -50%) scale(0.001);
     opacity: 1;
+    -webkit-transform: translate(-50%, -50%) scale(0.001);
     }
     100% {
     transform: translate(-50%, -50%) scale(1);
     opacity: 0;
+    -webkit-transform: translate(-50%, -50%) scale(1);
     }
 }
 
@@ -159,57 +163,9 @@ html, body {
     pointer-events: none;
     z-index: 2;
 }
-/* スクリーンショットボタン */
-.screenshot-btn {
-    position: fixed;
-    left: 20px;
-    bottom: 20px;
-    width: 50px;
-    height: 50px;
-    background: rgba(74, 144, 226, 0.9);
-    border: 2px solid #4a90e2;
-    border-radius: 8px;
-    color: white;
-    cursor: pointer;
-    display: flex;
-    -webkit-display: flex;
-    align-items: center;
-    -webkit-align-items: center;
-    justify-content: center;
-    -webkit-justify-content: center;
-    transition: all 0.3s;
-    -webkit-transition: all 0.3s;
-    z-index: 100;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    -webkit-box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-}
 
-.screenshot-btn:hover {
-    background: rgba(74, 144, 226, 1);
-    transform: scale(1.05);
-    -webkit-transform: scale(1.05);
-}
-
-.screenshot-btn:active {
-    transform: scale(0.95);
-    -webkit-transform: scale(0.95);
-}
-
-.screenshot-btn svg {
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-    -webkit-filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-}
-
-@media (max-width: 768px) {
-    .screenshot-btn {
-        left: 10px;
-        bottom: 10px;
-        width: 45px;
-        height: 45px;
-    }
-    
-    .screenshot-btn svg {
-        width: 18px;
-        height: 18px;
-    }
+/* 観測者モードの5角形（右向き矢印） */
+.observer-pentagon {
+    clip-path: polygon(0% 0%, 60% 0%, 100% 50%, 60% 100%, 0% 100%);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
 }
