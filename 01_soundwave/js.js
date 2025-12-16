@@ -259,9 +259,22 @@ function canvasToData(x, y) {
 
 
 let gestureMode = null;
+let isRightDragging = false;  // 右ドラッグ中フラグ
+let rightDragStartY = 0;      // 右ドラッグ開始Y座標
+let rightDragStartX = 0;      // 右ドラッグ開始X座標
 
 canvas.addEventListener('pointerdown', (e) => {
     e.preventDefault();
+    
+    // 右ボタン（button=2）のドラッグを検出
+    if (e.buttons === 2) {
+        isRightDragging = true;
+        rightDragStartY = e.offsetY;
+        rightDragStartX = e.offsetX;
+        lastView = {...view};
+        return;
+    }
+    
     canvas.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, {x: e.offsetX, y: e.offsetY});
     
@@ -316,6 +329,48 @@ canvas.addEventListener('pointerdown', (e) => {
 
 canvas.addEventListener('pointermove', (e) => {
     e.preventDefault();
+    
+    // 右ドラッグ時のズーム処理
+    if (isRightDragging && e.buttons === 2) {
+        const deltaY = e.offsetY - rightDragStartY;
+        const scale = Math.pow(1.01, -deltaY);  // Y方向の移動量でズーム倍率を決定
+        
+        const xrange0 = lastView.xmax - lastView.xmin;
+        const yrange0 = lastView.ymax - lastView.ymin;
+        let xrange = xrange0, yrange = yrange0;
+        
+        if (zoomMode === 'x' || zoomMode === 'both') xrange = clamp(xrange0 / scale, 0.0001, 2.0);
+        if (zoomMode === 'y' || zoomMode === 'both') yrange = clamp(yrange0 / scale, 0.02, 4.0);
+        
+        // マウスカーソル位置を基準にズーム
+        const cData = canvasToData(rightDragStartX, rightDragStartY);
+        
+        // マーカーの画面上の相対位置を保持
+        let blueRatio = null, redRatio = null;
+        if (!lockMarkersChk.checked && lastView) {
+            blueRatio = (markers.blue.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
+            redRatio = (markers.red.time - lastView.xmin) / (lastView.xmax - lastView.xmin);
+        }
+        
+        view.xmin = cData.t - (cData.t - lastView.xmin) * (xrange / xrange0);
+        view.xmax = view.xmin + xrange;
+        view.ymin = cData.a - (cData.a - lastView.ymin) * (yrange / yrange0);
+        view.ymax = view.ymin + yrange;
+        
+        // マーカーが固定されていない場合、新しいviewで同じ相対位置に配置
+        if (!lockMarkersChk.checked && blueRatio !== null && redRatio !== null) {
+            markers.blue.time = view.xmin + blueRatio * (view.xmax - view.xmin);
+            markers.red.time = view.xmin + redRatio * (view.xmax - view.xmin);
+        }
+        
+        redraw();
+        return;
+    }
+    
+    if (isRightDragging) {
+        isRightDragging = false;
+    }
+    
     if (!pointers.has(e.pointerId)) return;
     const prev = pointers.get(e.pointerId);
     const curr = {x: e.offsetX, y: e.offsetY};
@@ -440,6 +495,11 @@ canvas.addEventListener('pointermove', (e) => {
 });
 
 function endPointer(e) {
+    // 右ドラッグ終了
+    if (e.buttons !== 2) {
+        isRightDragging = false;
+    }
+    
     pointers.delete(e.pointerId);
     if (pointers.size < 2) {
         gestureMode = null; // リセット
@@ -498,7 +558,6 @@ registerProcessor('pcm-collector', PCMCollectorProcessor);`; const blob = new Bl
 async function drawFromFile(file) { setStatus(`ファイル読込中：${file.name}`); const arrayBuf = await file.arrayBuffer(); const ctxA = await ensureAudioContext(); srInfo.textContent = `サンプリング周波数：${ctxA.sampleRate} Hz`; let audioBuf; try { audioBuf = await ctxA.decodeAudioData(arrayBuf); } catch { setStatus('この形式はブラウザでデコードできませんでした'); return; } const sr = audioBuf.sampleRate; const ch0 = audioBuf.getChannelData(0); const N = Math.min(ch0.length, sr); drawWaveform(ch0.slice(0, N), sr, normalizeChk.checked); setStatus(`描画完了：${(N/sr).toFixed(2)} 秒分を表示（sr=${sr}Hz）`); }
 
 recordBtn.addEventListener('click', async () => { try { await recordOneSecond(); } catch (e) { if (String(e).includes('insecure-origin')) return; setStatus('録音に失敗しました'); } });
-document.querySelector('label.input').addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', async (e) => { const f = e.target.files && e.target.files[0]; if (f) await drawFromFile(f); });
 clearBtn.addEventListener('click', () => { latestSamples = null; Object.assign(view, defaultView); drawAxes(); setStatus('クリアしました'); });
 
@@ -525,6 +584,10 @@ function resizeCanvas() {
     redraw();
 }
 
+// 右クリックメニューを表示しないようにする
+canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+});
 // 初期化とリサイズイベント
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
