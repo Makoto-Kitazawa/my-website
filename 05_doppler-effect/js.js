@@ -3,9 +3,17 @@ const speedSlider = document.getElementById('speed');
 const speedValue = document.getElementById('speedValue');
 const dotsContainer = document.getElementById('dots');
 const toggleDots = document.getElementById('toggleDots');
+const observerMode = document.getElementById('observerMode');
+const autoWaveMode = document.getElementById('autoWaveMode');
+const frequencySlider = document.getElementById('frequency');
+const frequencyValue = document.getElementById('frequencyValue');
 
 let currentSpeed = parseInt(speedSlider.value, 10);
+let currentFrequency = 1.0;
 let isInteractingWithUI = false;
+let observerCircle = null;
+let observerAnimationId = null;
+let autoWaveIntervalId = null;
 
 // 21個の円を生成（中央だけ赤）
 for (let i = 0; i < 21; i++) {
@@ -35,7 +43,7 @@ function spawnRipple(x, y) {
     if (isInteractingWithUI) return;
 
     const size = computeRippleSize(x, y);
-    const durationMs = Math.max(100, Math.round((size / currentSpeed) * 1000));
+    const durationMs = Math.max(100, Math.round((size / (currentSpeed * 2)) * 1000));
 
     const el = document.createElement('span');
     el.className = 'ripple';
@@ -64,11 +72,24 @@ speedSlider.addEventListener('input', () => {
     speedValue.textContent = `${currentSpeed} px/s`;
 });
 
+frequencySlider.addEventListener('input', () => {
+    currentFrequency = 1.0 + (parseInt(frequencySlider.value, 10) * 0.5);
+    frequencyValue.textContent = `${currentFrequency.toFixed(1)} Hz`;
+});
+
 // UI操作中フラグ制御（スライダー）
 speedSlider.addEventListener('pointerdown', () => {
     isInteractingWithUI = true;
 });
 speedSlider.addEventListener('pointerup', () => {
+    isInteractingWithUI = false;
+});
+
+// UI操作中フラグ制御（周波数スライダー）
+frequencySlider.addEventListener('pointerdown', () => {
+    isInteractingWithUI = true;
+});
+frequencySlider.addEventListener('pointerup', () => {
     isInteractingWithUI = false;
 });
 
@@ -82,6 +103,153 @@ toggleDots.addEventListener('pointerup', () => {
 
 toggleDots.addEventListener('change', () => {
     dotsContainer.style.display = toggleDots.checked ? 'none' : 'flex';
+});
+
+// コントロール領域全体でUI操作中フラグを制御（その他の領域用）
+const controlsElement = document.querySelector('.controls');
+controlsElement.addEventListener('pointerdown', () => {
+    isInteractingWithUI = true;
+});
+controlsElement.addEventListener('pointerup', () => {
+    isInteractingWithUI = false;
+});
+
+autoWaveMode.addEventListener('pointerdown', () => {
+    isInteractingWithUI = true;
+});
+autoWaveMode.addEventListener('pointerup', () => {
+    isInteractingWithUI = false;
+});
+
+autoWaveMode.addEventListener('change', () => {
+    if (autoWaveMode.checked) {
+        startAutoWaveMode();
+    } else {
+        stopAutoWaveMode();
+    }
+});
+
+observerMode.addEventListener('change', () => {
+    if (observerMode.checked) {
+        startObserverMode();
+    } else {
+        stopObserverMode();
+    }
+});
+
+function startAutoWaveMode() {
+    // 中央の赤丸の位置を計算
+    const stageRect = stage.getBoundingClientRect();
+    const centerX = stageRect.left + stageRect.width / 2;
+    const centerY = stageRect.top + stageRect.height * 0.6;
+    
+    // 周波数に応じた間隔で波面を生成
+    const interval = (1 / currentFrequency) * 1000; // ミリ秒単位
+    autoWaveIntervalId = setInterval(() => {
+        spawnRipple(centerX, centerY);
+    }, interval);
+}
+
+function stopAutoWaveMode() {
+    if (autoWaveIntervalId !== null) {
+        clearInterval(autoWaveIntervalId);
+        autoWaveIntervalId = null;
+    }
+    
+    autoWaveMode.checked = false;
+}
+
+function startObserverMode() {
+    const rect = stage.getBoundingClientRect();
+    const startX = rect.left + 20;
+    const startY = rect.top + rect.height * 0.6;
+    
+    observerCircle = document.createElement('div');
+    observerCircle.className = 'observer-circle';
+    observerCircle.style.position = 'fixed';
+    observerCircle.style.width = '20px';
+    observerCircle.style.height = '20px';
+    observerCircle.style.borderRadius = '50%';
+    observerCircle.style.background = '#22c55e';
+    observerCircle.style.left = startX + 'px';
+    observerCircle.style.top = startY + 'px';
+    observerCircle.style.transform = 'translate(-50%, -50%)';
+    observerCircle.style.pointerEvents = 'none';
+    observerCircle.style.zIndex = '3';
+    document.body.appendChild(observerCircle);
+    
+    const stageRect = stage.getBoundingClientRect();
+    const startXPos = 20;
+    const totalDistance = stageRect.width - 40;
+    const speed = parseInt(speedSlider.value, 10); // 現在のスライダー値を取得
+    const observerSpeed = speed / 2; // 波の速さの半分
+    const totalDuration = (totalDistance / observerSpeed) * 1000; // ミリ秒単位
+    
+    let startTime = null;
+    
+    function animate(timestamp) {
+        if (startTime === null) startTime = timestamp;
+        const elapsed = timestamp - startTime;
+        const progress = elapsed / totalDuration;
+        
+        if (progress >= 1) {
+            stopObserverMode();
+            return;
+        }
+        
+        const currentXPos = startXPos + (totalDistance * progress);
+        const currentX = stageRect.left + currentXPos;
+        
+        observerCircle.style.left = currentX + 'px';
+        observerAnimationId = requestAnimationFrame(animate);
+    }
+    
+    observerAnimationId = requestAnimationFrame(animate);
+}
+
+function stopObserverMode() {
+    if (observerAnimationId !== null) {
+        cancelAnimationFrame(observerAnimationId);
+        observerAnimationId = null;
+    }
+    
+    if (observerCircle !== null) {
+        observerCircle.remove();
+        observerCircle = null;
+    }
+    
+    observerMode.checked = false;
+}
+
+// スクリーンショット機能
+document.getElementById('screenshotBtn').addEventListener('click', async () => {
+    const screenshotBtn = document.getElementById('screenshotBtn');
+    
+    // html2canvasを動的にロード
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    
+    script.onload = () => {
+        html2canvas(document.body, {
+            allowTaint: true,
+            useCORS: true,
+            backgroundColor: '#0f172a'
+        }).then(canvas => {
+            const link = document.createElement('a');
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            link.download = `doppler_effect_${timestamp}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            
+            // フィードバックアニメーション
+            screenshotBtn.style.background = '#50c878';
+            setTimeout(() => {
+                screenshotBtn.style.background = 'rgba(74, 144, 226, 0.9)';
+            }, 200);
+        });
+    };
+    
+    document.head.appendChild(script);
 });
 
 // 初期化
