@@ -71,7 +71,15 @@ async function initSlideMenu() {
       const link = document.createElement('a');
       link.href = folderPath;
       link.className = 'slide-menu-item project-link';
-      link.innerHTML = `${projectInfo.icon} ${projectInfo.title}`;
+      
+      // statusがpreparingの場合は見た目を変える
+      if (projectInfo.status === 'preparing') {
+        link.classList.add('preparing');
+        link.innerHTML = `${projectInfo.icon} ${projectInfo.title} <span class="status-badge">準備中</span>`;
+      } else {
+        link.innerHTML = `${projectInfo.icon} ${projectInfo.title}`;
+      }
+      
       listItem.appendChild(link);
       projectsList.appendChild(listItem);
     }
