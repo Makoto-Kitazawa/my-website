@@ -52,6 +52,18 @@
       "category": "物理用ファイル",
       "icon": "📐",
       "description": "物体の移動による変位を可視化"
+    },
+    "07_g-acceleration": {
+      "title": "重力加速度を計算してみよう",
+      "category": "物理用ファイル",
+      "icon": "🪐",
+      "description": "落下運動から重力加速度を測定"
+    },
+    "08_fizeau-ex": {
+      "title": "フィゾーの実験",
+      "category": "物理用ファイル",
+      "icon": "🔬",
+      "description": "光速測定を模した実験"
     }
   },
   "otherLinks": [
