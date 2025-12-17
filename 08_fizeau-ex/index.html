@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>フィゾーの実験</title>
+    <link rel="icon" type="image/svg+xml" href="../_common_/favicon.svg">
+    <meta name="project:title" content="フィゾーの実験">
+    <meta name="project:category" content="物理用ファイル">
+    <meta name="project:icon" content="🔬">
+    <meta name="project:description" content="光速測定を模した実験">
+    <meta name="project:status" content="ready">
+    <link rel="stylesheet" href="../_common_/style_slide-menu.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <!-- 情報表示パネル（右側） -->
+    <div class="info-panel">
+        <div class="info-section">
+            <div class="info-label">玉の速度</div>
+            <div class="info-value" id="particleSpeedDisplay">0 m/s</div>
+        </div>
+        <div class="info-section" id="distanceDisplay">
+            <div class="info-label">反射板との距離</div>
+            <div class="info-value" id="distanceValue">1.000 m</div>
+        </div>
+    </div>
+    
+    <!-- コントローラー（下部） -->
+    <div class="controls">
+        <button id="startBtn">スタート</button>
+        <button id="stopBtn">停止</button>
+        <button id="resetBtn">リセット</button>
+        <div class="control-group">
+            <label>
+                <input type="checkbox" id="halfMirrorCheckbox">
+                <span>半反射鏡</span>
+            </label>
+        </div>
+        <div class="control-group">
+            <label>振動速度</label>
+            <input type="range" id="oscillationSpeed" min="0.5" max="3" step="0.1" value="1">
+            <span class="value-display" id="oscillationSpeedValue">1.0</span>
+        </div>
+    </div>
+    
+    <script type="text/javascript" src="../_common_/js_common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../_common_/slide-menu.js" charset="utf-8"></script>
+    <script src="js.js"></script>
+</body>
+</html>
