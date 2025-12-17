@@ -64,6 +64,13 @@
       "category": "物理用ファイル",
       "icon": "🔬",
       "description": "光速測定を模した実験"
+    },
+    "09_lens": {
+      "title": "レンズの屈折実験",
+      "category": "物理用ファイル",
+      "icon": "🔍",
+      "description": "凸レンズと凹レンズの光の屈折を可視化",
+      "status": "preparing"
     }
   },
   "otherLinks": [
