@@ -60,7 +60,10 @@ const screen = {
 let lightRays = [];
 let deadRayTrails = []; // 消えた光線の軌跡
 let extensionLines = []; // 虚像の延長線
+let virtualImagePositions = []; // 虚像の位置（重要な光線用）
 const rayCount = 36;
+const MAX_DEAD_TRAILS = 200; // 保存する軌跡の最大数
+const MAX_EXTENSION_LINES = 200; // 保存する延長線の最大数
 
 // Light ray class
 class LightRay {
@@ -75,11 +78,16 @@ class LightRay {
         this.trail = []; // 軌跡を記録
         this.lensPassPoint = null; // レンズ通過時の位置
         this.directionAfterLens = null; // レンズ通過後の進行方向
+        this.isImportant = false; // 重要な光線か（軸平行/中央通過）
+        this.imagePosition = null; // 虚像位置（重要な光線のみ）
     }
 
     update() {
-        // 軌跡を記録
+        // 軌跡を記録（最大1000ポイントに制限してメモリ使用量を削減）
         this.trail.push({ x: this.x, y: this.y });
+        if (this.trail.length > 1000) {
+            this.trail.shift(); // 古いポイントを削除
+        }
         
         this.x += this.vx;
         this.y += this.vy;
@@ -101,9 +109,20 @@ class LightRay {
             Math.abs(this.y - screen.y) <= screen.height / 2) {
             screen.traces.push({ x: this.x, y: this.y });
             this.alive = false;
-            // 軌跡を保存
+            // 軌跡を保存（重要度フラグも保持）
             if (this.trail.length > 0) {
-                deadRayTrails.push([...this.trail]);
+                deadRayTrails.push({
+                    trail: [...this.trail],
+                    isImportant: this.isImportant
+                });
+                // 最大数を超えたら古い軌跡を削除
+                if (deadRayTrails.length > MAX_DEAD_TRAILS) {
+                    deadRayTrails.shift();
+                }
+            }
+            // 重要な光線の虚像位置を記録（スクリーン衝突時）
+            if (this.isImportant && this.imagePosition) {
+                virtualImagePositions.push(this.imagePosition);
             }
             // 延長線を計算（レンズ通過後の方向で左側に延長）
             if (this.lensPassPoint && this.directionAfterLens) {
@@ -115,7 +134,8 @@ class LightRay {
                     startX: this.lensPassPoint.x,
                     startY: this.lensPassPoint.y,
                     endX: endX,
-                    endY: endY
+                    endY: endY,
+                    isImportant: this.isImportant
                 });
             }
         }
@@ -123,9 +143,20 @@ class LightRay {
         // Check bounds
         if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
             this.alive = false;
-            // 軌跡を保存
+            // 軌跡を保存（重要度フラグも保持）
             if (this.trail.length > 0) {
-                deadRayTrails.push([...this.trail]);
+                deadRayTrails.push({
+                    trail: [...this.trail],
+                    isImportant: this.isImportant
+                });
+                // 最大数を超えたら古い軌跡を削除
+                if (deadRayTrails.length > MAX_DEAD_TRAILS) {
+                    deadRayTrails.shift();
+                }
+            }
+            // 重要な光線の虚像位置を記録（画面外出時）
+            if (this.isImportant && this.imagePosition) {
+                virtualImagePositions.push(this.imagePosition);
             }
             // 延長線を計算（レンズ通過後の方向で左側に延長）
             if (this.lensPassPoint && this.directionAfterLens) {
@@ -137,8 +168,13 @@ class LightRay {
                     startX: this.lensPassPoint.x,
                     startY: this.lensPassPoint.y,
                     endX: endX,
-                    endY: endY
+                    endY: endY,
+                    isImportant: this.isImportant
                 });
+                // 最大数を超えたら古い延長線を削除
+                if (extensionLines.length > MAX_EXTENSION_LINES) {
+                    extensionLines.shift();
+                }
             }
         }
     }
@@ -173,6 +209,11 @@ class LightRay {
         const magnification = -b / a;
         const imageY = lens.y + (lightSource.y - lens.y) * magnification;
         
+        // 重要な光線の場合、虚像位置を保存
+        if (this.isImportant) {
+            this.imagePosition = { x: imageX, y: imageY };
+        }
+        
         // 実像と虚像で処理を分ける
         let newAngle;
         if (b > 0) {
@@ -197,8 +238,13 @@ class LightRay {
     draw() {
         // 軌跡を描画
         if (this.trail.length > 1) {
-            ctx.strokeStyle = 'rgba(255, 107, 107, 0.3)';
-            ctx.lineWidth = 1;
+            if (this.isImportant) {
+                ctx.strokeStyle = 'rgba(255, 107, 107, 0.6)';
+                ctx.lineWidth = 3; // 重要な光線は太い
+            } else {
+                ctx.strokeStyle = 'rgba(255, 107, 107, 0.3)';
+                ctx.lineWidth = 1;
+            }
             ctx.beginPath();
             ctx.moveTo(this.trail[0].x, this.trail[0].y);
             for (let i = 1; i < this.trail.length; i++) {
@@ -348,11 +394,23 @@ function handleTouchMove(e) {
 playBtn.addEventListener('click', () => {
     // Clear existing rays and traces
     lightRays = [];
-    deadRayTrails = [];
-    extensionLines = [];
+    deadRayTrails = []; // 古い軌跡をクリア
+    extensionLines = []; // 古い延長線をクリア
+    virtualImagePositions = []; // 虚像位置をクリア
     screen.traces = [];
     
-    // Create rays in all directions
+    // 重要な光線1: 光軸に平行に出る光線
+    const parallelRay = new LightRay(lightSource.x, lightSource.y, 0); // 右に平行
+    parallelRay.isImportant = true;
+    lightRays.push(parallelRay);
+    
+    // 重要な光線2: レンズの中央を通過する光線
+    const centralAngle = Math.atan2(lens.y - lightSource.y, lens.x - lightSource.x);
+    const centralRay = new LightRay(lightSource.x, lightSource.y, centralAngle);
+    centralRay.isImportant = true;
+    lightRays.push(centralRay);
+    
+    // その他の光線（36方向）
     for (let i = 0; i < rayCount; i++) {
         const angle = (Math.PI * 2 * i) / rayCount;
         lightRays.push(new LightRay(lightSource.x, lightSource.y, angle));
@@ -364,6 +422,7 @@ resetBtn.addEventListener('click', () => {
     lightRays = [];
     deadRayTrails = [];
     extensionLines = [];
+    virtualImagePositions = [];
     screen.traces = [];
     lightSource.x = lens.x - 150;
     lightSource.y = lens.y - 80;
@@ -421,46 +480,32 @@ function drawLens() {
         ctx.stroke();
         
     } else {
-        // 凹レンズ（両凹）- 長方形から2つの円を型抜きした形
-        const edgeThickness = 50; // レンズの端の厚さ（横幅）
-        const intersectionY = lensHalfHeight; // レンズの高さの半分
-        
-        // 左右から食い込む円の半径（大きめに設定）
-        const circleRadius = 200;
-        // 円の中心位置（レンズの外側）
-        const circleOffsetX = edgeThickness / 2 - 10; // レンズ端から少し内側
-        
-        const leftCircleX = lens.x - circleOffsetX;
-        const rightCircleX = lens.x + circleOffsetX;
-        
-        // 円とレンズ端との交点を計算
-        const dx = edgeThickness / 2;
-        const intersectionHeight = Math.sqrt(circleRadius * circleRadius - dx * dx);
+        // 凹レンズ（両凹）- 左右の面が中央に凹んだ形
+        const lensWidth = 20; // 凸レンズと同じ幅
+        const concaveDepth = 10; // 左右に凹む深さ（px）
+        const leftX = lens.x - lensWidth / 2;
+        const rightX = lens.x + lensWidth / 2;
+        const topY = lens.y - lensHalfHeight;
+        const bottomY = lens.y + lensHalfHeight;
+        const centerY = lens.y;
         
         ctx.beginPath();
         
-        // 左端上から開始
-        const leftX = lens.x - edgeThickness / 2;
-        const rightX = lens.x + edgeThickness / 2;
-        const topY = lens.y - Math.min(intersectionY, intersectionHeight);
-        const bottomY = lens.y + Math.min(intersectionY, intersectionHeight);
-        
+        // 左上から開始
         ctx.moveTo(leftX, topY);
         
-        // 左側の円による凹み（上から下へ、外側の円弧）
-        const leftTopAngle = Math.atan2(topY - lens.y, leftX - leftCircleX);
-        const leftBottomAngle = Math.atan2(bottomY - lens.y, leftX - leftCircleX);
-        ctx.arc(leftCircleX, lens.y, circleRadius, leftTopAngle, leftBottomAngle, false);
+        // 上の直線（左から右へ）
+        ctx.lineTo(rightX, topY);
         
-        // 下端の直線（左から右へ）
-        ctx.lineTo(rightX, bottomY);
+        // 右の曲線（上から下へ、中央に向かって凹む）
+        ctx.quadraticCurveTo(rightX - concaveDepth, centerY, rightX, bottomY);
         
-        // 右側の円による凹み（下から上へ、外側の円弧）
-        const rightBottomAngle = Math.atan2(bottomY - lens.y, rightX - rightCircleX);
-        const rightTopAngle = Math.atan2(topY - lens.y, rightX - rightCircleX);
-        ctx.arc(rightCircleX, lens.y, circleRadius, rightBottomAngle, rightTopAngle, false);
+        // 下の直線（右から左へ）
+        ctx.lineTo(leftX, bottomY);
         
-        // 上端の直線（右から左へ、閉じる）
+        // 左の曲線（下から上へ、中央に向かって凹む）
+        ctx.quadraticCurveTo(leftX + concaveDepth, centerY, leftX, topY);
+        
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
@@ -554,10 +599,17 @@ function animate() {
     drawLightSource();
     
     // Draw dead ray trails (消えた光線の軌跡)
-    deadRayTrails.forEach(trail => {
+    deadRayTrails.forEach(item => {
+        const trail = item.trail || item; // 互換性を保つ
+        const isImportant = item.isImportant || false;
         if (trail.length > 1) {
-            ctx.strokeStyle = 'rgba(255, 107, 107, 0.3)';
-            ctx.lineWidth = 1;
+            if (isImportant) {
+                ctx.strokeStyle = 'rgba(255, 107, 107, 0.6)';
+                ctx.lineWidth = 3; // 重要な光線は太い
+            } else {
+                ctx.strokeStyle = 'rgba(255, 107, 107, 0.3)';
+                ctx.lineWidth = 1;
+            }
             ctx.beginPath();
             ctx.moveTo(trail[0].x, trail[0].y);
             for (let i = 1; i < trail.length; i++) {
@@ -567,18 +619,36 @@ function animate() {
         }
     });
     
+    // Draw virtual image positions (虚像の位置：青い点線の円)
+    if (virtualImagePositions.length > 0) {
+        virtualImagePositions.forEach(imagePos => {
+            ctx.strokeStyle = '#4169E1'; // 青色
+            ctx.lineWidth = 2;
+            ctx.setLineDash([3, 3]); // 点線
+            ctx.beginPath();
+            ctx.arc(imagePos.x, imagePos.y, lightSource.radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        });
+    }
+    
     // Draw extension lines (虚像の延長線)
     if (showExtensionCheckbox.checked && extensionLines.length > 0) {
-        ctx.strokeStyle = '#00CED1'; // 水色
-        ctx.lineWidth = 1;
-        ctx.setLineDash([5, 5]);
         extensionLines.forEach(line => {
+            if (line.isImportant) {
+                ctx.strokeStyle = '#00CED1'; // 水色
+                ctx.lineWidth = 3; // 重要な線は太い
+            } else {
+                ctx.strokeStyle = '#00CED1'; // 水色
+                ctx.lineWidth = 1; // その他は細い
+            }
+            ctx.setLineDash([5, 5]);
             ctx.beginPath();
             ctx.moveTo(line.startX, line.startY);
             ctx.lineTo(line.endX, line.endY);
             ctx.stroke();
+            ctx.setLineDash([]);
         });
-        ctx.setLineDash([]);
     }
     
     // Update and draw light rays
