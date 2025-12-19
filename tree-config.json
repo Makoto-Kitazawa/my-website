@@ -57,7 +57,8 @@
       "title": "重力加速度を計算してみよう",
       "category": "物理用ファイル",
       "icon": "🪐",
-      "description": "落下運動から重力加速度を測定"
+      "description": "落下運動から重力加速度を測定",
+      "status": "preparing"
     },
     "08_fizeau-ex": {
       "title": "フィゾーの実験",
@@ -69,8 +70,7 @@
       "title": "レンズの屈折実験",
       "category": "物理用ファイル",
       "icon": "🔍",
-      "description": "凸レンズと凹レンズの光の屈折を可視化",
-      "status": "preparing"
+      "description": "凸レンズと凹レンズの光の屈折を可視化"
     }
   },
   "otherLinks": [
