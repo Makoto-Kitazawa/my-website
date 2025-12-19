@@ -1,4 +1,5 @@
 {
+  "_sourceComment": "各メタデータは対応するindex.htmlの<meta name='project:*'>タグから自動同期されます。詳細はtree-config.metadata.mdを参照してください。",
   "exclude": [
     "node_modules",
     ".git",
@@ -18,42 +19,55 @@
   ],
   "metadata": {
     "01_soundwave": {
+      "_source": "01_soundwave/index.html のmeta name='project:*'タグ",
       "title": "音声の波形を見てみよう",
       "category": "物理用ファイル",
       "icon": "🎵",
-      "description": "マイクやファイルから音声波形を表示"
+      "description": "マイクやファイルから音声波形を表示",
+      "status": "ready"
     },
     "02_soundsource": {
+      "_source": "02_soundsource/index.html のmeta name='project:*'タグ",
       "title": "任意の波形の音波を出してみよう",
       "category": "物理用ファイル",
       "icon": "🎛️",
-      "description": "カスタム波形の音を生成"
+      "description": "カスタム波形の音を生成",
+      "status": "ready"
     },
     "03_2wave-anime": {
+      "_source": "03_2wave-anime/index.html のmeta name='project:*'タグ",
       "title": "縦波と横波の違いを見てみよう",
       "category": "物理用ファイル",
       "icon": "📊",
-      "description": "縦波と横波の振動パターンを可視化"
+      "description": "縦波と横波の振動パターンを可視化",
+      "status": "ready"
     },
     "04_beatanime": {
+      "_source": "04_beatanime/index.html のmeta name='project:*'タグ",
       "title": "うなりを視覚的に見てみよう",
       "category": "物理用ファイル",
       "icon": "🎼",
-      "description": "2つの周波数が近い音波の干渉"
+      "description": "2つの周波数が近い音波の干渉",
+      "status": "ready"
     },
     "05_doppler-effect": {
+      "_source": "05_doppler-effect/index.html のmeta name='project:*'タグ",
       "title": "ドップラー効果を視覚的に見てみよう",
       "category": "物理用ファイル",
       "icon": "🔊",
-      "description": "音源の移動による周波数変化を可視化"
+      "description": "音源の移動による周波数変化を可視化",
+      "status": "ready"
     },
     "06_displacement": {
+      "_source": "06_displacement/index.html のmeta name='project:*'タグ",
       "title": "変位を視覚的に見てみよう",
       "category": "物理用ファイル",
       "icon": "📐",
-      "description": "物体の移動による変位を可視化"
+      "description": "物体の移動による変位を可視化",
+      "status": "ready"
     },
     "07_g-acceleration": {
+      "_source": "07_g-acceleration/index.html のmeta name='project:*'タグ",
       "title": "重力加速度を計算してみよう",
       "category": "物理用ファイル",
       "icon": "🪐",
@@ -61,16 +75,20 @@
       "status": "preparing"
     },
     "08_fizeau-ex": {
+      "_source": "08_fizeau-ex/index.html のmeta name='project:*'タグ",
       "title": "フィゾーの実験",
       "category": "物理用ファイル",
       "icon": "🔬",
-      "description": "光速測定を模した実験"
+      "description": "光速測定を模した実験",
+      "status": "ready"
     },
     "09_lens": {
+      "_source": "09_lens/index.html のmeta name='project:*'タグ",
       "title": "レンズの屈折実験",
       "category": "物理用ファイル",
       "icon": "🔍",
-      "description": "凸レンズと凹レンズの光の屈折を可視化"
+      "description": "凸レンズと凹レンズの光の屈折を可視化",
+      "status": "ready"
     }
   },
   "otherLinks": [

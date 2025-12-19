@@ -105,6 +105,17 @@
       color: var(--hover);
     }
 
+    /* Preparing status styling */
+    .entry.preparing {
+      opacity: 0.6;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .entry.preparing:hover {
+      background: transparent;
+      color: var(--link);
+    }
+
     .meta {
       color: var(--muted);
       font-size: 12px;
