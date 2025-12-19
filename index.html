@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>File Tree Links</title>
   <link href="./style.css" rel="stylesheet">
-  <link href="/_common_/style_common.css" rel="stylesheet">
+  <link href="_common_/style_common.css" rel="stylesheet">
+  <link href="_common_/style_slide-menu.css" rel="stylesheet">
 </head>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-WXT1SXS7F4"></script>
@@ -152,6 +153,8 @@
   <div class="last-updated" id="lastUpdated"></div>
 
 </body>
+    <script type="text/javascript" src="_common_/js_common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="_common_/slide-menu.js" charset="utf-8"></script>
     <script>
       // 最終更新日を表示
       const updated = new Date(document.lastModified);
@@ -164,36 +167,54 @@
 
       // プロジェクトのステータスを自動判定してリンク表示を制御
       async function initializeProjectLinks() {
-        const projectLinks = document.querySelectorAll('.project-link');
+        // tree-config.json から status 情報を取得
+        const siteRoot = detectSiteRoot();
+        let statusMap = {};
         
+        try {
+          const response = await fetch(siteRoot + 'tree-config.json');
+          const config = await response.json();
+          if (config.metadata) {
+            for (const [key, data] of Object.entries(config.metadata)) {
+              if (data.status) {
+                statusMap[key] = data.status;
+              }
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to load tree-config.json:', error);
+        }
+        
+        const projectLinks = document.querySelectorAll('.project-link');
         for (const link of projectLinks) {
           const projectPath = link.getAttribute('data-project-path');
           if (!projectPath) continue;
           
-          try {
-            const response = await fetch(projectPath);
-            const html = await response.text();
-            
-            // メタタグから status を抽出
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const statusMeta = doc.querySelector('meta[name="project:status"]');
-            const status = statusMeta ? statusMeta.getAttribute('content') : 'ready';
-            
-            // ステータスに応じてリンク表示を制御
-            if (status === 'preparing') {
-              link.href = '#';
-              link.title = '準備中';
-              link.style.opacity = '0.6';
-              link.style.cursor = 'not-allowed';
-              link.addEventListener('click', (e) => e.preventDefault());
-            }
-            // 'ready' の場合は元のhrefを保持
-          } catch (error) {
-            console.error(`Failed to fetch ${projectPath}:`, error);
-            // エラーの場合も元のhrefを保持
+          // パスからプロジェクト名を抽出（例："01_soundwave/" → "01_soundwave"）
+          const projectName = projectPath.split('/')[0];
+          const status = statusMap[projectName] || 'ready';
+          
+          // ステータスに応じてクラスを追加
+          if (status === 'preparing') {
+            link.classList.add('preparing');
+            link.href = '#';
+            link.title = '準備中';
+            // バッジを追加
+            const badge = document.createElement('span');
+            badge.className = 'status-badge';
+            badge.textContent = '準備中';
+            link.appendChild(badge);
+            link.addEventListener('click', (e) => e.preventDefault());
           }
         }
+      }
+      
+      // サイトルート判定（slide-menu.jsと同じ）
+      function detectSiteRoot() {
+        const isGh = /github\.io$/i.test(location.host);
+        const segs = location.pathname.split('/').filter(Boolean);
+        const repo = segs.length > 0 ? segs[0] : '';
+        return (isGh && repo) ? `/${repo}/` : '/';
       }
       
       // DOM読み込み後に実行

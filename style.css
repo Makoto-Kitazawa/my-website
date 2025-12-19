@@ -116,6 +116,18 @@
       color: var(--link);
     }
 
+    /* Status badge */
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      margin-left: 8px;
+      font-size: 11px;
+      background: #ffa500;
+      color: white;
+      border-radius: 4px;
+      font-weight: normal;
+    }
+
     .meta {
       color: var(--muted);
       font-size: 12px;
