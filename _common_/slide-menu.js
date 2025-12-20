@@ -102,13 +102,7 @@ async function initSlideMenu() {
       link.className = 'slide-menu-item';
       link.innerHTML = `${linkInfo.icon} ${linkInfo.title}`;
       
-      if (linkInfo.external || linkInfo.url.startsWith('http')) {
-        link.href = linkInfo.url;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-      } else {
-        link.href = linkInfo.url;
-      }
+      link.href = linkInfo.url;
       
       listItem.appendChild(link);
       otherList.appendChild(listItem);

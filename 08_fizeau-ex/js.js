@@ -309,25 +309,54 @@ class Particle {
             return false; // 半反射鏡が無効の場合は無視
         }
 
-        // 45度の斜め直線との衝突判定
-        // 三角形の頂点
-        const x1 = halfMirror.x - halfMirror.size / 2;
-        const y1 = halfMirror.y + halfMirror.size / 2;
-        const x2 = halfMirror.x + halfMirror.size / 2;
-        const y2 = halfMirror.y - halfMirror.size / 2;
-        const x3 = halfMirror.x + halfMirror.size / 2;
-        const y3 = halfMirror.y + halfMirror.size / 2;
+        // 左向きの球のみ判定
+        if (this.vx >= 0) {
+            return false;
+        }
 
-        // 三角形内にいるかチェック
-        if (this.x >= x1 && this.x <= x2 && this.y >= y2 && this.y <= y3) {
-            // 45度の直線 y = -x + c との距離をチェック
-            const lineY = -(this.x - halfMirror.x) + halfMirror.y;
-            if (this.y >= lineY - 5 && this.y <= lineY + 5) {
-                // 左向きの球を下に跳ね返す
-                if (this.vx < 0) { // 左向きの場合
-                    this.vy = Math.abs(this.vx); // 下向きに速度を設定
-                    this.vx = 0; // 水平速度を停止
+        // 半反射鏡の頂点（直線の両端）
+        const p1x = halfMirror.x - halfMirror.size / 2; // 左
+        const p1y = halfMirror.y + halfMirror.size / 2; // 下
+        const p2x = halfMirror.x + halfMirror.size / 2; // 右
+        const p2y = halfMirror.y - halfMirror.size / 2; // 上
+
+        // 直線の方程式: Ax + By + C = 0
+        const A = p2y - p1y;
+        const B = -(p2x - p1x);
+        const C = (p2x - p1x) * p1y - (p2y - p1y) * p1x;
+
+        // 現在の位置と前フレームの位置で直線の位置関係を判定
+        const prevX = this.x - this.vx;
+        const prevY = this.y - this.vy;
+        
+        const prevSide = A * prevX + B * prevY + C;
+        const currSide = A * this.x + B * this.y + C;
+
+        // 符号が反転した（直線を越えた）場合が衝突
+        if (prevSide * currSide < 0) {
+            // 球が直線の範囲内にあるかチェック
+            const minX = Math.min(p1x, p2x);
+            const maxX = Math.max(p1x, p2x);
+            const minY = Math.min(p1y, p2y);
+            const maxY = Math.max(p1y, p2y);
+
+            if (this.x >= minX - 10 && this.x <= maxX + 10 &&
+                this.y >= minY - 10 && this.y <= maxY + 10) {
+                // 直線との交点を計算
+                const denom = A * (this.x - prevX) + B * (this.y - prevY);
+                if (denom !== 0) {
+                    const t = -prevSide / denom;
+                    const collisionX = prevX + t * (this.x - prevX);
+                    const collisionY = prevY + t * (this.y - prevY);
+                    
+                    // 交点に球を配置
+                    this.x = collisionX;
+                    this.y = collisionY;
                 }
+                
+                // 球の速度を下向きに変更
+                this.vy = Math.abs(this.vx);
+                this.vx = 0;
                 return true;
             }
         }

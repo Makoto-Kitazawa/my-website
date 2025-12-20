@@ -175,7 +175,7 @@ function generateTreeHTML(groups) {
       html += '              <li>\n';
       html += '                <div class="node">\n';
       html += `                  <span class="icon">${escapeHTML(item.icon)}</span>\n`;
-      html += `                  <a class="entry" href="${escapeHTML(safePath)}" target="_blank">\n`;
+      html += `                  <a class="entry" href="${escapeHTML(safePath)}">\n`;
       html += `                    <span>${escapeHTML(item.title)}</span>\n`;
       html += '                  </a>\n';
       html += '                </div>\n';
@@ -199,11 +199,10 @@ function generateTreeHTML(groups) {
     html += '            <ul class="children">\n';
     
     for (const link of config.otherLinks) {
-      const target = link.external ? ' target="_blank"' : '';
       html += '              <li>\n';
       html += '                <div class="node">\n';
       html += `                  <span class="icon">${escapeHTML(link.icon)}</span>\n`;
-      html += `                  <a class="entry" href="${escapeHTML(link.url)}"${target}>\n`;
+      html += `                  <a class="entry" href="${escapeHTML(link.url)}">\n`;
       html += `                    <span>${escapeHTML(link.title)}</span>\n`;
       html += '                  </a>\n';
       html += '                </div>\n';
