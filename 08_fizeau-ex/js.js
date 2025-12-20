@@ -21,6 +21,7 @@ const particleSpeedDisplay = document.getElementById('particleSpeedDisplay');
 const distanceDisplay = document.getElementById('distanceDisplay');
 const distanceValue = document.getElementById('distanceValue');
 const halfMirrorCheckbox = document.getElementById('halfMirrorCheckbox');
+const instructionBanner = document.getElementById('instructionBanner');
 
 // Game state
 let isRunning = false;
@@ -33,16 +34,74 @@ const maxParticles = 150; // メモリ管理のための上限（増加）
 const maxDebris = 200; // 破片の上限
 
 // Settings
-let oscillationPeriod = 2; // 秒
-const particleLaunchSpeed = 10; // 固定速度（2倍速）
-let halfMirrorEnabled = false;
+let oscillationPeriod = 5; // 秒
+const particleLaunchSpeed = 15; // 固定速度（5倍速）
+let halfMirrorEnabled = true; // Fizeauの実験では基本的に有効
 let scoringModeEnabled = false;
 
 // Scoring system
 let score = 100;
 let cycleStartTime = null;
 let lastCyclePhase = 0;
+// Speed measurement
+let frameCounter = 0;
+let speedMeasurementStartFrame = 0;
+let speedMeasurementStartX = 0;
+let measuredSpeed = 0;
+const SPEED_MEASUREMENT_INTERVAL = 60; // 60フレーム（約1秒）ごとに測定
 
+// Speed display update
+let lastSpeedDisplayUpdate = 0;
+const SPEED_DISPLAY_UPDATE_INTERVAL = 2000; // 2秒ごとに更新
+
+// Frame rate measurement
+let lastFrameTime = 0;
+let actualFrameRate = 60; // 初期値60fps
+
+// Measure actual particle speed every 60 frames
+function measureParticleSpeed() {
+    if (!isRunning || particles.length === 0) return;
+    
+    frameCounter++;
+    
+    // 60フレームごとに速度を測定
+    if (frameCounter - speedMeasurementStartFrame >= SPEED_MEASUREMENT_INTERVAL) {
+        // 最初の測定開始
+        if (speedMeasurementStartFrame === 0) {
+            speedMeasurementStartFrame = frameCounter;
+            // 最も右側の球の位置を記録
+            let rightmostParticle = particles[0];
+            for (let particle of particles) {
+                if (particle.x > rightmostParticle.x) {
+                    rightmostParticle = particle;
+                }
+            }
+            speedMeasurementStartX = rightmostParticle.x;
+        } else {
+            // 60フレーム後の位置を測定
+            let rightmostParticle = particles[0];
+            for (let particle of particles) {
+                if (particle.x > rightmostParticle.x) {
+                    rightmostParticle = particle;
+                }
+            }
+            const currentX = rightmostParticle.x;
+            const framesElapsed = frameCounter - speedMeasurementStartFrame;
+            const pixelDistance = currentX - speedMeasurementStartX;
+            
+            if (framesElapsed > 0) {
+                // 60fpsを想定して秒速に変換
+                const pixelSpeed = (pixelDistance / framesElapsed) * 60; // ピクセル/秒
+                const metersPerSecond = (pixelSpeed / referencePixelDistance) * referenceDistance;
+                measuredSpeed = metersPerSecond;
+                
+                // 次の測定を開始
+                speedMeasurementStartFrame = frameCounter;
+                speedMeasurementStartX = currentX;
+            }
+        }
+    }
+}
 // Distance calculation (1m = distance between barrier and reflector at initial position)
 const referenceDistance = 1; // meter
 const speedOfLight = 299792458; // m/s
@@ -214,7 +273,24 @@ class Particle {
         const reflectorRight = reflector.x + reflector.width / 2;
         const reflectorTop = reflector.y - reflector.height / 2;
         const reflectorBottom = reflector.y + reflector.height / 2;
-
+        
+        // 前フレームの位置を考慮したスり抜け対策
+        // 球がリフレクター左側のラインを越える場合を検出
+        const prevX = this.x - this.vx;
+        const nextX = this.x;
+        
+        // 左側ラインを越えて接近している場合
+        if (prevX < reflectorLeft && nextX >= reflectorLeft &&
+            this.y + this.height / 2 > reflectorTop &&
+            this.y - this.height / 2 < reflectorBottom) {
+            this.vx = -this.vx;
+            this.x = reflectorLeft - this.width / 2 - 1;
+            // 反射時にy座標を球1個分ずらす
+            this.y += this.height;
+            return true;
+        }
+        
+        // 通常の衝突判定（領域内にいる場合）
         if (this.x + this.width / 2 > reflectorLeft && 
             this.x - this.width / 2 < reflectorRight &&
             this.y + this.height / 2 > reflectorTop &&
@@ -229,8 +305,8 @@ class Particle {
     }
 
     checkCollisionWithHalfMirror() {
-        if (!halfMirrorEnabled || this.vx >= 0) {
-            return false; // 半反射鏡が無効または入射球の場合は無視
+        if (!halfMirrorEnabled) {
+            return false; // 半反射鏡が無効の場合は無視
         }
 
         // 45度の斜め直線との衝突判定
@@ -247,9 +323,11 @@ class Particle {
             // 45度の直線 y = -x + c との距離をチェック
             const lineY = -(this.x - halfMirror.x) + halfMirror.y;
             if (this.y >= lineY - 5 && this.y <= lineY + 5) {
-                // 下に跳ね返る
-                this.vy = Math.abs(this.vx); // 下向きに速度を設定
-                this.vx = 0; // 水平速度を停止
+                // 左向きの球を下に跳ね返す
+                if (this.vx < 0) { // 左向きの場合
+                    this.vy = Math.abs(this.vx); // 下向きに速度を設定
+                    this.vx = 0; // 水平速度を停止
+                }
                 return true;
             }
         }
@@ -379,6 +457,11 @@ startBtn.addEventListener('click', () => {
     isRunning = true;
     startBtn.disabled = true;
     stopBtn.disabled = false;
+    // 説明バナーを隠す
+    instructionBanner.classList.add('hidden');
+    setTimeout(() => {
+        instructionBanner.style.display = 'none';
+    }, 400);
 });
 
 stopBtn.addEventListener('click', () => {
@@ -401,8 +484,19 @@ resetBtn.addEventListener('click', () => {
     cycleStartTime = null;
     lastCyclePhase = 0;
     scoreEffects = [];
+    // 速度測定変数のリセット
+    frameCounter = 0;
+    speedMeasurementStartFrame = 0;
+    speedMeasurementStartX = 0;
+    measuredSpeed = 0;
+    lastFrameTime = 0;
+    actualFrameRate = 60;
+    lastSpeedDisplayUpdate = 0;
     startBtn.disabled = false;
     stopBtn.disabled = true;
+    // 説明バナーを再表示
+    instructionBanner.style.display = 'block';
+    instructionBanner.classList.remove('hidden');
 });
 
 // Update distance display
@@ -412,13 +506,37 @@ function updateDistanceDisplay() {
     distanceValue.textContent = currentDistance.toFixed(3);
 }
 
+// Dynamic distance display during dragging
+function updateDynamicDistanceDisplay() {
+    if (!barrier.isDragging) return;
+    
+    const currentPixelDistance = reflector.x - barrier.x;
+    const currentDistance = (currentPixelDistance / referencePixelDistance) * referenceDistance;
+    
+    // barrierとreflectorの中央に距離を表示
+    const centerX = (barrier.x + reflector.x) / 2;
+    const displayY = Math.min(barrier.y, reflector.y) - 60; // オブジェクトの上方に表示
+    
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(centerX - 80, displayY - 25, 160, 50);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(centerX - 80, displayY - 25, 160, 50);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('← ' + currentDistance.toFixed(3) + ' m →', centerX, displayY);
+    ctx.restore();
+}
+
 // Update speed display
 function updateSpeedDisplay() {
-    // ピクセル速度をメートル/フレーム速度に変換
-    const pixelSpeed = particleLaunchSpeed;
-    const metersPerFrame = (pixelSpeed / referencePixelDistance) * referenceDistance;
-    // フレームレート60fpsを想定してm/sに変換
-    const metersPerSecond = metersPerFrame * 60;
+    // 設定値と実際のフレームレートを使って計算
+    const pixelSpeed = particleLaunchSpeed * actualFrameRate; // ピクセル/秒
+    const metersPerSecond = (pixelSpeed / referencePixelDistance) * referenceDistance;
     particleSpeedDisplay.textContent = metersPerSecond.toFixed(2) + ' m/s';
 }
 
@@ -597,6 +715,15 @@ function drawScoreBox() {
 
 // Main animation loop
 function animate(currentTime) {
+    // Measure actual frame rate
+    if (lastFrameTime > 0) {
+        const frameTime = currentTime - lastFrameTime;
+        actualFrameRate = 1000 / frameTime; // fps
+        // スムージング（急激な変化を避ける）
+        actualFrameRate = actualFrameRate * 0.1 + actualFrameRate * 0.9;
+    }
+    lastFrameTime = currentTime;
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     // Update barrier position
@@ -606,6 +733,9 @@ function animate(currentTime) {
     
     // Update half mirror position
     updateHalfMirrorPosition();
+    
+    // Measure particle speed
+    measureParticleSpeed();
     
     // Launch particles
     if (isRunning) {
@@ -652,8 +782,11 @@ function animate(currentTime) {
         }
     }
     
-    // Update speed display
-    updateSpeedDisplay();
+    // Update speed display (every 2 seconds)
+    if (currentTime - lastSpeedDisplayUpdate >= SPEED_DISPLAY_UPDATE_INTERVAL) {
+        updateSpeedDisplay();
+        lastSpeedDisplayUpdate = currentTime;
+    }
     
     // Draw objects
     drawLauncher();
@@ -661,6 +794,7 @@ function animate(currentTime) {
     drawHalfMirror();
     drawReflector();
     drawScoreBox();
+    updateDynamicDistanceDisplay();
     
     requestAnimationFrame(animate);
 }
@@ -671,3 +805,4 @@ animate(0);
 // Initialize displays
 updateDistanceDisplay();
 updateSpeedDisplay();
+oscillationPeriodValue.textContent = oscillationPeriod.toFixed(1) + ' 秒';
