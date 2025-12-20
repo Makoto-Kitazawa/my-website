@@ -14,8 +14,9 @@ window.addEventListener('resize', resizeCanvas);
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const resetBtn = document.getElementById('resetBtn');
-const oscillationSpeedInput = document.getElementById('oscillationSpeed');
-const oscillationSpeedValue = document.getElementById('oscillationSpeedValue');
+const oscillationPeriodInput = document.getElementById('oscillationPeriod');
+const oscillationPeriodValue = document.getElementById('oscillationPeriodValue');
+const scoringModeCheckbox = document.getElementById('scoringModeCheckbox');
 const particleSpeedDisplay = document.getElementById('particleSpeedDisplay');
 const distanceDisplay = document.getElementById('distanceDisplay');
 const distanceValue = document.getElementById('distanceValue');
@@ -25,15 +26,22 @@ const halfMirrorCheckbox = document.getElementById('halfMirrorCheckbox');
 let isRunning = false;
 let particles = [];
 let debrisParticles = [];
+let scoreEffects = [];
 let lastLaunchTime = 0;
-const launchInterval = 150; // ms (2倍の球数)
+const launchInterval = 75; // ms (4倍の球数)
 const maxParticles = 150; // メモリ管理のための上限（増加）
 const maxDebris = 200; // 破片の上限
 
 // Settings
-let oscillationSpeed = 1;
+let oscillationPeriod = 2; // 秒
 const particleLaunchSpeed = 10; // 固定速度（2倍速）
 let halfMirrorEnabled = false;
+let scoringModeEnabled = false;
+
+// Scoring system
+let score = 100;
+let cycleStartTime = null;
+let lastCyclePhase = 0;
 
 // Distance calculation (1m = distance between barrier and reflector at initial position)
 const referenceDistance = 1; // meter
@@ -113,6 +121,37 @@ class Debris {
         ctx.globalAlpha = alpha;
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+        ctx.globalAlpha = 1.0;
+    }
+    
+    isDead() {
+        return this.life <= 0;
+    }
+}
+
+// Score effect class
+class ScoreEffect {
+    constructor(x, y) {
+        this.x = x + (Math.random() - 0.5) * 60; // ±30pxのランダムずらし
+        this.y = y;
+        this.vy = -2; // 上向きに移動
+        this.life = 60; // frames (1秒)
+        this.maxLife = 60;
+    }
+    
+    update() {
+        this.y += this.vy;
+        this.life--;
+    }
+    
+    draw() {
+        const alpha = this.life / this.maxLife;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#ff0000';
+        ctx.font = 'bold 32px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('-1', this.x, this.y);
         ctx.globalAlpha = 1.0;
     }
     
@@ -218,15 +257,34 @@ class Particle {
     checkBounds() {
         if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
             createExplosion(this.x, this.y);
+            
+            // 画面下に当たった場合はスコア減少
+            if (this.y > canvas.height && scoringModeEnabled) {
+                score -= 1;
+                createScoreEffect(this.x, canvas.height);
+            }
+            
             this.alive = false;
         }
     }
 }
 
-// Update oscillation speed display
-oscillationSpeedInput.addEventListener('input', (e) => {
-    oscillationSpeed = parseFloat(e.target.value);
-    oscillationSpeedValue.textContent = oscillationSpeed.toFixed(1);
+// Update oscillation period display
+oscillationPeriodInput.addEventListener('input', (e) => {
+    oscillationPeriod = parseFloat(e.target.value);
+    oscillationPeriodValue.textContent = oscillationPeriod.toFixed(1) + ' 秒';
+});
+
+// Scoring mode checkbox
+scoringModeCheckbox.addEventListener('change', (e) => {
+    scoringModeEnabled = e.target.checked;
+    if (scoringModeEnabled) {
+        score = 80;
+        cycleStartTime = null;
+        lastCyclePhase = 0;
+        halfMirrorCheckbox.checked = true;
+        halfMirrorEnabled = true;
+    }
 });
 
 // Half mirror checkbox
@@ -337,6 +395,10 @@ resetBtn.addEventListener('click', () => {
     referencePixelDistance = reflector.initialX - barrier.initialX;
     updateDistanceDisplay();
     updateSpeedDisplay();
+    score = 80;
+    cycleStartTime = null;
+    lastCyclePhase = 0;
+    scoreEffects = [];
     startBtn.disabled = false;
     stopBtn.disabled = true;
 });
@@ -377,6 +439,11 @@ function createExplosion(x, y) {
     }
 }
 
+// Create score effect
+function createScoreEffect(x, y) {
+    scoreEffects.push(new ScoreEffect(x, y));
+}
+
 // Launch particles
 function launchParticle(currentTime) {
     if (currentTime - lastLaunchTime > launchInterval) {
@@ -397,8 +464,19 @@ function launchParticle(currentTime) {
 
 // Update barrier oscillation
 function updateBarrier() {
-    barrier.oscillationPhase += 0.02 * oscillationSpeed;
+    // 周期をラジアンに変換（2秒周期なら、1秒で π ラジアン）
+    const angularFrequency = (2 * Math.PI) / oscillationPeriod; // rad/s
+    barrier.oscillationPhase += angularFrequency / 60; // 60fps想定
     barrier.y = barrier.baseY + Math.sin(barrier.oscillationPhase) * barrier.oscillationAmplitude;
+    
+    // 採点モード：1周期経過の検出
+    if (scoringModeEnabled && isRunning) {
+        const currentPhase = Math.floor(barrier.oscillationPhase / (2 * Math.PI));
+        if (currentPhase > lastCyclePhase) {
+            score += 1;
+            lastCyclePhase = currentPhase;
+        }
+    }
 }
 
 // Draw functions
@@ -454,6 +532,59 @@ function drawHalfMirror() {
     ctx.stroke();
 }
 
+// Draw score box
+function drawScoreBox() {
+    if (!scoringModeEnabled) return;
+    
+    // canvasの下辺にボックスを配置
+    const boxWidth = 100;
+    const boxHeight = 60;
+    const boxX = canvas.width / 2;
+    const boxY = canvas.height - boxHeight / 2 - 10;
+    
+    // ボックスの背景
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(boxX - boxWidth / 2, boxY - boxHeight / 2, boxWidth, boxHeight);
+    
+    // ボックスの枠
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(boxX - boxWidth / 2, boxY - boxHeight / 2, boxWidth, boxHeight);
+    
+    // スコア表示
+    ctx.fillStyle = score < 40 ? '#ff0000' : (score >= 100 ? '#00ff00' : '#ffffff');
+    ctx.font = 'bold 24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(score.toString(), boxX, boxY - 8);
+    
+    // ラベル
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('SCORE', boxX, boxY + 15);
+    
+    // 終了/達成判定
+    if (score < 40) {
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 48px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('実験終了', canvas.width / 2, canvas.height / 2);
+        isRunning = false;
+    } else if (score >= 100) {
+        ctx.fillStyle = 'rgba(0, 255, 0, 0.6)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 48px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('目標達成！', canvas.width / 2, canvas.height / 2);
+        isRunning = false;
+    }
+}
+
 // Main animation loop
 function animate(currentTime) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -500,6 +631,17 @@ function animate(currentTime) {
         }
     }
     
+    // Update and draw score effects
+    for (let i = scoreEffects.length - 1; i >= 0; i--) {
+        const effect = scoreEffects[i];
+        effect.update();
+        if (effect.isDead()) {
+            scoreEffects.splice(i, 1);
+        } else {
+            effect.draw();
+        }
+    }
+    
     // Update speed display
     updateSpeedDisplay();
     
@@ -508,6 +650,7 @@ function animate(currentTime) {
     drawBarrier();
     drawHalfMirror();
     drawReflector();
+    drawScoreBox();
     
     requestAnimationFrame(animate);
 }
