@@ -131,12 +131,14 @@ class Debris {
 
 // Score effect class
 class ScoreEffect {
-    constructor(x, y) {
+    constructor(x, y, scoreChange) {
         this.x = x + (Math.random() - 0.5) * 60; // ±30pxのランダムずらし
         this.y = y;
         this.vy = -2; // 上向きに移動
         this.life = 60; // frames (1秒)
         this.maxLife = 60;
+        this.scoreChange = scoreChange; // スコア変化量 (+1 or -1)
+        this.color = scoreChange > 0 ? '#00ff00' : '#ff0000'; // +1は緑、-1は赤
     }
     
     update() {
@@ -147,11 +149,11 @@ class ScoreEffect {
     draw() {
         const alpha = this.life / this.maxLife;
         ctx.globalAlpha = alpha;
-        ctx.fillStyle = '#ff0000';
+        ctx.fillStyle = this.color;
         ctx.font = 'bold 32px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('-1', this.x, this.y);
+        ctx.fillText((this.scoreChange > 0 ? '+' : '') + this.scoreChange.toString(), this.x, this.y);
         ctx.globalAlpha = 1.0;
     }
     
@@ -261,7 +263,7 @@ class Particle {
             // 画面下に当たった場合はスコア減少
             if (this.y > canvas.height && scoringModeEnabled) {
                 score -= 1;
-                createScoreEffect(this.x, canvas.height);
+                createScoreEffect(this.x, canvas.height, -1);
             }
             
             this.alive = false;
@@ -440,8 +442,8 @@ function createExplosion(x, y) {
 }
 
 // Create score effect
-function createScoreEffect(x, y) {
-    scoreEffects.push(new ScoreEffect(x, y));
+function createScoreEffect(x, y, scoreChange) {
+    scoreEffects.push(new ScoreEffect(x, y, scoreChange));
 }
 
 // Launch particles
@@ -474,6 +476,10 @@ function updateBarrier() {
         const currentPhase = Math.floor(barrier.oscillationPhase / (2 * Math.PI));
         if (currentPhase > lastCyclePhase) {
             score += 1;
+            // +1エフェクトを表示（スコアボックスの右上辺り）
+            const boxX = canvas.width / 2;
+            const boxY = canvas.height - 30 - 10; // boxHeight/2 + 10
+            createScoreEffect(boxX + 70, boxY - 40, 1);
             lastCyclePhase = currentPhase;
         }
     }
