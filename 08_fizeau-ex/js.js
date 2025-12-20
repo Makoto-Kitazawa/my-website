@@ -582,6 +582,10 @@ function drawScoreBox() {
         ctx.textBaseline = 'middle';
         ctx.fillText('目標達成！', canvas.width / 2, canvas.height / 2);
         isRunning = false;
+        // 目標達成時に全ての球を消去してスコア変更を防ぐ
+        particles = [];
+        debrisParticles = [];
+        scoreEffects = [];
     }
 }
 
