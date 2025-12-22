@@ -2,13 +2,9 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-// Set canvas size
-function resizeCanvas() {
-    canvas.width = Math.min(window.innerWidth * 0.9, 1200);
-    canvas.height = Math.min(window.innerHeight * 0.7, 600);
-}
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+// Set canvas size (fixed for iPad)
+canvas.width = 900;
+canvas.height = 500;
 
 // Control elements
 const startBtn = document.getElementById('startBtn');

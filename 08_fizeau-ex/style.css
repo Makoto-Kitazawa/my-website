@@ -9,18 +9,18 @@ body {
     height: 100vh;
     overflow: hidden;
     background-color: #1a1a1a;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
     font-family: 'Arial', sans-serif;
 }
 
 #canvas {
-    display: block;
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
     background-color: #000;
     border: 2px solid #333;
-    margin-bottom: 20px;
+    width: 900px;
+    height: 500px;
 }
 
 /* 説明バナー */
@@ -74,8 +74,8 @@ body {
 /* 情報パネル（右下） */
 .info-panel {
     position: fixed;
-    right: 20px;
-    bottom: 40px;
+    right: 40px;
+    bottom: 160px;
     background: rgba(30, 30, 30, 0.95);
     border: 2px solid #444;
     border-radius: 10px;
@@ -113,7 +113,7 @@ body {
 /* コントローラー（下部） */
 .controls {
     position: fixed;
-    bottom: 80px; /* 説明バナーの上に配置 */
+    bottom: 100px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -123,7 +123,7 @@ body {
     padding: 10px 20px;
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    z-index: 400; /* 説明バナーより上 */
+    z-index: 400;
 }
 
 button {
