@@ -14,27 +14,28 @@ body {
 
 #canvas {
     position: fixed;
-    top: 70px;
+    top: 80px;
     left: 50%;
     transform: translateX(-50%);
     background-color: #000;
     border: 2px solid #333;
-    width: 900px;
-    height: 500px;
+    width: min(900px, 90vw);
+    height: calc(100vh - 240px);
+    max-height: 500px;
 }
 
 /* 説明バナー */
 .instruction-banner {
     position: fixed;
-    bottom: 0;
+    top: 0;
     left: 0;
     width: 100%;
     background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(10px);
     padding: 12px 20px;
     z-index: 500;
-    border-top: 2px solid #4a90e2;
-    animation: slideUp 0.4s ease;
+    border-bottom: 2px solid #4a90e2;
+    animation: slideDown 0.4s ease;
 }
 
 .instruction-banner.hidden {
@@ -43,13 +44,13 @@ body {
 }
 
 @keyframes slideUp {
-    from { transform: translateY(100%); }
-    to { transform: translateY(0); }
+    from { transform: translateY(0); }
+    to { transform: translateY(100%); }
 }
 
 @keyframes slideDown {
-    from { transform: translateY(0); }
-    to { transform: translateY(100%); }
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
 }
 
 .instruction-text {
@@ -71,11 +72,11 @@ body {
     color: #888;
 }
 
-/* 情報パネル（右下） */
+/* 情報パネル（右上） */
 .info-panel {
     position: fixed;
-    right: 40px;
-    bottom: 160px;
+    right: 20px;
+    top: 90px;
     background: rgba(30, 30, 30, 0.95);
     border: 2px solid #444;
     border-radius: 10px;
@@ -113,7 +114,7 @@ body {
 /* コントローラー（下部） */
 .controls {
     position: fixed;
-    bottom: 100px;
+    bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -124,6 +125,9 @@ body {
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     z-index: 400;
+    flex-wrap: wrap;
+    max-width: 90vw;
+    justify-content: center;
 }
 
 button {
@@ -205,4 +209,122 @@ input[type="range"]::-moz-range-thumb {
     border-radius: 50%;
     cursor: pointer;
     border: none;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 1024px) {
+    #canvas {
+        width: 85vw;
+        height: calc(100vh - 260px);
+    }
+    
+    .info-panel {
+        right: 10px;
+        top: 85px;
+        min-width: 150px;
+        font-size: 10px;
+    }
+    
+    .info-value {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    #canvas {
+        top: 90px;
+        width: 95vw;
+        height: calc(100vh - 300px);
+    }
+    
+    .instruction-banner {
+        padding: 10px 15px;
+    }
+    
+    .instruction-text {
+        font-size: 11px;
+    }
+    
+    .info-panel {
+        right: 5px;
+        top: 95px;
+        min-width: 140px;
+        padding: 8px 12px;
+    }
+    
+    .controls {
+        bottom: 15px;
+        padding: 8px 15px;
+        gap: 8px;
+        max-width: 95vw;
+    }
+    
+    button {
+        padding: 6px 12px;
+        font-size: 10px;
+    }
+    
+    .control-group {
+        gap: 4px;
+    }
+    
+    label {
+        font-size: 9px;
+    }
+    
+    input[type="range"] {
+        width: 60px;
+    }
+}
+
+@media (max-width: 480px) {
+    #canvas {
+        top: 100px;
+        width: 98vw;
+        height: calc(100vh - 340px);
+    }
+    
+    .instruction-text {
+        font-size: 10px;
+    }
+    
+    .instruction-text .separator {
+        margin: 0 4px;
+    }
+    
+    .info-panel {
+        top: 105px;
+        right: 3px;
+        min-width: 120px;
+        padding: 6px 10px;
+        font-size: 9px;
+    }
+    
+    .info-label {
+        font-size: 8px;
+    }
+    
+    .info-value {
+        font-size: 11px;
+    }
+    
+    .controls {
+        bottom: 10px;
+        padding: 6px 10px;
+        gap: 6px;
+    }
+    
+    button {
+        padding: 5px 10px;
+        font-size: 9px;
+    }
+    
+    label {
+        font-size: 8px;
+        min-width: 40px;
+    }
+    
+    .value-display {
+        font-size: 8px;
+    }
 }
