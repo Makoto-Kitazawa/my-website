@@ -363,8 +363,8 @@ class Particle {
         if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
             createExplosion(this.x, this.y);
             
-            // 画面下に当たった場合はスコア減少
-            if (this.y > canvas.height && scoringModeEnabled) {
+            // 採点モード時に画面端に当たった場合はスコア減少
+            if (scoringModeEnabled && (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height)) {
                 score -= 1;
                 createScoreEffect(this.x, canvas.height, -1);
             }
