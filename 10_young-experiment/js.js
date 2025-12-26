@@ -158,10 +158,10 @@ class Particle {
                     this.targetY = doubleSlit.gap2Center;
                 }
                 
-                // 超回折モードの場合は45度の範囲を20分割
+                // 超回折モードの場合は45度の範囲を40分割
                 if (diffractionMode && !this.isDiffractionCopy) {
                     const angleRange = 45; // 45度の範囲
-                    const numCopies = 20; // 20分割
+                    const numCopies = 40; // 40分割
                     const baseAngle = Math.atan2(marker.y - this.y, marker.x - this.x);
                     
                     for (let i = 0; i < numCopies; i++) {
