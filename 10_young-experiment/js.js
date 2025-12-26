@@ -196,10 +196,8 @@ class Particle {
             this.x += this.vx;
             this.y += this.vy;
             
-            // Check collision with other particles (interference) - only near screen
-            if (this.x >= screen.x - 5) {
-                this.checkInterference();
-            }
+            // Check collision with other particles (interference) - always check to reset alpha
+            this.checkInterference();
             
             // Check if reached marker area
             if (this.x >= marker.x) {
