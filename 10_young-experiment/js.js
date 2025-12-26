@@ -12,6 +12,7 @@ const pauseBtn = document.getElementById('pauseBtn');
 const stopBtn = document.getElementById('stopBtn');
 const resetBtn = document.getElementById('resetBtn');
 const diffractionModeCheckbox = document.getElementById('diffractionMode');
+const instructionBanner = document.getElementById('instructionBanner');
 
 // Game state
 let isRunning = false;
@@ -502,6 +503,7 @@ startBtn.addEventListener('click', () => {
     lastLaunchTime = Date.now();
     startBtn.style.display = 'none';
     pauseBtn.style.display = 'inline-block';
+    instructionBanner.style.display = 'none';
 });
 
 pauseBtn.addEventListener('click', () => {
@@ -524,6 +526,7 @@ resetBtn.addEventListener('click', () => {
     screenFlags = new Array(canvas.height).fill(false);
     startBtn.style.display = 'inline-block';
     pauseBtn.style.display = 'none';
+    instructionBanner.style.display = 'block';
 });
 
 diffractionModeCheckbox.addEventListener('change', (e) => {
