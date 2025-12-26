@@ -8,6 +8,7 @@ canvas.height = 500;
 
 // Control elements
 const startBtn = document.getElementById('startBtn');
+const pauseBtn = document.getElementById('pauseBtn');
 const stopBtn = document.getElementById('stopBtn');
 const resetBtn = document.getElementById('resetBtn');
 const diffractionModeCheckbox = document.getElementById('diffractionMode');
@@ -490,10 +491,20 @@ function animate() {
 startBtn.addEventListener('click', () => {
     isRunning = true;
     lastLaunchTime = Date.now();
+    startBtn.style.display = 'none';
+    pauseBtn.style.display = 'inline-block';
+});
+
+pauseBtn.addEventListener('click', () => {
+    isRunning = false;
+    pauseBtn.style.display = 'none';
+    startBtn.style.display = 'inline-block';
 });
 
 stopBtn.addEventListener('click', () => {
     isRunning = false;
+    startBtn.style.display = 'inline-block';
+    pauseBtn.style.display = 'none';
 });
 
 resetBtn.addEventListener('click', () => {
@@ -502,6 +513,8 @@ resetBtn.addEventListener('click', () => {
     marker.y = canvas.height / 2;
     launchCounter = 0;
     screenFlags = new Array(canvas.height).fill(false);
+    startBtn.style.display = 'inline-block';
+    pauseBtn.style.display = 'none';
 });
 
 diffractionModeCheckbox.addEventListener('change', (e) => {
