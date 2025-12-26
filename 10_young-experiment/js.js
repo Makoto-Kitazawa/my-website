@@ -159,7 +159,6 @@ class Particle {
                 
                 // 超回折モードの場合は45度の範囲を20分割
                 if (diffractionMode && !this.isDiffractionCopy) {
-                    this.alpha = 0.5; // 透明度50%
                     const angleRange = 45; // 45度の範囲
                     const numCopies = 20; // 20分割
                     const baseAngle = Math.atan2(marker.y - this.y, marker.x - this.x);
@@ -169,7 +168,6 @@ class Particle {
                         const angleRad = baseAngle + (angleDeg * Math.PI / 180);
                         
                         const copiedParticle = new Particle(this.x, this.y, this.color, true);
-                        copiedParticle.alpha = 0.5;
                         copiedParticle.splitPath = this.splitPath;
                         copiedParticle.doubleslitPath = this.doubleslitPath;
                         copiedParticle.stage = 2;
@@ -189,6 +187,11 @@ class Particle {
         }
         // Stage 2: Moving from double slit to screen marker
         else if (this.stage === 2) {
+            // 超回折モードの球に透過度を設定（最初の1回だけ）
+            if (diffractionMode && this.isDiffractionCopy && this.alpha === 1.0) {
+                this.alpha = 0.5;
+            }
+            
             this.x += this.vx;
             this.y += this.vy;
             
