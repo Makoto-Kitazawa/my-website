@@ -159,7 +159,7 @@ class Particle {
                 
                 // 超回折モードの場合は45度の範囲を20分割
                 if (diffractionMode && !this.isDiffractionCopy) {
-                    this.alpha = 0.3; // 透明度30%
+                    this.alpha = 0.5; // 透明度50%
                     const angleRange = 45; // 45度の範囲
                     const numCopies = 20; // 20分割
                     const baseAngle = Math.atan2(marker.y - this.y, marker.x - this.x);
@@ -169,7 +169,7 @@ class Particle {
                         const angleRad = baseAngle + (angleDeg * Math.PI / 180);
                         
                         const copiedParticle = new Particle(this.x, this.y, this.color, true);
-                        copiedParticle.alpha = 0.3;
+                        copiedParticle.alpha = 0.5;
                         copiedParticle.splitPath = this.splitPath;
                         copiedParticle.doubleslitPath = this.doubleslitPath;
                         copiedParticle.stage = 2;
@@ -226,7 +226,7 @@ class Particle {
         // 他の球との接触判定（干渉効果）
         // まずデフォルトの透過度に戻す（接触していない場合）
         if (diffractionMode && this.isDiffractionCopy) {
-            this.alpha = 0.3;
+            this.alpha = 0.5;
         }
         
         for (let i = 0; i < particles.length; i++) {
@@ -244,9 +244,9 @@ class Particle {
                     this.alpha = 1.0;
                     other.alpha = 1.0;
                 } else {
-                    // 異色：破壊的干渉（消し合う）
-                    this.alive = false;
-                    other.alive = false;
+                    // 異色：破壊的干渉（重なっている間は薄くなる）
+                    this.alpha = 0.15;
+                    other.alpha = 0.15;
                 }
             }
         }
