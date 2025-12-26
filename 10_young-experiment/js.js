@@ -224,6 +224,11 @@ class Particle {
     
     checkInterference() {
         // 他の球との接触判定（干渉効果）
+        // まずデフォルトの透過度に戻す（接触していない場合）
+        if (diffractionMode && this.isDiffractionCopy) {
+            this.alpha = 0.3;
+        }
+        
         for (let i = 0; i < particles.length; i++) {
             const other = particles[i];
             if (other === this || !other.alive || other.stage !== 2) continue;
@@ -235,15 +240,9 @@ class Particle {
             // 接触判定
             if (distance < this.radius * 2) {
                 if (this.color === other.color) {
-                    // 同色：建設的干渉（強め合う）
-                    // 超回折モード：上経由と下経由が合体したら透過度100%
-                    if (diffractionMode && this.splitPath !== other.splitPath) {
-                        this.alpha = 1.0;
-                        other.alpha = 1.0;
-                    } else {
-                        this.alpha = 1.0;
-                        other.alpha = 1.0;
-                    }
+                    // 同色：建設的干渉（接触している間だけ透過なし）
+                    this.alpha = 1.0;
+                    other.alpha = 1.0;
                 } else {
                     // 異色：破壊的干渉（消し合う）
                     this.alive = false;
