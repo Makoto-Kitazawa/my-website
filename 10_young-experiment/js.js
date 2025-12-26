@@ -63,7 +63,7 @@ const doubleSlit = {
 const screen = {
     x: canvas.width - 50,
     y: 0,
-    width: 5,
+    width: 2.5,
     height: canvas.height,
     color: '#606060'
 };
@@ -174,8 +174,8 @@ class Particle {
                 if (this.alpha >= 1.0) {
                     const yIndex = Math.floor(this.y);
                     if (yIndex >= 0 && yIndex < canvas.height) {
-                        // 周囲のピクセルも白くする（サイズを大きくするため）
-                        for (let dy = -9; dy <= 9; dy++) {
+                        // 周囲のピクセルも白くする（サイズを小さく）
+                        for (let dy = -2; dy <= 2; dy++) {
                             const targetY = yIndex + dy;
                             if (targetY >= 0 && targetY < canvas.height) {
                                 screenFlags[targetY] = true;
@@ -357,12 +357,12 @@ function drawScreen() {
     ctx.fillRect(screen.x, screen.y, screen.width, screen.height);
     
     // Draw white dots based on screen flags
-    const dotRadius = 9; // 3倍のサイズ
+    const dotRadius = 2; // サイズを小さく
     for (let y = 0; y < canvas.height; y++) {
         if (screenFlags[y]) {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
             ctx.beginPath();
-            ctx.arc(screen.x, y, dotRadius, 0, Math.PI * 2);
+            ctx.arc(screen.x - 2, y, dotRadius, 0, Math.PI * 2); // スクリーンの左側
             ctx.fill();
         }
     }

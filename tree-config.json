@@ -89,6 +89,14 @@
       "icon": "🔍",
       "description": "凸レンズと凹レンズの光の屈折を可視化",
       "status": "ready"
+    },
+    "10_young-experiment": {
+      "_source": "10_young-experiment/index.html のmeta name='project:*'タグ",
+      "title": "ヤングの実験",
+      "category": "物理用ファイル",
+      "icon": "🌊",
+      "description": "光の波動性を示すヤングの二重スリット実験",
+      "status": "ready"
     }
   },
   "otherLinks": [
