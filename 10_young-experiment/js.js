@@ -193,11 +193,18 @@ class Particle {
                 this.alpha = 0.5;
             }
             
+            // 毎フレーム透過度をデフォルトにリセット（干渉していない場合）
+            if (diffractionMode && this.isDiffractionCopy) {
+                this.alpha = 0.5;
+            }
+            
             this.x += this.vx;
             this.y += this.vy;
             
-            // Check collision with other particles (interference) - always check to reset alpha
-            this.checkInterference();
+            // Check collision with other particles (interference) - only near screen
+            if (this.x >= screen.x - 5) {
+                this.checkInterference();
+            }
             
             // Check if reached marker area
             if (this.x >= marker.x) {
@@ -226,11 +233,6 @@ class Particle {
     
     checkInterference() {
         // 他の球との接触判定（干渉効果）
-        // まずデフォルトの透過度に戻す（接触していない場合）
-        if (diffractionMode && this.isDiffractionCopy) {
-            this.alpha = 0.5;
-        }
-        
         for (let i = 0; i < particles.length; i++) {
             const other = particles[i];
             if (other === this || !other.alive || other.stage !== 2) continue;
