@@ -467,13 +467,20 @@ function animate() {
     drawPathDifferenceLabel();
     
     // Update and draw particles
-    for (let i = particles.length - 1; i >= 0; i--) {
-        const particle = particles[i];
-        particle.update();
-        particle.draw();
-        
-        if (!particle.alive) {
-            particles.splice(i, 1);
+    if (isRunning) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const particle = particles[i];
+            particle.update();
+            particle.draw();
+            
+            if (!particle.alive) {
+                particles.splice(i, 1);
+            }
+        }
+    } else {
+        // 一時停止中でも球は描画する（動かさない）
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].draw();
         }
     }
     
