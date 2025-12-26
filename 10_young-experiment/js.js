@@ -245,8 +245,8 @@ class Particle {
                     other.alpha = 1.0;
                 } else {
                     // 異色：破壊的干渉（重なっている間は薄くなる）
-                    this.alpha = 0.15;
-                    other.alpha = 0.15;
+                    this.alpha = 0.01;
+                    other.alpha = 0.01;
                 }
             }
         }
