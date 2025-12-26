@@ -10,6 +10,7 @@ canvas.height = 500;
 const startBtn = document.getElementById('startBtn');
 const stopBtn = document.getElementById('stopBtn');
 const resetBtn = document.getElementById('resetBtn');
+const diffractionModeCheckbox = document.getElementById('diffractionMode');
 
 // Game state
 let isRunning = false;
@@ -20,6 +21,7 @@ const maxParticles = 200;
 let launchCounter = 0; // 球の発射カウンター（色を交互に変えるため）
 // スクリーンの各Y位置に対するフラグ配列（true = 白く表示）
 let screenFlags = new Array(canvas.height).fill(false);
+let diffractionMode = false; // 超回折モード
 
 // Settings
 const launchSpeed = 2; // 速度を3分の2に（3 * 2/3 = 2）
@@ -79,7 +81,7 @@ const marker = {
 
 // Particle class
 class Particle {
-    constructor(x, y, color = '#4ecdc4') {
+    constructor(x, y, color = '#4ecdc4', isDiffractionCopy = false) {
         this.x = x;
         this.y = y;
         this.vx = 0;
@@ -93,6 +95,7 @@ class Particle {
         this.splitPath = null; // 'upper' or 'lower' for single slit
         this.doubleslitPath = null; // 'gap1' or 'gap2' for double slit
         this.alpha = 1.0; // 透明度
+        this.isDiffractionCopy = isDiffractionCopy; // 回折モードで作られたコピーかどうか
         
         // Calculate initial velocity towards single slit
         this.calculateVelocity(singleSlit.x, y);
@@ -153,11 +156,34 @@ class Particle {
                     this.targetY = doubleSlit.gap2Center;
                 }
                 
-                // Set final target to marker
-                this.targetX = marker.x;
-                this.targetY = marker.y;
-                this.calculateVelocity(this.targetX, this.targetY);
-                this.stage = 2;
+                // 超回折モードの場合は45度の範囲を20分割
+                if (diffractionMode && !this.isDiffractionCopy) {
+                    this.alpha = 0.3; // 透明度30%
+                    const angleRange = 45; // 45度の範囲
+                    const numCopies = 20; // 20分割
+                    const baseAngle = Math.atan2(marker.y - this.y, marker.x - this.x);
+                    
+                    for (let i = 0; i < numCopies; i++) {
+                        const angleDeg = -angleRange / 2 + (angleRange / (numCopies - 1)) * i;
+                        const angleRad = baseAngle + (angleDeg * Math.PI / 180);
+                        
+                        const copiedParticle = new Particle(this.x, this.y, this.color, true);
+                        copiedParticle.alpha = 0.3;
+                        copiedParticle.splitPath = this.splitPath;
+                        copiedParticle.doubleslitPath = this.doubleslitPath;
+                        copiedParticle.stage = 2;
+                        copiedParticle.vx = Math.cos(angleRad) * launchSpeed;
+                        copiedParticle.vy = Math.sin(angleRad) * launchSpeed;
+                        particles.push(copiedParticle);
+                    }
+                    this.alive = false; // 元の球は消す
+                } else {
+                    // 通常モード：マーカーに向かう
+                    this.targetX = marker.x;
+                    this.targetY = marker.y;
+                    this.calculateVelocity(this.targetX, this.targetY);
+                    this.stage = 2;
+                }
             }
         }
         // Stage 2: Moving from double slit to screen marker
@@ -165,8 +191,10 @@ class Particle {
             this.x += this.vx;
             this.y += this.vy;
             
-            // Check collision with other particles (interference)
-            this.checkInterference();
+            // Check collision with other particles (interference) - only near screen
+            if (this.x >= screen.x - 5) {
+                this.checkInterference();
+            }
             
             // Check if reached marker area
             if (this.x >= marker.x) {
@@ -207,8 +235,14 @@ class Particle {
             if (distance < this.radius * 2) {
                 if (this.color === other.color) {
                     // 同色：建設的干渉（強め合う）
-                    this.alpha = 1.0;
-                    other.alpha = 1.0;
+                    // 超回折モード：上経由と下経由が合体したら透過度100%
+                    if (diffractionMode && this.splitPath !== other.splitPath) {
+                        this.alpha = 1.0;
+                        other.alpha = 1.0;
+                    } else {
+                        this.alpha = 1.0;
+                        other.alpha = 1.0;
+                    }
                 } else {
                     // 異色：破壊的干渉（消し合う）
                     this.alive = false;
@@ -468,6 +502,10 @@ resetBtn.addEventListener('click', () => {
     marker.y = canvas.height / 2;
     launchCounter = 0;
     screenFlags = new Array(canvas.height).fill(false);
+});
+
+diffractionModeCheckbox.addEventListener('change', (e) => {
+    diffractionMode = e.target.checked;
 });
 
 // Mouse/Touch events for marker dragging
