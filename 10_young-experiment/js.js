@@ -503,7 +503,7 @@ startBtn.addEventListener('click', () => {
     lastLaunchTime = Date.now();
     startBtn.style.display = 'none';
     pauseBtn.style.display = 'inline-block';
-    instructionBanner.style.display = 'none';
+    instructionBanner.classList.add('hidden');
 });
 
 pauseBtn.addEventListener('click', () => {
@@ -526,7 +526,7 @@ resetBtn.addEventListener('click', () => {
     screenFlags = new Array(canvas.height).fill(false);
     startBtn.style.display = 'inline-block';
     pauseBtn.style.display = 'none';
-    instructionBanner.style.display = 'block';
+    instructionBanner.classList.remove('hidden');
 });
 
 diffractionModeCheckbox.addEventListener('change', (e) => {
