@@ -320,8 +320,8 @@ function handleDragMove(e) {
         lightSource.x = mouseX - lightSource.dragOffsetX;
         lightSource.y = mouseY - lightSource.dragOffsetY;
         
-        // Keep within bounds
-        lightSource.x = Math.max(lightSource.radius, Math.min(canvas.width - lightSource.radius, lightSource.x));
+        // Keep within bounds (レンズの左側のみ)
+        lightSource.x = Math.max(lightSource.radius, Math.min(lens.x - 50, lightSource.x));
         lightSource.y = Math.max(lightSource.radius, Math.min(canvas.height - lightSource.radius, lightSource.y));
     }
     
