@@ -97,6 +97,14 @@
       "icon": "🌊",
       "description": "光の波動性を示すヤングの二重スリット実験",
       "status": "ready"
+    },
+    "12_function-approximation": {
+      "_source": "12_function-approximation/index.html のmeta name='project:*'タグ",
+      "title": "関数の近似を確かめよう",
+      "category": "数学用ファイル",
+      "icon": "📊",
+      "description": "様々な関数をグラフで表示して近似を確認",
+      "status": "ready"
     }
   },
   "otherLinks": [
@@ -115,6 +123,7 @@
   ],
   "categoryOrder": [
     "物理用ファイル",
+    "数学用ファイル",
     "その他"
   ],
   "rootLabel": "Physics Project filesystem",

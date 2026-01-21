@@ -1,0 +1,251 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #1a1a1a;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  touch-action: none;
+}
+
+canvas {
+  display: block;
+  cursor: default;
+}
+
+/* 説明バナー */
+.instruction-banner {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(74, 144, 226, 0.95);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 200;
+  transition: opacity 0.4s, transform 0.4s;
+}
+
+.instruction-banner.hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
+}
+
+.instruction-text {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.separator {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* コントロールパネル */
+.control-panel {
+  position: fixed;
+  right: 20px;
+  bottom: 40px;
+  background: rgba(30, 30, 30, 0.95);
+  border: 2px solid #444;
+  border-radius: 12px;
+  padding: 16px;
+  color: #fff;
+  font-size: 14px;
+  min-width: 240px;
+  max-width: 260px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+/* 画面幅が狭い時の対応 */
+@media (max-width: 768px) or (max-height: 600px) {
+  .control-panel {
+    right: 10px;
+    bottom: 50px;
+    min-width: 200px;
+    max-width: 220px;
+    padding: 12px;
+    font-size: 12px;
+  }
+}
+
+.panel-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #4a90e2;
+  border-bottom: 2px solid #4a90e2;
+  padding-bottom: 8px;
+}
+
+.function-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.function-item:hover {
+  background: rgba(74, 144, 226, 0.1);
+}
+
+.function-item label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex: 1;
+}
+
+.function-checkbox {
+  margin-right: 10px;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.function-formula {
+  font-family: 'Segoe UI', 'Cambria Math', serif;
+  font-size: 14px;
+  color: #ddd;
+  user-select: none;
+}
+
+.color-indicator {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+
+.zoom-info {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #444;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-label {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.zoom-value {
+  font-size: 14px;
+  font-weight: bold;
+  color: #4a90e2;
+}
+
+#resetBtn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 12px;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+#resetBtn:hover {
+  background: #357abd;
+}
+
+#resetBtn:active {
+  background: #2d6aa3;
+}
+
+.error-mode-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #444;
+}
+
+.error-mode-section label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.error-mode-section input[type="checkbox"] {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.error-warning {
+  background: rgba(255, 150, 0, 0.2);
+  color: #ffaa44;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.error-value {
+  background: rgba(74, 144, 226, 0.2);
+  color: #4a90e2;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-top: 8px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* 最終更新表示 */
+.last-updated {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  font-size: 12px;
+  color: #666;
+  z-index: 50;
+}
+
+/* スクリーンショットボタン */
+.screenshot-btn {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(74, 144, 226, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  z-index: 150;
+}
+
+.screenshot-btn:hover {
+  background: rgba(74, 144, 226, 1);
+  transform: scale(1.1);
+}
+
+.screenshot-btn:active {
+  transform: scale(0.95);
+}
