@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>走る電子</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        canvas {
+            background-color: white;
+            border: 2px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" width="400" height="400"></canvas>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let electronX = 100;
+        let frame = 0;
+        
+        // 走る電子を描画
+        function drawRunningElectron(x, y, phase) {
+            // phaseで腕と脚のアニメーション（0-1の値）
+            const armSwing = Math.sin(phase * Math.PI * 2) * 15;
+            const legSwing = Math.sin(phase * Math.PI * 2) * 20;
+            
+            // 頭（青い球体に「e」）
+            const headRadius = 60;
+            
+            // グラデーション（球体感を出す）
+            const gradient = ctx.createRadialGradient(
+                x - 15, y - 15, 10,
+                x, y, headRadius
+            );
+            gradient.addColorStop(0, '#6bb6ff');
+            gradient.addColorStop(1, '#1e40af');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(x, y, headRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 輪郭
+            ctx.strokeStyle = '#1e3a8a';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(x, y, headRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // 「e」の文字
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 70px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('e', x, y);
+            
+            // 鉢巻（赤）
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.ellipse(x, y - 50, 55, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#991b1b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 鉢巻の結び目（右側）
+            ctx.fillStyle = '#dc2626';
+            ctx.beginPath();
+            ctx.moveTo(x + 55, y - 50);
+            ctx.lineTo(x + 75, y - 55);
+            ctx.lineTo(x + 70, y - 40);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#991b1b';
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(x + 55, y - 50);
+            ctx.lineTo(x + 80, y - 45);
+            ctx.lineTo(x + 75, y - 30);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // 体（曲線的で前傾姿勢）
+            const bodyLength = 60;
+            const bodyTop = y + headRadius;
+            const bodyBottom = bodyTop + bodyLength;
+            
+            // 前傾姿勢の角度
+            const leanAngle = 0.3; // ラジアン（約17度前傾）
+            const leanOffset = Math.sin(leanAngle) * bodyLength;
+            
+            // 胴体（曲線的に）
+            ctx.strokeStyle = '#1e3a8a';
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo(x, bodyTop);
+            // 二次ベジェ曲線で曲線的な体
+            ctx.quadraticCurveTo(
+                x + leanOffset * 0.3, bodyTop + bodyLength * 0.5,
+                x + leanOffset, bodyBottom
+            );
+            ctx.stroke();
+            
+            // 走るポーズの腕（アニメーション、前傾に合わせて調整）
+            // 左腕
+            ctx.beginPath();
+            ctx.moveTo(x, bodyTop + 15);
+            ctx.quadraticCurveTo(
+                x - 20 + armSwing * 0.5, bodyTop + 25 - Math.abs(armSwing) * 0.5,
+                x - 40 + armSwing, bodyTop + 35 - Math.abs(armSwing)
+            );
+            ctx.stroke();
+            
+            // 右腕
+            ctx.beginPath();
+            ctx.moveTo(x, bodyTop + 15);
+            ctx.quadraticCurveTo(
+                x + 20 - armSwing * 0.5, bodyTop + 10 + Math.abs(armSwing) * 0.5,
+                x + 40 - armSwing, bodyTop + Math.abs(armSwing)
+            );
+            ctx.stroke();
+            
+            // 走るポーズの脚（アニメーション、前傾に合わせて調整）
+            // 左脚
+            ctx.beginPath();
+            ctx.moveTo(x + leanOffset, bodyBottom);
+            ctx.quadraticCurveTo(
+                x + leanOffset * 0.5 - 15 + legSwing * 0.5, bodyBottom + 20 - Math.abs(legSwing) * 0.3,
+                x + leanOffset - 25 + legSwing, bodyBottom + 45 - Math.abs(legSwing) * 0.5
+            );
+            ctx.stroke();
+            
+            // 右脚
+            ctx.beginPath();
+            ctx.moveTo(x + leanOffset, bodyBottom);
+            ctx.quadraticCurveTo(
+                x + leanOffset * 0.5 + 15 - legSwing * 0.5, bodyBottom + 15 + Math.abs(legSwing) * 0.3,
+                x + leanOffset + 30 - legSwing, bodyBottom + 30 + Math.abs(legSwing) * 0.5
+            );
+            ctx.stroke();
+            
+            // 手（丸）
+            ctx.fillStyle = '#1e3a8a';
+            ctx.beginPath();
+            ctx.arc(x - 40 + armSwing, bodyTop + 35 - Math.abs(armSwing), 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(x + 40 - armSwing, bodyTop + Math.abs(armSwing), 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 足（丸）
+            ctx.beginPath();
+            ctx.arc(x + leanOffset - 25 + legSwing, bodyBottom + 45 - Math.abs(legSwing) * 0.5, 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(x + leanOffset + 30 - legSwing, bodyBottom + 30 + Math.abs(legSwing) * 0.5, 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // アニメーションループ
+        function animate() {
+            // 画面をクリア
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // フレームを進める
+            frame++;
+            const phase = (frame % 40) / 40; // 40フレームで1サイクル
+            
+            // 電子を描画
+            drawRunningElectron(electronX, 150, phase);
+            
+            // 右に移動
+            electronX += 2;
+            
+            // 画面の右端を超えたら左端から再登場
+            if (electronX > canvas.width + 100) {
+                electronX = -100;
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // アニメーション開始
+        animate();
+    </script>
+</body>
+</html>

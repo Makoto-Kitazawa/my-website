@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生態系シミュレータ</title>
+    <link rel="icon" type="image/svg+xml" href="../_common_/favicon.svg">
+    <meta name="project:title" content="生態系シミュレータ">
+    <meta name="project:category" content="生物用ファイル">
+    <meta name="project:icon" content="🐟">
+    <meta name="project:description" content="藻・小魚・エビの生態系シミュレーション">
+    <meta name="project:status" content="ready">
+    <link rel="stylesheet" href="../_common_/style_slide-menu.css">
+    <link rel="stylesheet" href="../_common_/style_common.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 説明バナー -->
+    <div class="instruction-banner" id="instructionBanner">
+        <div class="instruction-text">
+            <span class="icon-light">🌿</span> 生態系シミュレータ：藻・小魚・エビの相互作用を観察
+            <span class="separator">|</span>
+            <span style="color: #27ae60;">🟢</span> 藻
+            <span class="separator">|</span>
+            <span style="color: #3498db;">🔵</span> 小魚
+            <span class="separator">|</span>
+            <span style="color: #e74c3c;">🔴</span> エビ
+            <span class="separator">|</span>
+            <span class="icon-measure">📊</span> HPバーで生命力を表示
+        </div>
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    
+    <!-- コントローラー（右端） -->
+    <div class="controls">
+        <button id="startBtn">スタート</button>
+        <button id="pauseBtn" style="display:none;">一時停止</button>
+        <button id="stopBtn">停止</button>
+        <button id="resetBtn">リセット</button>
+        
+        <div class="control-group">
+            <label for="algaeSplitCount">藻の分裂個数: <span id="algaeSplitValue">2</span></label>
+            <input type="range" id="algaeSplitCount" min="2" max="5" value="2" step="1">
+        </div>
+        
+        <div class="control-group">
+            <label for="initialAlgae">初期藻個数: <span id="initialAlgaeValue">5</span></label>
+            <input type="range" id="initialAlgae" min="1" max="20" value="5" step="1">
+        </div>
+        
+        <div class="control-group">
+            <label for="initialFish">初期小魚個数: <span id="initialFishValue">3</span></label>
+            <input type="range" id="initialFish" min="1" max="20" value="3" step="1">
+        </div>
+        
+        <div class="control-group">
+            <label for="initialShrimp">初期エビ個数: <span id="initialShrimpValue">2</span></label>
+            <input type="range" id="initialShrimp" min="1" max="20" value="2" step="1">
+        </div>
+        
+        <div class="control-group">
+            <label for="fishAppetite">小魚の食欲: <span id="fishAppetiteValue">50</span>%</label>
+            <input type="range" id="fishAppetite" min="10" max="100" value="50" step="10">
+        </div>
+        
+        <div class="control-group">
+            <label for="shrimpAppetite">エビの食欲: <span id="shrimpAppetiteValue">50</span>%</label>
+            <input type="range" id="shrimpAppetite" min="10" max="100" value="50" step="10">
+        </div>
+        
+        <div class="control-group">
+            <label for="moveSpeed">移動速度: <span id="moveSpeedValue">1.0</span>x</label>
+            <input type="range" id="moveSpeed" min="0.5" max="3.0" value="1.0" step="0.5">
+        </div>
+        
+        <div class="control-group">
+            <label for="fishReproduction">小魚の繁殖力: <span id="fishReproductionValue">1</span>匹</label>
+            <input type="range" id="fishReproduction" min="1" max="10" value="1" step="1">
+        </div>
+        
+        <div class="control-group">
+            <label for="shrimpReproduction">エビの繁殖力: <span id="shrimpReproductionValue">1</span>匹</label>
+            <input type="range" id="shrimpReproduction" min="1" max="10" value="1" step="1">
+        </div>
+    </div>
+    
+    <!-- 最終更新表示 -->
+    <div class="last-updated" id="lastUpdated"></div>
+    
+    <script type="text/javascript" src="../_common_/js_common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../_common_/slide-menu.js" charset="utf-8"></script>
+    <script src="js.js"></script>
+</body>
+</html>
