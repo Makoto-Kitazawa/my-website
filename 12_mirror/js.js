@@ -27,9 +27,9 @@ let focalLength = 200;
 // Optical axis
 const opticalAxisY = canvas.height / 2;
 
-// Mirror (left side)
+// Mirror (center)
 const mirror = {
-    x: 150, // 鏡は左側に配置
+    x: canvas.width / 2, // 鏡は中央に配置
     y: opticalAxisY,
     width: 10,
     height: 300
@@ -454,24 +454,6 @@ function drawLightSource() {
     ctx.arc(lightSource.x, lightSource.y, lightSource.radius, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
-    
-    // 矢印（上向き）
-    const arrowHeight = 40;
-    ctx.strokeStyle = '#ff4444';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(lightSource.x, lightSource.y);
-    ctx.lineTo(lightSource.x, lightSource.y - arrowHeight);
-    ctx.stroke();
-    
-    // 矢印の頭
-    ctx.fillStyle = '#ff4444';
-    ctx.beginPath();
-    ctx.moveTo(lightSource.x, lightSource.y - arrowHeight);
-    ctx.lineTo(lightSource.x - 5, lightSource.y - arrowHeight + 10);
-    ctx.lineTo(lightSource.x + 5, lightSource.y - arrowHeight + 10);
-    ctx.closePath();
-    ctx.fill();
 }
 
 function drawScreen() {
