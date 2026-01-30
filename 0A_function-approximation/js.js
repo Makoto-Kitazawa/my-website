@@ -448,9 +448,9 @@ function drawErrorLine() {
 canvas.addEventListener('mousedown', handlePointerDown);
 canvas.addEventListener('mousemove', handlePointerMove);
 canvas.addEventListener('mouseup', handlePointerUp);
-canvas.addEventListener('touchstart', handlePointerDown);
-canvas.addEventListener('touchmove', handlePointerMove);
-canvas.addEventListener('touchend', handlePointerUp);
+canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 
 function handlePointerDown(e) {
   e.preventDefault();
@@ -530,6 +530,71 @@ function handlePointerUp(e) {
   isPanning = false;
   isDraggingErrorLine = false;
   canvas.style.cursor = errorModeEnabled ? 'grab' : 'default';
+}
+
+// ピンチズーム対応のタッチハンドラー
+let lastPinchDistance = 0;
+
+function handleTouchStart(e) {
+  // 2本指でのピンチジェスチャーをチェック
+  if (e.touches.length === 2) {
+    const touch1 = e.touches[0];
+    const touch2 = e.touches[1];
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    lastPinchDistance = Math.sqrt(dx * dx + dy * dy);
+  } else {
+    // 1本指の場合は通常のポインター処理
+    lastPinchDistance = 0;
+    handlePointerDown(e);
+  }
+}
+
+function handleTouchMove(e) {
+  // 2本指でのピンチジェスチャー処理
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    hideInstructions();
+    
+    const touch1 = e.touches[0];
+    const touch2 = e.touches[1];
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    const currentDistance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (lastPinchDistance > 0) {
+      // ピンチジェスチャーの距離に基づいてズームレベルを変更
+      const delta = currentDistance / lastPinchDistance;
+      zoomLevel *= delta;
+      scale *= delta;
+      
+      // ズームの制限
+      if (zoomLevel < 0.1) {
+        zoomLevel = 0.1;
+        scale = 5;
+      } else if (zoomLevel > 10) {
+        zoomLevel = 10;
+        scale = 500;
+      }
+      
+      updateZoomDisplay();
+      draw();
+    }
+    
+    lastPinchDistance = currentDistance;
+  } else {
+    // 1本指の場合は通常のポインター処理
+    lastPinchDistance = 0;
+    handlePointerMove(e);
+  }
+}
+
+function handleTouchEnd(e) {
+  if (e.touches.length < 2) {
+    lastPinchDistance = 0;
+    // タッチ終了時の処理
+    handlePointerUp(e);
+  }
 }
 
 // 誤差表示の更新
