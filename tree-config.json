@@ -106,6 +106,14 @@
       "description": "凹面鏡と凸面鏡の光の反射を可視化",
       "status": "ready"
     },
+    "13_prism": {
+      "_source": "13_prism/index.html のmeta name='project:*'タグ",
+      "title": "プリズムの光の屈折",
+      "category": "物理用ファイル",
+      "icon": "🔺",
+      "description": "三角プリズムによる光の屈折と分散",
+      "status": "ready"
+    },
     "0A_function-approximation": {
       "_source": "0A_function-approximation/index.html のmeta name='project:*'タグ",
       "title": "関数の近似を確かめよう",

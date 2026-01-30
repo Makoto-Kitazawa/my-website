@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プリズムの光の屈折</title>
+    <link rel="icon" type="image/svg+xml" href="../_common_/favicon.svg">
+    <meta name="project:title" content="プリズムの光の屈折">
+    <meta name="project:category" content="物理用ファイル">
+    <meta name="project:icon" content="🔺">
+    <meta name="project:description" content="三角プリズムによる光の屈折と分散">
+    <meta name="project:status" content="ready">
+    <link rel="stylesheet" href="../_common_/style_slide-menu.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 説明バナー -->
+    <div class="instruction-banner" id="instructionBanner">
+        <div class="instruction-text">
+            <span class="icon-light">🌈</span> プリズムの光の屈折：左から打ち込まれる光がプリズムで屈折・反射します
+            <span class="separator">|</span>
+            <span class="icon-rotate">🔄</span> プリズムは中央をドラッグして回転できます
+            <span class="separator">|</span>
+            <span class="icon-color">🎨</span> 7色の光を合成して任意の色を作れます
+        </div>
+    </div>
+    
+    <canvas id="canvas"></canvas>
+    
+    <!-- 情報表示パネル（右側） -->
+    <div class="info-panel">
+        <div class="info-section">
+            <div class="info-label">プリズム角度</div>
+            <div class="info-value" id="prismAngleDisplay">0°</div>
+        </div>
+        <div class="info-section">
+            <div class="info-label">屈折率</div>
+            <div class="info-value" id="refractiveIndexDisplay">1.50</div>
+        </div>
+    </div>
+    
+    <!-- コントローラー（下部） -->
+    <div class="controls">
+        <button id="startBtn">スタート</button>
+        <button id="stopBtn">停止</button>
+        <button id="resetBtn">リセット</button>
+        
+        <!-- 光の色選択 -->
+        <div class="color-controls">
+            <div class="color-label">光の色:</div>
+            <div class="color-switches">
+                <label class="color-switch red-switch">
+                    <input type="checkbox" id="colorRed" checked>
+                    <span class="color-name">赤</span>
+                </label>
+                <label class="color-switch orange-switch">
+                    <input type="checkbox" id="colorOrange">
+                    <span class="color-name">橙</span>
+                </label>
+                <label class="color-switch yellow-switch">
+                    <input type="checkbox" id="colorYellow">
+                    <span class="color-name">黄</span>
+                </label>
+                <label class="color-switch green-switch">
+                    <input type="checkbox" id="colorGreen">
+                    <span class="color-name">緑</span>
+                </label>
+                <label class="color-switch cyan-switch">
+                    <input type="checkbox" id="colorCyan">
+                    <span class="color-name">青緑</span>
+                </label>
+                <label class="color-switch blue-switch">
+                    <input type="checkbox" id="colorBlue">
+                    <span class="color-name">青</span>
+                </label>
+                <label class="color-switch violet-switch">
+                    <input type="checkbox" id="colorViolet">
+                    <span class="color-name">紫</span>
+                </label>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <label>屈折率</label>
+            <input type="range" id="refractiveIndex" min="1.2" max="2.0" step="0.05" value="1.5">
+            <span class="value-display" id="refractiveIndexValue">1.50</span>
+        </div>
+    </div>
+    
+    <!-- 最終更新表示 -->
+    <div class="last-updated" id="lastUpdated"></div>
+    
+    <script type="text/javascript" src="../_common_/js_common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../_common_/slide-menu.js" charset="utf-8"></script>
+    <script src="js.js"></script>
+</body>
+</html>

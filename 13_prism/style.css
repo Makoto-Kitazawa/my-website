@@ -1,0 +1,251 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    width: 100vw;
+    height: 100vh;
+    background-color: #1a1a1a;
+    font-family: 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+#canvas {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #000;
+    border: 2px solid #333;
+    width: min(900px, 90vw);
+    height: calc(100vh - 240px);
+    max-height: 500px;
+    cursor: grab;
+}
+
+#canvas:active {
+    cursor: grabbing;
+}
+
+/* 説明バナー */
+.instruction-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 60px;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    padding: 12px 20px;
+    z-index: 500;
+    border-bottom: 2px solid #4a90e2;
+    animation: slideDown 0.4s ease;
+}
+
+.instruction-text {
+    color: #fff;
+    font-size: 14px;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.separator {
+    color: #666;
+    margin: 0 5px;
+}
+
+/* 情報パネル */
+.info-panel {
+    position: fixed;
+    top: 100px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    border: 2px solid #4a90e2;
+    border-radius: 10px;
+    padding: 15px;
+    color: #fff;
+    min-width: 200px;
+    z-index: 100;
+}
+
+.info-section {
+    margin-bottom: 15px;
+}
+
+.info-section:last-child {
+    margin-bottom: 0;
+}
+
+.info-label {
+    font-size: 12px;
+    color: #aaa;
+    margin-bottom: 5px;
+}
+
+.info-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #4ecdc4;
+}
+
+/* コントローラー */
+.controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    padding: 15px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    border-top: 2px solid #4a90e2;
+    z-index: 500;
+}
+
+button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 15px;
+    border-radius: 8px;
+}
+
+.control-group label {
+    color: #fff;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.control-group input[type="range"] {
+    width: 150px;
+    cursor: pointer;
+}
+
+.value-display {
+    color: #4ecdc4;
+    font-weight: bold;
+    min-width: 60px;
+}
+
+/* 色選択コントロール */
+.color-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 15px;
+    border-radius: 8px;
+    flex-wrap: wrap;
+}
+
+.color-label {
+    color: #fff;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.color-switches {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.color-switch {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.color-switch:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.color-switch input[type="checkbox"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+.color-name {
+    color: #fff;
+    font-size: 13px;
+    user-select: none;
+}
+
+/* 各色のスタイル */
+.red-switch .color-name { color: #ff0000; }
+.orange-switch .color-name { color: #ff8800; }
+.yellow-switch .color-name { color: #ffff00; }
+.green-switch .color-name { color: #00ff00; }
+.cyan-switch .color-name { color: #00ffff; }
+.blue-switch .color-name { color: #0000ff; }
+.violet-switch .color-name { color: #8800ff; }
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .controls {
+        padding: 10px;
+        gap: 10px;
+    }
+    
+    .control-group {
+        padding: 5px 10px;
+    }
+    
+    .control-group input[type="range"] {
+        width: 100px;
+    }
+    
+    .info-panel {
+        right: 10px;
+        top: 90px;
+        min-width: 150px;
+        padding: 10px;
+    }
+    
+    .info-value {
+        font-size: 18px;
+    }
+    
+    button {
+        padding: 8px 15px;
+        font-size: 12px;
+    }
+}
