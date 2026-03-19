@@ -7,6 +7,7 @@
 body {
     width: 100vw;
     height: 100vh;
+    overflow: hidden;
     background-color: #1a1a1a;
     font-family: 'Arial', sans-serif;
     margin: 0;
@@ -14,15 +15,17 @@ body {
 }
 
 #canvas {
+    --canvas-aspect-ratio: 1.8;
+    --canvas-height: min(500px, calc(100vh - 240px), calc(90vw / var(--canvas-aspect-ratio)));
     position: fixed;
     top: 80px;
     left: 50%;
     transform: translateX(-50%);
     background-color: #000;
     border: 2px solid #333;
-    width: min(900px, 90vw);
-    height: calc(100vh - 240px);
-    max-height: 500px;
+    width: calc(var(--canvas-height) * var(--canvas-aspect-ratio));
+    height: var(--canvas-height);
+    aspect-ratio: 900 / 500;
     cursor: grab;
 }
 
