@@ -68,11 +68,11 @@
     },
     "07_g-acceleration": {
       "_source": "07_g-acceleration/index.html のmeta name='project:*'タグ",
-      "title": "重力加速度を計算してみよう",
+      "title": "加速度を視覚的に見てみよう",
       "category": "物理用ファイル",
-      "icon": "🪐",
-      "description": "落下運動から重力加速度を測定",
-      "status": "preparing"
+      "icon": "📊",
+      "description": "端末の加速度センサーの値を可視化",
+      "status": "ready"
     },
     "08_fizeau-ex": {
       "_source": "08_fizeau-ex/index.html のmeta name='project:*'タグ",

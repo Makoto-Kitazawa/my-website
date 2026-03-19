@@ -9,7 +9,7 @@
   <meta name="project:category" content="物理用ファイル">
   <meta name="project:icon" content="📊">
   <meta name="project:description" content="端末の加速度センサーの値を可視化">
-  <meta name="project:status" content="preparing">
+  <meta name="project:status" content="ready">
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="../_common_/style_slide-menu.css">
 </head>
@@ -19,21 +19,26 @@
   <!-- 説明バナー -->
   <div class="instruction-banner" id="instructionBanner">
     <div class="instruction-text">
-      端末を動かすと加速度が表示されます
+      iPad の向きに合わせて、重力を含む加速度の向きが表示されます
       <span class="separator">|</span>
-      <span class="icon-blue">→</span> 青い矢印：加速度ベクトル
+      <span class="icon-blue">→</span> 青い矢印：重力を含む加速度ベクトル
     </div>
   </div>
   
   <!-- 情報表示エリア -->
   <div class="info-panel">
-    <button id="resetBtn">リセット</button>
+    <button id="startResetBtn">スタート／リセット</button>
+    <button id="pauseBtn">一時停止</button>
     <div class="gravity-mode">
       <label><input type="checkbox" id="removeGravity"> 重力加速度を除外</label>
     </div>
     <div class="angle-mode">
-      <label><input type="radio" name="angleMode" value="physics" checked> 物理的視点（上から時計）</label>
+      <label><input type="radio" name="angleMode" value="physics" checked> 物理的視点（下から反時計）</label>
       <label><input type="radio" name="angleMode" value="math"> 数学的視点（右から反時計）</label>
+    </div>
+    <div class="vector-mode">
+      <label><input type="radio" name="vectorMode" value="normal" checked> 通常モード</label>
+      <label><input type="radio" name="vectorMode" value="decompose"> 分解モード</label>
     </div>
     <div class="acceleration-info">
       <div class="info-label">加速度</div>

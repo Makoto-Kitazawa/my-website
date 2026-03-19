@@ -1,5 +1,7 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+const startResetBtn = document.getElementById('startResetBtn');
+const pauseBtn = document.getElementById('pauseBtn');
 
 // 座標系の設定（数学的なx-y座標）
 const GRID_SIZE = 50; // 方眼のサイズ（ピクセル）
@@ -28,36 +30,80 @@ let samplingInterval = null;
 const SAMPLING_RATE = 500; // 1Hz = 1000ms
 let zoomScale = 1;
 let angleMode = 'physics'; // 'physics' または 'math'
+let vectorMode = 'normal'; // 'normal' または 'decompose'
 
-// デバイスの向き判定関数
-function getDeviceOrientation() {
-  // window.orientationは非推奨だが、互換性のため使用
-  // 代わりにscreen.orientationを優先的に使用
-  if (screen.orientation && screen.orientation.type) {
-    const orientation = screen.orientation.type;
-    return orientation.includes('landscape') ? 'landscape' : 'portrait';
-  }
-  // フォールバック: window.innerWidth/Heightで判定
-  return window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
+function isIPadLikeDevice() {
+  return /iPad/.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
 
-// デバイス向きに応じた加速度のマッピング
+// 画面の回転角を取得
+function getScreenAngle() {
+  if (screen.orientation && typeof screen.orientation.angle === 'number') {
+    return screen.orientation.angle;
+  }
+
+  if (typeof window.orientation === 'number') {
+    return window.orientation;
+  }
+
+  return 0;
+}
+
+// デバイス向きに応じて加速度を画面座標へ変換
 function mapAccelerationToScreen(rawAccelX, rawAccelY) {
-  const orientation = getDeviceOrientation();
-  
-  if (orientation === 'landscape') {
-    // 横向き：デバイスのx軸とy軸を入れ替える
+  const angle = ((getScreenAngle() % 360) + 360) % 360;
+  let mappedAcceleration;
+
+  switch (angle) {
+    case 90:
+      mappedAcceleration = {
+        x: rawAccelY,
+        y: -rawAccelX
+      };
+      break;
+    case 180:
+      mappedAcceleration = {
+        x: -rawAccelX,
+        y: -rawAccelY
+      };
+      break;
+    case 270:
+      mappedAcceleration = {
+        x: -rawAccelY,
+        y: rawAccelX
+      };
+      break;
+    default:
+      mappedAcceleration = {
+        x: rawAccelX,
+        y: rawAccelY
+      };
+      break;
+  }
+
+  if (isIPadLikeDevice()) {
     return {
-      x: rawAccelY,
-      y: rawAccelX
-    };
-  } else {
-    // 縦向き：そのまま使用
-    return {
-      x: rawAccelX,
-      y: rawAccelY
+      x: mappedAcceleration.y,
+      y: mappedAcceleration.x
     };
   }
+
+  return mappedAcceleration;
+}
+
+function getDisplayAcceleration() {
+  if (isIPadLikeDevice()) {
+    return {
+      x: -acceleration.x,
+      y: acceleration.y
+    };
+  }
+
+  return {
+    x: acceleration.x,
+    y: acceleration.y
+  };
 }
 
 // キャンバスサイズの設定
@@ -112,9 +158,21 @@ document.querySelectorAll('input[name="angleMode"]').forEach(radio => {
   });
 });
 
+// ベクトル表示モード選択
+document.querySelectorAll('input[name="vectorMode"]').forEach(radio => {
+  radio.addEventListener('change', (e) => {
+    vectorMode = e.target.value;
+    draw();
+  });
+});
+
 // DeviceMotion APIで加速度データを取得（最新値を保存するのみ）
 function handleDeviceMotion(event) {
   hideInstructions();
+
+  if (isPaused) {
+    return;
+  }
   
   // 重力加速度を除外するかどうかで使い分ける
   if (removeGravity) {
@@ -128,7 +186,7 @@ function handleDeviceMotion(event) {
   }
 }
 
-// 1Hzでサンプリングして加速度を更新
+// 500ms ごとにサンプリングして加速度を更新
 function updateAccelerationSample() {
   if (isPaused) return;
   
@@ -154,43 +212,59 @@ function updateAccelerationSample() {
 
 // 加速度情報の更新
 function updateAccelerationDisplay() {
-  document.getElementById('accelX').textContent = acceleration.x.toFixed(2);
-  document.getElementById('accelY').textContent = acceleration.y.toFixed(2);
+  const displayAcceleration = getDisplayAcceleration();
+
+  document.getElementById('accelX').textContent = displayAcceleration.x.toFixed(2);
+  document.getElementById('accelY').textContent = displayAcceleration.y.toFixed(2);
   document.getElementById('accelMag').textContent = acceleration.magnitude.toFixed(2);
+
+  const displayMathAngle = Math.atan2(displayAcceleration.y, displayAcceleration.x) * (180 / Math.PI);
   
   // 角度表示を切り替え
   let displayAngle;
   if (angleMode === 'physics') {
-    // 物理的視点：y軸負から時計方向（0-360度）
-    // 数学的角度を物理的角度に変換: physics_angle = 90 - math_angle
-    displayAngle = 90 - acceleration.angle;
+    // 物理的視点：下方向を0度、反時計回りを正（0-360度）
+    // 数学的角度（右0度・反時計回り正）からの変換: physics_angle = math_angle + 90
+    displayAngle = displayMathAngle + 90;
     // 0-360度の範囲に正規化
     while (displayAngle < 0) displayAngle += 360;
     while (displayAngle >= 360) displayAngle -= 360;
   } else {
     // 数学的視点：x軸正から反時計回り
-    displayAngle = acceleration.angle;
+    displayAngle = displayMathAngle;
   }
   
   document.getElementById('accelAngle').textContent = displayAngle.toFixed(1);
 }
 
-// リセット
-document.getElementById('resetBtn').addEventListener('click', () => {
+function updatePauseButtonLabel() {
+  pauseBtn.textContent = isPaused ? '再開' : '一時停止';
+}
+
+// スタート／リセット
+startResetBtn.addEventListener('click', () => {
   acceleration = {
     x: 0,
     y: 0,
     magnitude: 0,
     angle: 0
   };
+
+  latestAcceleration = {
+    x: 0,
+    y: 0
+  };
+
   isPaused = false;
+  updatePauseButtonLabel();
   updateAccelerationDisplay();
   draw();
 });
 
-// キャンバスのタップで一時停止/再開
-canvas.addEventListener('click', () => {
+// 一時停止／再開
+pauseBtn.addEventListener('click', () => {
   isPaused = !isPaused;
+  updatePauseButtonLabel();
   draw();
 });
 
@@ -276,7 +350,11 @@ function draw() {
   
   // 加速度ベクトル（青い矢印）
   if (acceleration.magnitude > 0.1) { // ノイズ除外
+    drawAngleArc(originX, originY);
     drawAccelerationArrow();
+    if (vectorMode === 'decompose') {
+      drawDecomposedArrows();
+    }
   }
   
   // 一時停止表示
@@ -349,84 +427,160 @@ function drawGrid() {
 function drawAccelerationArrow() {
   const startX = originX;
   const startY = originY;
+  const displayAcceleration = getDisplayAcceleration();
   
   // 加速度値をピクセルに変換（スケーリング）
   // グリッド1マス = GRID_SIZEピクセル = 1単位
   // 1m/s^2 に対して GRID_SIZE ピクセル分表示
   const scale = GRID_SIZE * zoomScale;
-  const endX = startX + acceleration.x * scale;  // x正は右
-  const endY = startY - acceleration.y * scale;  // y正は上（キャンバスはy軸が下が正）
-  
-  // 角度を表す扇形を描画
-  drawAngleArc(startX, startY);
-  
-  const arrowColor = '#4a90e2'; // 矢印の色
-  const borderColor = '#2a5d9e'; // 縁取りの色（濃い青）
+  const endX = startX + displayAcceleration.x * scale;  // x正は右
+  const endY = startY - displayAcceleration.y * scale;  // y正は上（キャンバスはy軸が下が正）
 
-  ctx.setLineDash([]);  // 破線をリセット
-  ctx.lineWidth = 17 * zoomScale; // 縁取り用の太さ
-  ctx.strokeStyle = borderColor;
+  drawVectorArrow(startX, startY, endX, endY, {
+    color: '#4a90e2',
+    borderColor: '#2a5d9e',
+    lineWidth: 12 * zoomScale,
+    borderWidth: 16 * zoomScale,
+    headLength: 44 * zoomScale,
+    headWidth: 32 * zoomScale,
+    baseRadius: 4 * zoomScale,
+    alpha: 1,
+    dash: []
+  });
+}
 
-  // 矢印の線（縁取り）
+function drawDecomposedArrows() {
+  const startX = originX;
+  const startY = originY;
+  const displayAcceleration = getDisplayAcceleration();
+  const scale = GRID_SIZE * zoomScale;
+
+  const xEndX = startX + displayAcceleration.x * scale;
+  const xEndY = startY;
+  const yEndX = startX;
+  const yEndY = startY - displayAcceleration.y * scale;
+  const fullEndX = xEndX;
+  const fullEndY = yEndY;
+
+  drawVectorArrow(startX, startY, xEndX, xEndY, {
+    color: 'rgba(255, 150, 150, 1)',
+    borderColor: 'rgba(200, 95, 95, 1)',
+    lineWidth: 4 * zoomScale,
+    borderWidth: 6 * zoomScale,
+    headLength: 16 * zoomScale,
+    headWidth: 12 * zoomScale,
+    baseRadius: 3 * zoomScale,
+    alpha: 0.7,
+    dash: [10 * zoomScale, 8 * zoomScale]
+  });
+
+  drawVectorArrow(startX, startY, yEndX, yEndY, {
+    color: 'rgba(255, 150, 150, 1)',
+    borderColor: 'rgba(200, 95, 95, 1)',
+    lineWidth: 4 * zoomScale,
+    borderWidth: 6 * zoomScale,
+    headLength: 16 * zoomScale,
+    headWidth: 12 * zoomScale,
+    baseRadius: 3 * zoomScale,
+    alpha: 0.7,
+    dash: [10 * zoomScale, 8 * zoomScale]
+  });
+
+  drawGuideLine(xEndX, xEndY, fullEndX, fullEndY);
+  drawGuideLine(yEndX, yEndY, fullEndX, fullEndY);
+}
+
+function drawGuideLine(startX, startY, endX, endY) {
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.setLineDash([6 * zoomScale, 6 * zoomScale]);
+  ctx.strokeStyle = 'rgba(255, 150, 150, 1)';
+  ctx.lineWidth = 2 * zoomScale;
+  ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(startX, startY);
   ctx.lineTo(endX, endY);
   ctx.stroke();
+  ctx.restore();
+}
 
-  ctx.setLineDash([]);  // 破線をリセット
-  ctx.lineWidth = 15 * zoomScale; // 矢印本体の太さ
-  ctx.strokeStyle = arrowColor;
+function drawVectorArrow(startX, startY, endX, endY, options) {
+  const dx = endX - startX;
+  const dy = endY - startY;
+  const length = Math.hypot(dx, dy);
 
-  // 矢印の線（本体）
+  if (length < 1) return;
+
+  const ux = dx / length;
+  const uy = dy / length;
+  const headLength = Math.min(options.headLength, length * 0.6);
+  const headWidth = options.headWidth;
+  const alpha = typeof options.alpha === 'number' ? options.alpha : 1;
+  const dash = Array.isArray(options.dash) ? options.dash : [];
+
+  // 先端三角形の後ろに線が見えないように、線を少し短くして止める
+  const shaftEndX = endX - ux * (headLength * 0.9);
+  const shaftEndY = endY - uy * (headLength * 0.9);
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // 外枠
+  ctx.setLineDash(dash);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = options.borderColor;
+  ctx.lineWidth = options.borderWidth;
   ctx.beginPath();
   ctx.moveTo(startX, startY);
-  ctx.lineTo(endX, endY);
+  ctx.lineTo(shaftEndX, shaftEndY);
   ctx.stroke();
 
-  // 矢印の先端（縁取り）
-  const angle = Math.atan2(endY - startY, endX - startX);
-  const arrowSize = 40;
+  // 本体
+  ctx.strokeStyle = options.color;
+  ctx.lineWidth = options.lineWidth;
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
+  ctx.lineTo(shaftEndX, shaftEndY);
+  ctx.stroke();
 
-  ctx.fillStyle = borderColor;
+  ctx.setLineDash([]);
+
+  const baseX = endX - ux * headLength;
+  const baseY = endY - uy * headLength;
+  const px = -uy;
+  const py = ux;
+
+  // 先端外枠
+  ctx.fillStyle = options.borderColor;
   ctx.beginPath();
   ctx.moveTo(endX, endY);
-  ctx.lineTo(
-    endX - arrowSize * Math.cos(angle - Math.PI / 6),
-    endY - arrowSize * Math.sin(angle - Math.PI / 6)
-  );
-  ctx.lineTo(
-    endX - arrowSize * Math.cos(angle + Math.PI / 6),
-    endY - arrowSize * Math.sin(angle + Math.PI / 6)
-  );
+  ctx.lineTo(baseX + px * headWidth * 0.5, baseY + py * headWidth * 0.5);
+  ctx.lineTo(baseX - px * headWidth * 0.5, baseY - py * headWidth * 0.5);
   ctx.closePath();
   ctx.fill();
 
-  // 矢印の先端（本体）
-  ctx.fillStyle = arrowColor;
+  // 先端本体
+  ctx.fillStyle = options.color;
   ctx.beginPath();
   ctx.moveTo(endX, endY);
-  ctx.lineTo(
-    endX - arrowSize * Math.cos(angle - Math.PI / 6),
-    endY - arrowSize * Math.sin(angle - Math.PI / 6)
-  );
-  ctx.lineTo(
-    endX - arrowSize * Math.cos(angle + Math.PI / 6),
-    endY - arrowSize * Math.sin(angle + Math.PI / 6)
-  );
+  ctx.lineTo(baseX + px * headWidth * 0.38, baseY + py * headWidth * 0.38);
+  ctx.lineTo(baseX - px * headWidth * 0.38, baseY - py * headWidth * 0.38);
   ctx.closePath();
   ctx.fill();
 
-  // 始点に丸を描画（縁取り）
-  ctx.fillStyle = borderColor;
+  // 始点マーカー
+  ctx.fillStyle = options.borderColor;
   ctx.beginPath();
-  ctx.arc(startX, startY, 6, 0, Math.PI * 2); // 半径6の円（縁取り）
+  ctx.arc(startX, startY, options.baseRadius + 1, 0, Math.PI * 2);
   ctx.fill();
 
-  // 始点に丸を描画（本体）
-  ctx.fillStyle = arrowColor;
+  ctx.fillStyle = options.color;
   ctx.beginPath();
-  ctx.arc(startX, startY, 5, 0, Math.PI * 2); // 半径5の円（本体）
+  ctx.arc(startX, startY, options.baseRadius, 0, Math.PI * 2);
   ctx.fill();
+
+  ctx.restore();
 }
 
 // 角度を表す扇形を描画
@@ -434,6 +588,7 @@ function drawAngleArc(centerX, centerY) {
   const arcRadius = 60 * zoomScale;  // 扇形の半径
   const arcColor = 'rgba(74, 144, 226, 0.2)';  // 薄い青
   const arcBorderColor = 'rgba(74, 144, 226, 0.6)';  // より濃い青
+  const displayAcceleration = getDisplayAcceleration();
 
   ctx.fillStyle = arcColor;
   ctx.strokeStyle = arcBorderColor;
@@ -444,7 +599,7 @@ function drawAngleArc(centerX, centerY) {
   if (angleMode === 'physics') {
     // 物理的視点：y軸正（下、π/2）から時計方向
     // キャンバス座標では y軸が下が正なので、下は π/2
-    const mathAngleRad = Math.atan2(acceleration.y, acceleration.x);
+    const mathAngleRad = Math.atan2(displayAcceleration.y, displayAcceleration.x);
     // キャンバス座標への変換: -y方向が0度（上）
     // キャンバスy軸反転を考慮: canvasAngle = -mathAngle
     const canvasAngleRad = -mathAngleRad;
@@ -454,7 +609,7 @@ function drawAngleArc(centerX, centerY) {
     ctx.arc(centerX, centerY, arcRadius, startAngle, endAngle, true);  // true=反時計回り（物理的には時計回り）
   } else {
     // 数学的視点：x軸正から反時計回り
-    const angleInRadians = Math.atan2(-acceleration.y, acceleration.x);
+    const angleInRadians = Math.atan2(-displayAcceleration.y, displayAcceleration.x);
     ctx.arc(centerX, centerY, arcRadius, 0, angleInRadians, angleInRadians < 0);
   }
   
@@ -498,6 +653,7 @@ function drawPausedOverlay() {
 }
 
 // 初期描画
+updatePauseButtonLabel();
 draw();
 
 // スクリーンショット機能

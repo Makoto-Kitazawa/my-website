@@ -13,7 +13,7 @@ JSONファイルを更新する際は、このガイドに従って対応する`
 | 04_beatanime | `04_beatanime/index.html` | `project:title` メタタグ | `project:category` | `project:icon` | `project:description` | - |
 | 05_doppler-effect | `05_doppler-effect/index.html` | `project:title` メタタグ | `project:category` | `project:icon` | `project:description` | - |
 | 06_displacement | `06_displacement/index.html` | `project:title` メタタグ | `project:category` | `project:icon` | `project:description` | - |
-| 07_g-acceleration | `07_g-acceleration/index.html` | `project:title` メタタグ | `project:category` | `project:icon` | `project:description` | `preparing` |
+| 07_g-acceleration | `07_g-acceleration/index.html` | `project:title` メタタグ | `project:category` | `project:icon` | `project:description` | - |
 | 08_fizeau-ex | `08_fizeau-ex/index.html` | `project:title` メタタグ | `project:category` | `project:icon` | `project:description` | - |
 | 09_lens | `09_lens/index.html` | `project:title` メタタグ | `project:category` | `project:icon` | `project:description` | - |
 
