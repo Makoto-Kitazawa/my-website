@@ -114,6 +114,14 @@
       "description": "三角プリズムによる光の屈折と分散",
       "status": "ready"
     },
+    "14_voice-fft": {
+      "_source": "14_voice-fft/index.html のmeta name='project:*'タグ",
+      "title": "マイク音声の波形と周波数分析をしてみよう",
+      "category": "物理用ファイル",
+      "icon": "🎤",
+      "description": "マイク入力の波形表示とFFTによる周波数分析",
+      "status": "ready"
+    },
     "0A_function-approximation": {
       "_source": "0A_function-approximation/index.html のmeta name='project:*'タグ",
       "title": "関数の近似を確かめよう",

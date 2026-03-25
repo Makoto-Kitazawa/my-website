@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>マイク音声の波形と周波数分析</title>
+  <link rel="icon" type="image/svg+xml" href="../_common_/favicon.svg">
+  <meta name="project:title" content="マイク音声の波形と周波数分析をしてみよう">
+  <meta name="project:category" content="物理用ファイル">
+  <meta name="project:icon" content="🎤">
+  <meta name="project:description" content="マイク入力の波形表示とFFTによる周波数分析">
+  <meta name="project:status" content="ready">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="../_common_/style_common.css">
+  <link rel="stylesheet" href="../_common_/style_slide-menu.css">
+</head>
+<body>
+  <main class="app" role="application" aria-label="マイク音声の波形と周波数分析">
+    <header class="topbar">
+      <div>
+        <h1>マイク音声の波形と周波数分析</h1>
+        <p class="status" id="status">スタートを押すとマイクの許可を確認します。</p>
+      </div>
+      <div class="summary-block">
+        <div class="summary-metrics">
+          <span id="fftInfo">サンプリング周波数 - Hz</span>
+        </div>
+        <div class="button-row summary-buttons">
+          <button id="startBtn" class="primary">スタート</button>
+          <button id="stopBtn" class="secondary" disabled>ストップ</button>
+        </div>
+        <div class="help-wrap">
+          <a id="helpLink" class="help-link" href="#manual">※マイクが動作しない時は</a>
+          <div id="manual" class="manual" aria-live="polite" aria-hidden="true">
+            <section>
+              <h2>iPad</h2>
+              <ol>
+                <li>Safari のアドレスバー左のぁあ または AA を開きます。</li>
+                <li>このWebサイトの設定 を開きます。</li>
+                <li>マイク を 許可 に変更して、ページを再読み込みします。</li>
+              </ol>
+            </section>
+            <section>
+              <h2>Chrome Book</h2>
+              <ol>
+                <li>アドレスバー右の設定アイコンを開きます。</li>
+                <li>サイトの設定 から マイク を 許可 にします。</li>
+                <li>Chromebook 本体設定でも 音声入力 がオフになっていないか確認します。</li>
+              </ol>
+            </section>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="content-grid">
+      <section class="panel wave-panel" aria-label="波形表示">
+        <div class="panel-header">
+          <h2>波形</h2>
+          <span>左: マイク入力の時間変化</span>
+        </div>
+        <canvas id="waveCanvas" width="960" height="280" aria-label="マイク入力の波形"></canvas>
+      </section>
+
+      <section class="panel fft-panel" aria-label="FFT分析">
+        <div class="panel-header">
+          <h2>FFT 周波数分析</h2>
+          <span>右: スペクトルと上位4成分</span>
+        </div>
+        <canvas id="fftCanvas" width="960" height="300" aria-label="マイク入力のFFTスペクトル"></canvas>
+        <p class="note">0.5 秒ごとに強度上位4件へ並び替えます。ストップを押すと、その時点の値で固定されます。</p>
+        <div class="table-card">
+          <div class="table-head">上位4成分</div>
+          <div id="tableRows" class="table-top" aria-label="FFT分析結果の表"></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="last-updated" id="lastUpdated"></div>
+
+  <script src="js.js" charset="utf-8"></script>
+  <script src="../_common_/js_common.js" charset="utf-8"></script>
+  <script src="../_common_/slide-menu.js" charset="utf-8"></script>
+</body>
+</html>
