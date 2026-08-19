@@ -19,116 +19,100 @@
   ],
   "metadata": {
     "01_soundwave": {
-      "_source": "01_soundwave/index.html のmeta name='project:*'タグ",
       "title": "音声の波形を見てみよう",
       "category": "物理用ファイル",
       "icon": "🎵",
-      "description": "マイクやファイルから音声波形を表示",
-      "status": "ready"
+      "description": "マイクやファイルから音声波形を表示"
     },
     "02_soundsource": {
-      "_source": "02_soundsource/index.html のmeta name='project:*'タグ",
       "title": "任意の波形の音波を出してみよう",
       "category": "物理用ファイル",
       "icon": "🎛️",
-      "description": "カスタム波形の音を生成",
-      "status": "ready"
+      "description": "カスタム波形の音を生成"
     },
     "03_2wave-anime": {
-      "_source": "03_2wave-anime/index.html のmeta name='project:*'タグ",
       "title": "縦波と横波の違いを見てみよう",
       "category": "物理用ファイル",
       "icon": "📊",
-      "description": "縦波と横波の振動パターンを可視化",
-      "status": "ready"
+      "description": "縦波と横波の振動パターンを可視化"
     },
     "04_beatanime": {
-      "_source": "04_beatanime/index.html のmeta name='project:*'タグ",
       "title": "うなりを視覚的に見てみよう",
       "category": "物理用ファイル",
       "icon": "🎼",
-      "description": "2つの周波数が近い音波の干渉",
-      "status": "ready"
+      "description": "2つの周波数が近い音波の干渉"
     },
     "05_doppler-effect": {
-      "_source": "05_doppler-effect/index.html のmeta name='project:*'タグ",
       "title": "ドップラー効果を視覚的に見てみよう",
       "category": "物理用ファイル",
       "icon": "🔊",
-      "description": "音源の移動による周波数変化を可視化",
-      "status": "ready"
+      "description": "音源の移動による周波数変化を可視化"
     },
     "06_displacement": {
-      "_source": "06_displacement/index.html のmeta name='project:*'タグ",
       "title": "変位を視覚的に見てみよう",
       "category": "物理用ファイル",
       "icon": "📐",
-      "description": "物体の移動による変位を可視化",
-      "status": "ready"
+      "description": "物体の移動による変位を可視化"
     },
     "07_g-acceleration": {
-      "_source": "07_g-acceleration/index.html のmeta name='project:*'タグ",
       "title": "加速度を視覚的に見てみよう",
       "category": "物理用ファイル",
       "icon": "📊",
-      "description": "端末の加速度センサーの値を可視化",
-      "status": "ready"
+      "description": "端末の加速度センサーの値を可視化"
     },
     "08_fizeau-ex": {
-      "_source": "08_fizeau-ex/index.html のmeta name='project:*'タグ",
       "title": "フィゾーの実験",
       "category": "物理用ファイル",
       "icon": "🔬",
-      "description": "光速測定を模した実験",
-      "status": "ready"
+      "description": "光速測定を模した実験"
     },
     "09_lens": {
-      "_source": "09_lens/index.html のmeta name='project:*'タグ",
       "title": "レンズの屈折実験",
       "category": "物理用ファイル",
       "icon": "🔍",
-      "description": "凸レンズと凹レンズの光の屈折を可視化",
-      "status": "ready"
-    },
-    "10_young-experiment": {
-      "_source": "10_young-experiment/index.html のmeta name='project:*'タグ",
-      "title": "ヤングの実験",
-      "category": "物理用ファイル",
-      "icon": "🌊",
-      "description": "光の波動性を示すヤングの二重スリット実験",
-      "status": "ready"
-    },
-    "12_mirror": {
-      "_source": "12_mirror/index.html のmeta name='project:*'タグ",
-      "title": "鏡の反射実験",
-      "category": "物理用ファイル",
-      "icon": "🪞",
-      "description": "凹面鏡と凸面鏡の光の反射を可視化",
-      "status": "ready"
-    },
-    "13_prism": {
-      "_source": "13_prism/index.html のmeta name='project:*'タグ",
-      "title": "プリズムの光の屈折",
-      "category": "物理用ファイル",
-      "icon": "🔺",
-      "description": "三角プリズムによる光の屈折と分散",
-      "status": "ready"
-    },
-    "14_voice-fft": {
-      "_source": "14_voice-fft/index.html のmeta name='project:*'タグ",
-      "title": "マイク音声の波形と周波数分析をしてみよう",
-      "category": "物理用ファイル",
-      "icon": "🎤",
-      "description": "マイク入力の波形表示とFFTによる周波数分析",
-      "status": "ready"
+      "description": "凸レンズと凹レンズの光の屈折を可視化"
     },
     "0A_function-approximation": {
-      "_source": "0A_function-approximation/index.html のmeta name='project:*'タグ",
       "title": "関数の近似を確かめよう",
       "category": "数学用ファイル",
       "icon": "📊",
-      "description": "様々な関数をグラフで表示して近似を確認",
-      "status": "ready"
+      "description": "様々な関数をグラフで表示して近似を確認"
+    },
+    "10_young-experiment": {
+      "title": "ヤングの実験",
+      "category": "物理用ファイル",
+      "icon": "🌊",
+      "description": "光の波動性を示すヤングの二重スリット実験"
+    },
+    "11_ecosystem": {
+      "title": "生態系シミュレータ",
+      "category": "生物用ファイル",
+      "icon": "🐟",
+      "description": "藻・小魚・エビの生態系シミュレーション"
+    },
+    "12_mirror": {
+      "title": "鏡の反射実験",
+      "category": "物理用ファイル",
+      "icon": "🪞",
+      "description": "凹面鏡と凸面鏡の光の反射を可視化"
+    },
+    "13_prism": {
+      "title": "プリズムの光の屈折",
+      "category": "物理用ファイル",
+      "icon": "🔺",
+      "description": "三角プリズムによる光の屈折と分散"
+    },
+    "14_voice-fft": {
+      "title": "マイク音声の波形と周波数分析をしてみよう",
+      "category": "物理用ファイル",
+      "icon": "🎤",
+      "description": "マイク入力の波形表示とFFTによる周波数分析"
+    },
+    "15_rgb": {
+      "title": "RGBの加法混色を見てみよう",
+      "category": "物理用ファイル",
+      "icon": "🌈",
+      "description": "赤・緑・青の光を重ねて色の仕組みを可視化"
     }
   },
   "otherLinks": [

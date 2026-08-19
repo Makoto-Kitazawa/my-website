@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>RGB加法混色</title>
+  <link rel="icon" type="image/svg+xml" href="../_common_/favicon.svg">
+  <meta name="project:title" content="RGBの加法混色を見てみよう">
+  <meta name="project:category" content="物理用ファイル">
+  <meta name="project:icon" content="🌈">
+  <meta name="project:description" content="赤・緑・青の光を重ねて色の仕組みを可視化">
+  <meta name="project:status" content="ready">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="../_common_/style_common.css">
+  <link rel="stylesheet" href="../_common_/style_slide-menu.css">
+</head>
+<body id="rgb-app">
+  <main class="rgb-page">
+    <h1>RGBの加法混色 v1.0</h1>
+    <p class="intro">光の三原色を重ねて、色が生まれる仕組みを見てみよう</p>
+
+    <section class="experiment" aria-label="RGBの加法混色">
+      <div class="stage-wrap">
+        <div class="stage" aria-label="RGBの重なりを表すベン図">
+          <div class="light-circle red-light" aria-hidden="true"></div>
+          <div class="light-circle green-light" aria-hidden="true"></div>
+          <div class="light-circle blue-light" aria-hidden="true"></div>
+        </div>
+        <div class="stage-caption">光を重ねた部分</div>
+      </div>
+
+      <div class="readout" aria-live="polite">
+        <div class="result-swatch" id="resultSwatch" aria-label="合成色"></div>
+        <div>
+          <p class="result-label">合成された光</p>
+          <p class="result-value" id="resultValue">rgb(255, 255, 255)</p>
+          <p class="result-hex" id="resultHex">#FFFFFF</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="controls" aria-label="RGBレベルの調整">
+      <div class="control red-control">
+        <div class="control-heading"><span class="channel-dot"></span><label for="redSlider">R 赤</label><output id="redValue" for="redSlider">255 (0xFF)</output></div>
+        <input type="range" id="redSlider" min="0" max="255" value="255">
+      </div>
+      <div class="control green-control">
+        <div class="control-heading"><span class="channel-dot"></span><label for="greenSlider">G 緑</label><output id="greenValue" for="greenSlider">255 (0xFF)</output></div>
+        <input type="range" id="greenSlider" min="0" max="255" value="255">
+      </div>
+      <div class="control blue-control">
+        <div class="control-heading"><span class="channel-dot"></span><label for="blueSlider">B 青</label><output id="blueValue" for="blueSlider">255 (0xFF)</output></div>
+        <input type="range" id="blueSlider" min="0" max="255" value="255">
+      </div>
+      <div class="control overlap-control" aria-label="円の重なり具合の調整">
+        <div class="control-heading"><span class="size-dot"></span><label for="sizeSlider">円の大きさ</label><output id="sizeValue" for="sizeSlider">42% (0x2A)</output></div>
+        <input type="range" id="sizeSlider" min="30" max="60" value="42">
+        <div class="control-heading"><span class="overlap-dot"></span><label for="overlapSlider">重なり</label><output id="overlapValue" for="overlapSlider">0% (0x00)</output></div>
+        <input type="range" id="overlapSlider" min="0" max="100" value="0">
+        <div class="overlap-scale"><span>なし</span><span>1つ</span></div>
+      </div>
+    </section>
+
+    <div class="action-buttons">
+      <button id="playButton" type="button">▶ 再生</button>
+      <button id="resetButton" type="button">↺ 初期値に戻す</button>
+    </div>
+    <p class="hint">RGBの値は、それぞれの光の強さを 0〜255 で表します。</p>
+  </main>
+
+  <div class="last-updated" id="lastUpdated"></div>
+
+  <script src="js.js" charset="utf-8"></script>
+  <script src="../_common_/js_common.js" charset="utf-8"></script>
+  <script src="../_common_/slide-menu.js" charset="utf-8"></script>
+</body>
+</html>

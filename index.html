@@ -154,6 +154,14 @@
                   </a>
                 </div>
               </li>
+              <li>
+                <div class="node">
+                  <span class="icon">🌈</span>
+                  <a class="entry" href="15_rgb/index.html">
+                    <span>RGBの加法混色を見てみよう</span>
+                  </a>
+                </div>
+              </li>
             </ul>
           </li>
           <li>
@@ -217,67 +225,52 @@
     <script type="text/javascript" src="_common_/slide-menu.js" charset="utf-8"></script>
     <script>
       // 最終更新日を表示
-      const updated = new Date(document.lastModified);
-      const yyyy = updated.getFullYear();
-      const mm = String(updated.getMonth() + 1).padStart(2, '0');
-      const dd = String(updated.getDate()).padStart(2, '0');
-      const hh = String(updated.getHours()).padStart(2, '0');
-      const min = String(updated.getMinutes()).padStart(2, '0');
-      document.getElementById('lastUpdated').textContent = `最終更新：${yyyy}/${mm}/${dd} ${hh}:${min}`;
+    const updated = new Date(document.lastModified);
+    const yyyy = updated.getFullYear();
+    const mm = String(updated.getMonth() + 1).padStart(2, '0');
+    const dd = String(updated.getDate()).padStart(2, '0');
+    const hh = String(updated.getHours()).padStart(2, '0');
+    const min = String(updated.getMinutes()).padStart(2, '0');
+    document.getElementById('lastUpdated').textContent = `最終更新：${yyyy}/${mm}/${dd} ${hh}:${min}`;
 
-      // プロジェクトのステータスを自動判定してリンク表示を制御
       async function initializeProjectLinks() {
-        // tree-config.json から status 情報を取得
         const siteRoot = detectSiteRoot();
         let statusMap = {};
-        
+
         try {
           const response = await fetch(siteRoot + 'tree-config.json');
           const config = await response.json();
           if (config.metadata) {
             for (const [key, data] of Object.entries(config.metadata)) {
-              if (data.status) {
-                statusMap[key] = data.status;
-              }
+              if (data.status) statusMap[key] = data.status;
             }
           }
         } catch (error) {
           console.warn('Failed to load tree-config.json:', error);
         }
-        
-        const projectLinks = document.querySelectorAll('.project-link');
-        for (const link of projectLinks) {
+
+        document.querySelectorAll('.project-link').forEach(link => {
           const projectPath = link.getAttribute('data-project-path');
-          if (!projectPath) continue;
-          
-          // パスからプロジェクト名を抽出（例："01_soundwave/" → "01_soundwave"）
-          const projectName = projectPath.split('/')[0];
-          const status = statusMap[projectName] || 'ready';
-          
-          // ステータスに応じてクラスを追加
-          if (status === 'preparing') {
-            link.classList.add('preparing');
-            link.href = '#';
-            link.title = '準備中';
-            // バッジを追加
-            const badge = document.createElement('span');
-            badge.className = 'status-badge';
-            badge.textContent = '準備中';
-            link.appendChild(badge);
-            link.addEventListener('click', (e) => e.preventDefault());
-          }
-        }
+          if (!projectPath || statusMap[projectPath.split('/')[0]] !== 'preparing') return;
+
+          link.classList.add('preparing');
+          link.href = '#';
+          link.title = '準備中';
+          const badge = document.createElement('span');
+          badge.className = 'status-badge';
+          badge.textContent = '準備中';
+          link.appendChild(badge);
+          link.addEventListener('click', event => event.preventDefault());
+        });
       }
-      
-      // サイトルート判定（slide-menu.jsと同じ）
+
       function detectSiteRoot() {
         const isGh = /github\.io$/i.test(location.host);
-        const segs = location.pathname.split('/').filter(Boolean);
-        const repo = segs.length > 0 ? segs[0] : '';
+        const segments = location.pathname.split('/').filter(Boolean);
+        const repo = segments.length > 0 ? segments[0] : '';
         return (isGh && repo) ? `/${repo}/` : '/';
       }
-      
-      // DOM読み込み後に実行
+
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initializeProjectLinks);
       } else {
