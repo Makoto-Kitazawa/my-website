@@ -1,0 +1,114 @@
+#rlc-app {
+  min-height: 100vh;
+  margin: 0;
+  color: #f5f1e8;
+  background: #111412;
+  font-family: 'Orbitron', 'Yu Gothic', sans-serif;
+  text-align: center;
+}
+
+#rlc-app .rlc-page { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 34px 0 52px; }
+#rlc-app .page-header { margin-bottom: 26px; }
+#rlc-app .eyebrow { margin: 0 0 8px; color: #e2b84e; font: 11px monospace; letter-spacing: 2px; }
+#rlc-app h1 { margin: 0; font-size: clamp(25px, 4vw, 40px); letter-spacing: 0; text-shadow: 0 0 18px rgba(226, 184, 78, .2); }
+#rlc-app h1 span { color: #84948a; font: 12px monospace; vertical-align: middle; }
+#rlc-app .intro { margin: 10px 0 0; color: #a7b0a8; font-size: 14px; }
+#rlc-app .experiment { display: grid; grid-template-columns: minmax(320px, .85fr) minmax(430px, 1.15fr); gap: 18px; padding: 18px; background: #1a1f1b; border: 1px solid #354139; border-radius: 8px; box-shadow: 0 0 28px rgba(0, 0, 0, .4) inset; }
+#rlc-app .visual-panel, #rlc-app .wave-panel { min-width: 0; padding: 14px; background: #101310; border: 1px solid #29332c; }
+#rlc-app .panel-label { color: #91a097; font: 11px monospace; letter-spacing: 1px; text-align: left; }
+#rlc-app .live-dot, #rlc-app .control-dot { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: #e2b84e; box-shadow: 0 0 8px #e2b84e; }
+#rlc-app .wave-mark { margin-right: 7px; color: #65d0c2; font-size: 17px; }
+#rlc-app svg { display: block; width: 100%; height: auto; margin: 8px auto 0; overflow: visible; }
+#rlc-app .grid-circle circle { fill: none; stroke: #35433a; stroke-width: 1; stroke-dasharray: 3 7; }
+#rlc-app .crosshair line, #rlc-app .wave-grid line { stroke: #344037; stroke-width: 1; }
+#rlc-app .time-ticks line { stroke: #425248; stroke-width: 1; stroke-dasharray: 2 8; }
+#rlc-app svg text { fill: #718077; font: 11px monospace; }
+#rlc-app .time-label { fill: #91a097; text-anchor: middle; }
+#rlc-app .axis-note { fill: #8b9a90; text-anchor: middle; }
+#rlc-app .radius-line { stroke: #3d8bff; stroke-width: 3; stroke-linecap: round; }
+#rlc-app .radius-tip { fill: #3d8bff; stroke: #f5f1e8; stroke-width: 2; }
+#rlc-app .secondary { opacity: .95; }
+#rlc-app .radius-line.secondary { stroke: #ff7a6b; }
+#rlc-app .radius-tip.secondary { fill: #ff7a6b; stroke: #f5f1e8; }
+#rlc-app .radius-line.tertiary { stroke: #65d0c2; }
+#rlc-app .radius-tip.tertiary { fill: #65d0c2; stroke: #f5f1e8; }
+#rlc-app .projection-line { stroke: #3d8bff; stroke-width: 1.5; stroke-dasharray: 5 5; }
+#rlc-app .projection-line.secondary { stroke: #ff7a6b; }
+#rlc-app .projection-line.tertiary { stroke: #65d0c2; }
+#rlc-app .origin { fill: #65d0c2; }
+#rlc-app .wave-path { fill: none; stroke: #3d8bff; stroke-width: 3; stroke-linecap: round; }
+#rlc-app .wave-path.secondary { stroke: #ff7a6b; stroke-width: 2; }
+#rlc-app .wave-path.tertiary { stroke: #65d0c2; stroke-width: 2; }
+#rlc-app .sum-path { fill: none; stroke: #f5f1e8; stroke-width: 5; stroke-linecap: round; opacity: .9; }
+#rlc-app .future-fade { fill: #101310; opacity: .72; pointer-events: none; }
+#rlc-app .wave-cursor { stroke: #3d8bff; stroke-width: 1; stroke-dasharray: 3 4; }
+#rlc-app .wave-cursor.secondary { stroke: #ff7a6b; }
+#rlc-app .wave-cursor.tertiary { stroke: #65d0c2; }
+#rlc-app .wave-point { fill: #3d8bff; stroke: #f5f1e8; stroke-width: 2; }
+#rlc-app .wave-point.secondary { fill: #ff7a6b; stroke: #f5f1e8; }
+#rlc-app .wave-point.tertiary { fill: #65d0c2; stroke: #f5f1e8; }
+#rlc-app .phasor-readout { display: flex; justify-content: center; align-items: baseline; gap: 7px; margin-top: -3px; font: 11px monospace; color: #84948a; }
+#rlc-app .phasor-readout output { color: #3d8bff; font-size: 17px; font-weight: bold; }
+#rlc-app .phasor-readout output:nth-of-type(2) { margin-left: 14px; color: #3d8bff; }
+#rlc-app .graph-caption { margin: -4px 0 0; color: #84948a; font: 12px monospace; }
+#rlc-app .controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 16px; text-align: left; }
+#rlc-app .control-column { display: grid; gap: 14px; min-width: 0; }
+#rlc-app .control { padding: 16px 17px 13px; background: #1a1f1b; border: 1px solid #354139; border-top: 3px solid var(--control-color); border-radius: 8px; }
+#rlc-app .period-control { --control-color: #e2b84e; } #rlc-app .amplitude-control { --control-color: #3d8bff; }
+#rlc-app .amplitude2-control { --control-color: #ff7a6b; }
+#rlc-app .amplitude3-control { --control-color: #65d0c2; }
+#rlc-app .control-heading { display: flex; align-items: center; gap: 0; margin-bottom: 12px; color: #f5f1e8; font-size: 14px; }
+#rlc-app .control-dot { background: var(--control-color); box-shadow: 0 0 8px var(--control-color); }
+#rlc-app .control-heading input[type="checkbox"] { margin: 0 7px 0 0; accent-color: #ff7a6b; cursor: pointer; }
+#rlc-app .control-heading input[type="checkbox"] + label { margin-right: 12px; color: #ff7a6b; font-size: 12px; }
+#rlc-app .secondary-hidden { display: none; }
+#rlc-app .tertiary-hidden { display: none; }
+#rlc-app output { margin-left: auto; color: var(--control-color); font: bold 16px monospace; }
+#rlc-app input[type="range"] { width: 100%; margin: 0; accent-color: var(--control-color); cursor: pointer; }
+#rlc-app .phase-control { margin: 0; color: #f5f1e8; }
+#rlc-app .phase-control legend { padding: 0 7px; color: #ff7a6b; font-size: 14px; }
+#rlc-app .phase-options { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 24px; }
+#rlc-app .phase-options label { display: flex; align-items: center; gap: 6px; color: #a7b0a8; font: 14px monospace; cursor: pointer; }
+#rlc-app .phase-options input { accent-color: #ff7a6b; cursor: pointer; }
+#rlc-app .combination-control { margin: 12px 0 0; padding: 8px 10px 10px; border: 1px solid #354139; color: #f5f1e8; text-align: left; }
+#rlc-app .combination-control legend { padding: 0 6px; color: #f5f1e8; font-size: 12px; }
+#rlc-app .combination-options { display: flex; justify-content: center; gap: 22px; }
+#rlc-app .combination-options label { color: #a7b0a8; font: 13px monospace; cursor: pointer; }
+#rlc-app .combination-options input { accent-color: #f5f1e8; cursor: pointer; }
+#rlc-app .action-buttons { display: flex; justify-content: center; gap: 10px; margin-top: 24px; }
+#rlc-app button { padding: 9px 16px; border: 1px solid #536258; border-radius: 6px; color: #f5f1e8; background: #273129; font: inherit; font-size: 13px; cursor: pointer; }
+#rlc-app button:hover { border-color: #65d0c2; background: #304139; }
+#rlc-app #playButton.active { color: #111412; background: #e2b84e; border-color: #e2b84e; }
+#rlc-app .hint { margin: 17px 0 0; color: #718077; font-size: 12px; }
+@media (min-width: 761px) and (max-width: 1280px) and (max-height: 850px) {
+  #rlc-app .rlc-page { width: min(100% - 24px, calc((100vh - 34px) * 1.6), 1240px); box-sizing: border-box; padding: 14px 0 20px; }
+  #rlc-app .page-header { margin-bottom: 10px; }
+  #rlc-app .eyebrow { margin-bottom: 4px; font-size: 9px; }
+  #rlc-app h1 { font-size: 28px; }
+  #rlc-app h1 span { font-size: 10px; }
+  #rlc-app .intro { margin-top: 5px; font-size: 11px; }
+  #rlc-app .experiment { gap: 8px; padding: 8px; }
+  #rlc-app .visual-panel, #rlc-app .wave-panel { padding: 8px; }
+  #rlc-app .panel-label { font-size: 9px; }
+  #rlc-app svg { margin-top: 4px; }
+  #rlc-app #phasorSvg { height: min(235px, 22vw); }
+  #rlc-app #waveSvg { height: min(300px, 29vw); }
+  #rlc-app .phasor-readout { font-size: 9px; }
+  #rlc-app .phasor-readout output { font-size: 14px; }
+  #rlc-app .action-buttons { margin-top: 8px; }
+  #rlc-app button { padding: 6px 10px; font-size: 11px; }
+  #rlc-app .graph-caption { font-size: 10px; }
+  #rlc-app .controls { gap: 8px; margin-top: 8px; }
+  #rlc-app .control-column { gap: 8px; }
+  #rlc-app .control { padding: 8px 10px 7px; }
+  #rlc-app .control-heading { margin-bottom: 6px; font-size: 11px; }
+  #rlc-app output { font-size: 13px; }
+  #rlc-app .phase-control { padding-top: 5px; }
+  #rlc-app .phase-control legend, #rlc-app .combination-control legend { font-size: 10px; }
+  #rlc-app .phase-options { gap: 5px 8px; }
+  #rlc-app .phase-options label, #rlc-app .combination-options label { font-size: 10px; }
+  #rlc-app .combination-options { gap: 8px; }
+  #rlc-app .hint { margin-top: 8px; font-size: 10px; }
+}
+@media (max-width: 900px) { #rlc-app .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { #rlc-app .rlc-page { width: min(100% - 22px, 540px); padding-top: 28px; } #rlc-app .experiment, #rlc-app .controls { grid-template-columns: 1fr; } #rlc-app .experiment { padding: 12px; } }

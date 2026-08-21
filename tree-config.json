@@ -113,6 +113,12 @@
       "category": "物理用ファイル",
       "icon": "🌈",
       "description": "赤・緑・青の光を重ねて色の仕組みを可視化"
+    },
+    "16_rlc": {
+      "title": "RLC交流回路を視覚化しよう",
+      "category": "物理用ファイル",
+      "icon": "〰️",
+      "description": "回転する動径と正弦波で交流回路の位相を可視化"
     }
   },
   "otherLinks": [

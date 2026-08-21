@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>File Tree Links</title>
   <link href="./style.css" rel="stylesheet">
-  <link href="_common_/style_common.css" rel="stylesheet">
-  <link href="_common_/style_slide-menu.css" rel="stylesheet">
+  <link href="/_common_/style_common.css" rel="stylesheet">
 </head>
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-WXT1SXS7F4"></script>
@@ -100,9 +99,9 @@
               </li>
               <li>
                 <div class="node">
-                  <span class="icon">🪐</span>
-                  <a class="entry project-link" href="07_g-acceleration/index.html" data-project-path="07_g-acceleration/index.html">
-                    <span>重力加速度を計算してみよう</span>
+                  <span class="icon">📊</span>
+                  <a class="entry" href="07_g-acceleration/index.html">
+                    <span>加速度を視覚的に見てみよう</span>
                   </a>
                 </div>
               </li>
@@ -117,7 +116,7 @@
               <li>
                 <div class="node">
                   <span class="icon">🔍</span>
-                  <a class="entry project-link" href="09_lens/index.html" data-project-path="09_lens/index.html">
+                  <a class="entry" href="09_lens/index.html">
                     <span>レンズの屈折実験</span>
                   </a>
                 </div>
@@ -159,6 +158,14 @@
                   <span class="icon">🌈</span>
                   <a class="entry" href="15_rgb/index.html">
                     <span>RGBの加法混色を見てみよう</span>
+                  </a>
+                </div>
+              </li>
+              <li>
+                <div class="node">
+                  <span class="icon">〰️</span>
+                  <a class="entry" href="16_rlc/index.html">
+                    <span>RLC交流回路を視覚化しよう</span>
                   </a>
                 </div>
               </li>
@@ -221,8 +228,6 @@
   <div class="last-updated" id="lastUpdated"></div>
 
 </body>
-    <script type="text/javascript" src="_common_/js_common.js" charset="utf-8"></script>
-    <script type="text/javascript" src="_common_/slide-menu.js" charset="utf-8"></script>
     <script>
       // 最終更新日を表示
     const updated = new Date(document.lastModified);
@@ -232,49 +237,5 @@
     const hh = String(updated.getHours()).padStart(2, '0');
     const min = String(updated.getMinutes()).padStart(2, '0');
     document.getElementById('lastUpdated').textContent = `最終更新：${yyyy}/${mm}/${dd} ${hh}:${min}`;
-
-      async function initializeProjectLinks() {
-        const siteRoot = detectSiteRoot();
-        let statusMap = {};
-
-        try {
-          const response = await fetch(siteRoot + 'tree-config.json');
-          const config = await response.json();
-          if (config.metadata) {
-            for (const [key, data] of Object.entries(config.metadata)) {
-              if (data.status) statusMap[key] = data.status;
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to load tree-config.json:', error);
-        }
-
-        document.querySelectorAll('.project-link').forEach(link => {
-          const projectPath = link.getAttribute('data-project-path');
-          if (!projectPath || statusMap[projectPath.split('/')[0]] !== 'preparing') return;
-
-          link.classList.add('preparing');
-          link.href = '#';
-          link.title = '準備中';
-          const badge = document.createElement('span');
-          badge.className = 'status-badge';
-          badge.textContent = '準備中';
-          link.appendChild(badge);
-          link.addEventListener('click', event => event.preventDefault());
-        });
-      }
-
-      function detectSiteRoot() {
-        const isGh = /github\.io$/i.test(location.host);
-        const segments = location.pathname.split('/').filter(Boolean);
-        const repo = segments.length > 0 ? segments[0] : '';
-        return (isGh && repo) ? `/${repo}/` : '/';
-      }
-
-      if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeProjectLinks);
-      } else {
-        initializeProjectLinks();
-      }
-    </script>
+  </script>
 </html>

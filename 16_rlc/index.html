@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RLC交流回路</title>
+  <link rel="icon" type="image/svg+xml" href="../_common_/favicon.svg">
+  <meta name="project:title" content="RLC交流回路を視覚化しよう">
+  <meta name="project:category" content="物理用ファイル">
+  <meta name="project:icon" content="〰️">
+  <meta name="project:description" content="回転する動径と正弦波で交流回路の位相を可視化">
+  <meta name="project:status" content="ready">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="../_common_/style_common.css">
+  <link rel="stylesheet" href="../_common_/style_slide-menu.css">
+</head>
+<body id="rlc-app">
+  <main class="rlc-page">
+    <header class="page-header">
+      <p class="eyebrow">AC CIRCUIT / PHASOR VIEW</p>
+      <h1>RLC交流回路 <span>v1.0</span></h1>
+      <p class="intro">回転する動径の縦成分を、時間波形として追いかける</p>
+    </header>
+
+    <section class="experiment" aria-label="動径と正弦波の可視化">
+      <div class="visual-panel">
+        <div class="panel-label"><span class="live-dot"></span>PHASOR / 0°</div>
+        <svg id="phasorSvg" viewBox="0 0 420 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="反時計回りに回転する動径">
+          <defs>
+            <filter id="glow"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <g class="grid-circle"><circle cx="210" cy="160" r="112"/><circle cx="210" cy="160" r="56"/></g>
+          <g class="crosshair"><line x1="72" y1="160" x2="348" y2="160"/><line x1="210" y1="22" x2="210" y2="298"/></g>
+          <text x="356" y="155">x</text><text x="217" y="20">y</text>
+          <line id="projectionLine" class="projection-line" x1="210" y1="160" x2="210" y2="160"/>
+          <line id="radiusLine" class="radius-line" x1="210" y1="160" x2="322" y2="160" filter="url(#glow)"/>
+          <circle id="radiusTip" class="radius-tip" cx="322" cy="160" r="7"/>
+          <line id="projectionLine2" class="projection-line secondary" x1="210" y1="160" x2="210" y2="160"/>
+          <line id="radiusLine2" class="radius-line secondary" x1="210" y1="160" x2="322" y2="160" filter="url(#glow)"/>
+          <circle id="radiusTip2" class="radius-tip secondary" cx="322" cy="160" r="7"/>
+          <line id="projectionLine3" class="projection-line tertiary" x1="210" y1="160" x2="210" y2="160"/>
+          <line id="radiusLine3" class="radius-line tertiary" x1="210" y1="160" x2="322" y2="160" filter="url(#glow)"/>
+          <circle id="radiusTip3" class="radius-tip tertiary" cx="322" cy="160" r="7"/>
+          <circle class="origin" cx="210" cy="160" r="4"/>
+          <text class="axis-note" x="210" y="316">単位円 / 反時計回り</text>
+        </svg>
+        <div class="phasor-readout"><output id="phaseValue">0°</output><span>phase</span><output id="amplitudeValue">1.00</output><span>amplitude</span></div>
+        <div class="action-buttons"><button id="playButton" type="button">▶ 再生</button><button id="resetButton" type="button">↺ 初期値に戻す</button></div>
+      </div>
+
+      <div class="wave-panel">
+        <div class="panel-label"><span class="wave-mark">∿</span>Y COMPONENT / Y-T</div>
+        <svg id="waveSvg" viewBox="0 0 600 440" preserveAspectRatio="xMidYMid meet" role="img" aria-label="動径の縦成分を表す正弦波グラフ">
+          <g class="wave-grid"><line x1="34" y1="220" x2="580" y2="220"/><line x1="34" y1="114" x2="580" y2="114"/><line x1="34" y1="8" x2="580" y2="8"/><line x1="34" y1="326" x2="580" y2="326"/><line x1="34" y1="432" x2="580" y2="432"/><line x1="34" y1="8" x2="34" y2="432"/></g>
+          <g class="time-ticks"><line x1="170.5" y1="8" x2="170.5" y2="432"/><line x1="307" y1="8" x2="307" y2="432"/><line x1="443.5" y1="8" x2="443.5" y2="432"/><line x1="580" y1="8" x2="580" y2="432"/></g>
+          <path id="wavePath" class="wave-path" d=""/>
+          <path id="wavePath2" class="wave-path secondary" d=""/>
+          <path id="wavePath3" class="wave-path tertiary" d=""/>
+          <path id="sumPath" class="sum-path" d=""/>
+          <rect id="futureFade" class="future-fade" x="34" y="8" width="546" height="424"/>
+          <line id="waveCursor" class="wave-cursor" x1="34" y1="8" x2="34" y2="432"/>
+          <circle id="wavePoint" class="wave-point" cx="34" cy="220" r="6"/>
+          <line id="waveCursor2" class="wave-cursor secondary" x1="34" y1="8" x2="34" y2="432"/>
+          <circle id="wavePoint2" class="wave-point secondary" cx="34" cy="220" r="6"/>
+          <line id="waveCursor3" class="wave-cursor tertiary" x1="34" y1="8" x2="34" y2="432"/>
+          <circle id="wavePoint3" class="wave-point tertiary" cx="34" cy="220" r="6"/>
+          <text x="38" y="20">+2A</text><text x="38" y="108">+A</text><text x="38" y="338">−A</text><text x="38" y="438">−2A</text><text class="time-label" x="34" y="438">0</text><text class="time-label" x="170.5" y="438">T/4</text><text class="time-label" x="307" y="438">T/2</text><text class="time-label" x="443.5" y="438">3T/4</text><text class="time-label" x="580" y="438">T</text><text x="564" y="240">t</text>
+        </svg>
+        <fieldset class="combination-control"><legend>合成波形</legend><div class="combination-options"><label><input type="radio" name="combinationMode" value="none" checked>表示なし</label><label><input type="radio" name="combinationMode" value="sum">和を表示</label><label><input type="radio" name="combinationMode" value="product">積を表示</label></div></fieldset>
+        <p class="graph-caption">動径の先端の y 座標 = A sin(theta)</p>
+      </div>
+    </section>
+
+    <section class="controls" aria-label="交流の条件を調整">
+      <div class="control-column">
+        <div class="control amplitude-control"><div class="control-heading"><span class="control-dot"></span><label for="amplitudeSlider">動径1の大きさ A₁</label><output id="amplitudeValueControl" for="amplitudeSlider">1.00</output></div><input type="range" id="amplitudeSlider" min="0.25" max="1" step="0.01" value="1"></div>
+        <div class="control period-control"><div class="control-heading"><span class="control-dot"></span><label for="periodSlider">周期 T</label><output id="periodValue" for="periodSlider">4.0 s</output></div><input type="range" id="periodSlider" min="1" max="10" step="0.1" value="4"></div>
+      </div>
+      <div class="control-column">
+        <div class="control amplitude2-control"><div class="control-heading"><input id="radius2Visible" type="checkbox" checked><label for="radius2Visible">表示</label><span class="control-dot"></span><label for="amplitude2Slider">動径2の大きさ A₂</label><output id="amplitude2ValueControl" for="amplitude2Slider">1.00</output></div><input type="range" id="amplitude2Slider" min="0.25" max="1" step="0.01" value="1"></div>
+        <fieldset class="control phase-control"><legend>動径2の位相差</legend><div class="phase-options"><label><input type="radio" name="phaseOffset2" value="-90">-90°</label><label><input type="radio" name="phaseOffset2" value="0">±0°</label><label><input type="radio" name="phaseOffset2" value="90" checked>+90°</label><label><input type="radio" name="phaseOffset2" value="180">180°</label></div></fieldset>
+      </div>
+      <div class="control-column">
+        <div class="control amplitude3-control"><div class="control-heading"><input id="radius3Visible" type="checkbox" checked><label for="radius3Visible">表示</label><span class="control-dot"></span><label for="amplitude3Slider">動径3の大きさ A₃</label><output id="amplitude3ValueControl" for="amplitude3Slider">1.00</output></div><input type="range" id="amplitude3Slider" min="0.25" max="1" step="0.01" value="1"></div>
+        <fieldset class="control phase-control"><legend>動径3の位相差</legend><div class="phase-options"><label><input type="radio" name="phaseOffset3" value="-90" checked>-90°</label><label><input type="radio" name="phaseOffset3" value="0">±0°</label><label><input type="radio" name="phaseOffset3" value="90">+90°</label><label><input type="radio" name="phaseOffset3" value="180">180°</label></div></fieldset>
+      </div>
+    </section>
+
+    <p class="hint">1本目を基準に、2本目は+90°、3本目は−90°から始まります。再生すると、3つの波形上の点が同時に進みます。</p>
+  </main>
+  <div class="last-updated" id="lastUpdated"></div>
+  <script src="js.js" charset="utf-8"></script>
+  <script src="../_common_/js_common.js" charset="utf-8"></script>
+  <script src="../_common_/slide-menu.js" charset="utf-8"></script>
+</body>
+</html>
