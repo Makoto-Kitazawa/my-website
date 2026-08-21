@@ -36,11 +36,13 @@
 #rlc-app .projection-line.secondary { stroke: #ff7a6b; }
 #rlc-app .projection-line.tertiary { stroke: #65d0c2; }
 #rlc-app .origin { fill: #65d0c2; }
-#rlc-app .wave-path { fill: none; stroke: #3d8bff; stroke-width: 3; stroke-linecap: round; }
-#rlc-app .wave-path.secondary { stroke: #ff7a6b; stroke-width: 2; }
-#rlc-app .wave-path.tertiary { stroke: #65d0c2; stroke-width: 2; }
-#rlc-app .sum-path { fill: none; stroke: #f5f1e8; stroke-width: 5; stroke-linecap: round; opacity: .9; }
+#rlc-app .wave-path { fill: none; stroke: #3d8bff; stroke-width: 4; stroke-linecap: round; }
+#rlc-app .wave-path.secondary { stroke: #ff7a6b; stroke-width: 3; }
+#rlc-app .wave-path.tertiary { stroke: #65d0c2; stroke-width: 3; }
+#rlc-app .sum-path { fill: none; stroke: #f5f1e8; stroke-width: 6; stroke-linecap: round; opacity: .9; }
 #rlc-app .future-fade { fill: #101310; opacity: .86; pointer-events: none; }
+#rlc-app .quarter-tap-areas rect { fill: transparent; cursor: pointer; pointer-events: all; }
+#rlc-app .quarter-tap-areas rect.active { fill: rgba(255, 255, 255, .18); mix-blend-mode: screen; }
 #rlc-app .wave-cursor { stroke: #3d8bff; stroke-width: 1; stroke-dasharray: 3 4; }
 #rlc-app .wave-cursor.secondary { stroke: #ff7a6b; }
 #rlc-app .wave-cursor.tertiary { stroke: #65d0c2; }

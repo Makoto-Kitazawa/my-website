@@ -28,6 +28,7 @@ const futureFade = document.getElementById("futureFade");
 const playButton = document.getElementById("playButton");
 const periodSlider = document.getElementById("periodSlider");
 const amplitudeSlider = document.getElementById("amplitudeSlider");
+let activeQuarter = null;
 
 function formatPhase() { return `${Math.round((state.phase * 180 / Math.PI + 360) % 360)}°`; }
 
@@ -157,5 +158,18 @@ function resetExperiment() {
 document.getElementById("resetButton").addEventListener("click", resetExperiment);
 document.querySelectorAll("input[name='combinationMode']").forEach(input => {
   input.addEventListener("change", () => { state.combinationMode = input.value; render(); });
+});
+document.querySelectorAll("#quarterTapAreas rect").forEach(area => {
+  area.addEventListener("click", () => {
+    const quarter = area.dataset.quarter;
+    if (activeQuarter === quarter) {
+      area.classList.remove("active");
+      activeQuarter = null;
+      return;
+    }
+    document.querySelectorAll("#quarterTapAreas rect").forEach(otherArea => otherArea.classList.remove("active"));
+    area.classList.add("active");
+    activeQuarter = quarter;
+  });
 });
 render();
