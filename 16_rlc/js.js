@@ -71,7 +71,7 @@ function render() {
   waveCursor.setAttribute("y1", graphTop); waveCursor.setAttribute("y2", graphBottom);
   wavePoint.setAttribute("cx", cursorX); wavePoint.setAttribute("cy", cursorY);
   const cursorX2 = cursorX;
-  const cursorY2 = graphCenter - Math.sin(state.phase + state.phaseOffset) * graphScale * state.amplitude2;
+  const cursorY2 = graphCenter - Math.sin(state.phase + state.phaseOffset2) * graphScale * state.amplitude2;
   waveCursor2.setAttribute("x1", cursorX2); waveCursor2.setAttribute("x2", cursorX2);
   waveCursor2.setAttribute("y1", graphTop); waveCursor2.setAttribute("y2", graphBottom);
   wavePoint2.setAttribute("cx", cursorX2); wavePoint2.setAttribute("cy", cursorY2);
@@ -84,9 +84,9 @@ function render() {
   document.getElementById("phaseValue").textContent = formatPhase();
   document.getElementById("amplitudeValue").textContent = state.amplitude.toFixed(2);
   document.getElementById("periodValue").textContent = `${state.period.toFixed(1)} s`;
-  document.getElementById("amplitudeValueControl").textContent = state.amplitude.toFixed(2);
-  document.getElementById("amplitude2ValueControl").textContent = state.amplitude2.toFixed(2);
-  document.getElementById("amplitude3ValueControl").textContent = state.amplitude3.toFixed(2);
+  document.getElementById("amplitudeValueControl").textContent = `${state.amplitude.toFixed(2)} A`;
+  document.getElementById("amplitude2ValueControl").textContent = `${state.amplitude2.toFixed(2)} A`;
+  document.getElementById("amplitude3ValueControl").textContent = `${state.amplitude3.toFixed(2)} A`;
 }
 
 function makeWaveCombinationPath() {
