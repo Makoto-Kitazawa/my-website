@@ -32,6 +32,10 @@
 #rlc-app .radius-tip.secondary { fill: #ff7a6b; stroke: #f5f1e8; }
 #rlc-app .radius-line.tertiary { stroke: #65d0c2; }
 #rlc-app .radius-tip.tertiary { fill: #65d0c2; stroke: #f5f1e8; }
+#rlc-app .vector-guide { display: none; stroke: #a7b0a8; stroke-width: 1.5; stroke-dasharray: 5 5; opacity: .72; }
+#rlc-app .vector-guide.visible { display: block; }
+#rlc-app .vector-sum-line { display: none; stroke: #f5f1e8; stroke-width: 5; stroke-linecap: round; }
+#rlc-app .vector-sum-line.visible { display: block; }
 #rlc-app .projection-line { stroke: #3d8bff; stroke-width: 1.5; stroke-dasharray: 5 5; }
 #rlc-app .projection-line.secondary { stroke: #ff7a6b; }
 #rlc-app .projection-line.tertiary { stroke: #65d0c2; }

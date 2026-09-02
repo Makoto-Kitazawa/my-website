@@ -4,7 +4,7 @@ const graphCenter = 220;
 const graphScale = 106;
 const graphTop = 8;
 const graphBottom = 432;
-const state = { phase: 0, phaseOffset2: Math.PI / 2, phaseOffset3: -Math.PI / 2, period: 4, amplitude: 1, amplitude2: 1, amplitude3: 1, visible2: true, visible3: true, combinationMode: "none", playing: false, frame: null, lastTime: 0 };
+const state = { phase: 0, phaseOffset2: Math.PI / 2, phaseOffset3: -Math.PI / 2, period: 4, amplitude: 1, amplitude2: 1, amplitude3: 1, visible2: true, visible3: true, showVectorSum: false, combinationMode: "none", playing: false, frame: null, lastTime: 0 };
 const radiusLine = document.getElementById("radiusLine");
 const radiusTip = document.getElementById("radiusTip");
 const projectionLine = document.getElementById("projectionLine");
@@ -14,6 +14,9 @@ const projectionLine2 = document.getElementById("projectionLine2");
 const radiusLine3 = document.getElementById("radiusLine3");
 const radiusTip3 = document.getElementById("radiusTip3");
 const projectionLine3 = document.getElementById("projectionLine3");
+const vectorGuideBlue = document.getElementById("vectorGuideBlue");
+const vectorGuidePerpendicular = document.getElementById("vectorGuidePerpendicular");
+const vectorSumLine = document.getElementById("vectorSumLine");
 const wavePath = document.getElementById("wavePath");
 const wavePath2 = document.getElementById("wavePath2");
 const wavePath3 = document.getElementById("wavePath3");
@@ -62,6 +65,24 @@ function render() {
   radiusTip3.setAttribute("cx", x3); radiusTip3.setAttribute("cy", y3);
   projectionLine3.setAttribute("x1", x3); projectionLine3.setAttribute("y1", y3);
   projectionLine3.setAttribute("x2", center.x); projectionLine3.setAttribute("y2", y3);
+  let vectorSumX = Math.cos(state.phase) * radius * state.amplitude;
+  let vectorSumY = -Math.sin(state.phase) * radius * state.amplitude;
+  if (state.visible2) { vectorSumX += Math.cos(phase2) * radius * state.amplitude2; vectorSumY -= Math.sin(phase2) * radius * state.amplitude2; }
+  if (state.visible3) { vectorSumX += Math.cos(phase3) * radius * state.amplitude3; vectorSumY -= Math.sin(phase3) * radius * state.amplitude3; }
+  vectorGuideBlue.setAttribute("x1", x); vectorGuideBlue.setAttribute("y1", y);
+  vectorGuideBlue.setAttribute("x2", center.x + vectorSumX);
+  vectorGuideBlue.setAttribute("y2", center.y + vectorSumY);
+  vectorGuideBlue.classList.toggle("visible", state.showVectorSum && state.visible2);
+  const redUnitX = Math.cos(phase2);
+  const redUnitY = -Math.sin(phase2);
+  const projection = vectorSumX * redUnitX + vectorSumY * redUnitY;
+  const footX = center.x + redUnitX * projection;
+  const footY = center.y + redUnitY * projection;
+  vectorGuidePerpendicular.setAttribute("x1", center.x + vectorSumX); vectorGuidePerpendicular.setAttribute("y1", center.y + vectorSumY);
+  vectorGuidePerpendicular.setAttribute("x2", footX); vectorGuidePerpendicular.setAttribute("y2", footY);
+  vectorGuidePerpendicular.classList.toggle("visible", state.showVectorSum && state.visible2);
+  vectorSumLine.setAttribute("x2", center.x + vectorSumX); vectorSumLine.setAttribute("y2", center.y + vectorSumY);
+  vectorSumLine.classList.toggle("visible", state.showVectorSum);
   wavePath.setAttribute("d", makeWavePath());
   wavePath2.setAttribute("d", makeWavePath(state.phaseOffset2, 106, state.amplitude2));
   wavePath3.setAttribute("d", makeWavePath(state.phaseOffset3, 106, state.amplitude3));
@@ -129,6 +150,11 @@ document.getElementById("radius3Visible").addEventListener("change", event => {
   document.querySelectorAll(".tertiary").forEach(element => element.classList.toggle("tertiary-hidden", !state.visible3));
   render();
 });
+document.getElementById("vectorSumButton").addEventListener("click", event => {
+  state.showVectorSum = !state.showVectorSum;
+  event.currentTarget.textContent = state.showVectorSum ? "和を非表示" : "和を表示";
+  render();
+});
 document.querySelectorAll("input[name='phaseOffset2']").forEach(input => {
   input.addEventListener("change", () => { state.phaseOffset2 = Number(input.value) * Math.PI / 180; render(); });
 });
@@ -144,7 +170,7 @@ function togglePlayback() {
 }
 playButton.addEventListener("click", togglePlayback);
 function resetExperiment() {
-  state.playing = false; state.phase = 0; state.phaseOffset2 = Math.PI / 2; state.phaseOffset3 = -Math.PI / 2; state.period = 4; state.amplitude = 1; state.amplitude2 = 1; state.amplitude3 = 1; state.visible2 = true; state.visible3 = true;
+  state.playing = false; state.phase = 0; state.phaseOffset2 = Math.PI / 2; state.phaseOffset3 = -Math.PI / 2; state.period = 4; state.amplitude = 1; state.amplitude2 = 1; state.amplitude3 = 1; state.visible2 = true; state.visible3 = true; state.showVectorSum = false;
   if (state.frame !== null) cancelAnimationFrame(state.frame);
   periodSlider.value = 4; amplitudeSlider.value = 1; document.getElementById("amplitude2Slider").value = 1; document.getElementById("amplitude3Slider").value = 1; document.getElementById("radius2Visible").checked = true; document.getElementById("radius3Visible").checked = true;
   document.querySelector("input[name='phaseOffset2'][value='90']").checked = true;
@@ -152,7 +178,7 @@ function resetExperiment() {
   document.querySelectorAll(".secondary").forEach(element => element.classList.remove("secondary-hidden"));
   state.combinationMode = "none";
   document.querySelector("input[name='combinationMode'][value='none']").checked = true;
-  playButton.classList.remove("active"); playButton.textContent = "▶ 再生";
+  playButton.classList.remove("active"); playButton.textContent = "▶ 再生"; document.getElementById("vectorSumButton").textContent = "和を表示";
   render();
 }
 document.getElementById("resetButton").addEventListener("click", resetExperiment);
