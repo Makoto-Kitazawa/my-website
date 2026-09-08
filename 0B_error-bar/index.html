@@ -16,7 +16,7 @@
   <main class="app-shell">
     <header class="page-header">
       <div><p class="eyebrow">DATA PLOTTER</p><h1>誤差棒を含むグラフを作成しよう</h1></div>
-      <div class="header-actions"><button class="clear-button" id="clearButton" type="button">データをクリア</button><button class="reset-button" id="resetButton" type="button">サンプルに戻す</button></div>
+      <div class="header-actions"><button class="share-button" id="shareButton" type="button">共有コードを作成</button><label class="share-code-control" for="shareCodeInput"><span class="visually-hidden">共有コード</span><input id="shareCodeInput" type="text" maxlength="4" inputmode="text" autocomplete="off" placeholder="AB12" aria-label="共有コード"><button id="loadShareButton" type="button">読み込む</button></label><button class="clear-button" id="clearButton" type="button">データをクリア</button><button class="reset-button" id="resetButton" type="button">サンプルに戻す</button></div>
     </header>
     <div class="workspace">
       <section class="data-panel" aria-labelledby="data-heading">
@@ -34,6 +34,7 @@
   </main>
   <dialog class="info-dialog" id="infoDialog"><button class="dialog-close" id="dialogClose" type="button" aria-label="説明を閉じる">×</button><p class="section-kicker">ABOUT ERROR</p><h2>標準誤差とは？</h2><p>測定した値の平均が、真の平均値からどのくらい揺れそうかを表す値です。測定値のばらつきを標準偏差 s、測定回数を n とすると、標準誤差は次の式で求めます。</p><div class="formula">標準誤差 = <span>s</span> / √<span>n</span></div><p>グラフでは、平均値を中心に標準誤差の分だけ上下へ伸びる棒として表示しています。</p></dialog>
   <div class="last-updated" id="lastUpdated"></div>
-  <script src="./js.js" charset="utf-8"></script><script src="../_common_/js_common.js" charset="utf-8"></script><script src="../_common_/slide-menu.js" charset="utf-8"></script>
+  <p class="share-status" id="shareStatus" aria-live="polite"></p>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script><script src="./firebase-config.js"></script><script src="./js.js" charset="utf-8"></script><script src="../_common_/js_common.js" charset="utf-8"></script><script src="../_common_/slide-menu.js" charset="utf-8"></script>
 </body>
 </html>

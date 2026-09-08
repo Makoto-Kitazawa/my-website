@@ -8,6 +8,11 @@ button,input { font:inherit; }
 .eyebrow,.section-kicker { margin:0 0 5px; color:var(--accent); font-size:11px; font-weight:800; letter-spacing:.14em; }
 h1,h2,p { margin-top:0; } h1 { margin-bottom:0; font-size:clamp(24px,3vw,38px); letter-spacing:.02em; } h2 { margin-bottom:0; font-size:20px; }
 .header-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+.share-button,.share-code-control button { border:1px solid var(--blue); border-radius:4px; padding:10px 12px; color:var(--blue); background:#f5fbfc; cursor:pointer; }
+.share-button:hover,.share-code-control button:hover { color:#fff; background:var(--blue); }
+.share-code-control { display:flex; gap:4px; }
+.share-code-control input { width:72px; border:1px solid var(--line); border-radius:4px; padding:8px; color:var(--ink); background:#fff; font:700 14px ui-monospace,"SFMono-Regular","Roboto Mono","Courier New",monospace; text-align:center; text-transform:uppercase; letter-spacing:.08em; }
+.share-status { position:fixed; right:16px; bottom:10px; margin:0; color:var(--blue); font-size:12px; }
 .reset-button,.clear-button { border:1px solid var(--line); border-radius:5px; padding:10px 16px; color:var(--ink); background:var(--panel); cursor:pointer; } .reset-button:hover,.clear-button:hover { border-color:var(--accent); color:var(--accent); }
 .clear-button { color:var(--accent); border-color:#f0c4b8; background:#fff8f6; }
 .workspace { max-width:1360px; margin:auto; display:grid; grid-template-columns:minmax(420px,520px) minmax(420px,1fr); gap:24px; align-items:start; }

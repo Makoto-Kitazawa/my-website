@@ -1,0 +1,25 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /sharedDatasets/{code} {
+      allow read: if code.matches('[A-Z0-9]{4}');
+      allow create, update: if code.matches('[A-Z0-9]{4}')
+        && request.resource.data.keys().hasOnly([
+          'name', 'x', 'y', 'pointCount', 'sampleCount', 'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.x is list
+        && request.resource.data.y is list
+        && request.resource.data.x.size() <= 12
+        && request.resource.data.y.size() <= 12
+        && request.resource.data.pointCount is int
+        && request.resource.data.pointCount >= 1
+        && request.resource.data.pointCount <= 12
+        && request.resource.data.sampleCount is int
+        && request.resource.data.sampleCount >= 1
+        && request.resource.data.sampleCount <= 12;
+    }
+  }
+}
