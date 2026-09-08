@@ -13,7 +13,7 @@ service cloud.firestore {
         && request.resource.data.x is list
         && request.resource.data.y is list
         && request.resource.data.x.size() <= 12
-        && request.resource.data.y.size() <= 12
+        && request.resource.data.y.size() <= 144
         && request.resource.data.pointCount is int
         && request.resource.data.pointCount >= 1
         && request.resource.data.pointCount <= 12
