@@ -50,16 +50,19 @@
   aspect-ratio: 1.15;
   margin: 0 auto;
   background: #000000;
+  overflow: hidden;
   isolation: isolate;
 }
 
 #rgb-app .light-circle {
   position: absolute;
   width: 42%;
-  aspect-ratio: 1;
+  height: 42%;
+  box-sizing: border-box;
   border-radius: 50%;
   border: 3px solid var(--circle-color);
   mix-blend-mode: screen;
+  will-change: left, top, width, height, background-color;
   transition: left 0.18s ease-out, top 0.18s ease-out, background-color 0.12s ease;
 }
 

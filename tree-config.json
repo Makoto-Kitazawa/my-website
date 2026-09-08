@@ -78,6 +78,12 @@
       "icon": "📊",
       "description": "様々な関数をグラフで表示して近似を確認"
     },
+    "0B_error-bar": {
+      "title": "誤差棒を含むグラフを作成しよう",
+      "category": "数学用ファイル",
+      "icon": "📈",
+      "description": "測定値の平均と標準誤差をグラフに表示"
+    },
     "10_young-experiment": {
       "title": "ヤングの実験",
       "category": "物理用ファイル",

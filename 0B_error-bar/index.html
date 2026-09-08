@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>誤差棒を含むグラフ作成</title>
+  <meta name="project:title" content="誤差棒を含むグラフを作成しよう">
+  <meta name="project:category" content="数学用ファイル">
+  <meta name="project:icon" content="📈">
+  <meta name="project:description" content="測定値の平均と標準誤差をグラフに表示">
+  <meta name="project:status" content="ready">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="../_common_/style_slide-menu.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="page-header">
+      <div><p class="eyebrow">DATA PLOTTER</p><h1>誤差棒を含むグラフを作成しよう</h1></div>
+      <div class="header-actions"><button class="clear-button" id="clearButton" type="button">データをクリア</button><button class="reset-button" id="resetButton" type="button">サンプルに戻す</button></div>
+    </header>
+    <div class="workspace">
+      <section class="data-panel" aria-labelledby="data-heading">
+        <div class="section-heading"><div><p class="section-kicker">01 / INPUT</p><h2 id="data-heading">データを入力</h2></div><span class="data-count" id="dataCount">4 列</span></div>
+        <div class="dataset-settings"><label class="field-label" for="datasetName">データ名</label><input class="dataset-name-input" id="datasetName" type="text" maxlength="40" placeholder="例：ばねの伸びと力" value="反比例の測定"></div>
+        <div class="settings-grid"><label class="field-label" for="pointCount">データ数（列）</label><input class="number-input" id="pointCount" type="number" min="1" max="12" value="4" inputmode="numeric"><label class="field-label" for="sampleCount">測定回数（行）</label><input class="number-input" id="sampleCount" type="number" min="1" max="12" value="4" inputmode="numeric"></div>
+        <div class="input-table-wrap"><table class="input-table"><thead id="inputHead"></thead><tbody id="inputBody"></tbody></table></div>
+        <p class="input-note">列ごとに x と y の測定値を入力してください。Excelからコピーした表も、セルを選んで貼り付けられます。</p>
+        <div class="result-section"><div class="section-heading compact"><div><p class="section-kicker">02 / DATA</p><h2>プロットするデータ</h2></div></div>
+          <div class="result-table-wrap"><table class="result-table"><thead id="resultHead"></thead><tbody id="resultBody"></tbody></table></div>
+        </div>
+      </section>
+      <section class="chart-panel" aria-labelledby="chart-heading"><div class="chart-header"><div><p class="section-kicker">03 / GRAPH</p><h2 id="chart-heading">散布図</h2></div><div class="chart-actions"><span class="chart-status" id="chartStatus">第1象限</span><button class="regression-button" id="regressionButton" type="button">1次回帰</button><span class="fit-rate" id="fitRate" aria-live="polite"></span><button class="download-button" id="downloadButton" type="button" title="PNGで保存">PNG</button><button class="download-button" id="svgButton" type="button" title="SVGで保存">SVG</button><button class="download-button" id="csvButton" type="button" title="CSVで保存">CSV</button></div></div><div class="chart-frame"><canvas id="chartCanvas" aria-label="入力データの散布図と誤差棒"></canvas><div class="chart-legend corner-top-right" id="chartLegend"><div class="legend-title" id="legendTitle"></div><div class="legend-key"><span class="legend-dot"></span><span>平均値</span><span class="legend-bar"></span><span>標準誤差</span></div></div></div></section>
+    </div>
+  </main>
+  <dialog class="info-dialog" id="infoDialog"><button class="dialog-close" id="dialogClose" type="button" aria-label="説明を閉じる">×</button><p class="section-kicker">ABOUT ERROR</p><h2>標準誤差とは？</h2><p>測定した値の平均が、真の平均値からどのくらい揺れそうかを表す値です。測定値のばらつきを標準偏差 s、測定回数を n とすると、標準誤差は次の式で求めます。</p><div class="formula">標準誤差 = <span>s</span> / √<span>n</span></div><p>グラフでは、平均値を中心に標準誤差の分だけ上下へ伸びる棒として表示しています。</p></dialog>
+  <div class="last-updated" id="lastUpdated"></div>
+  <script src="./js.js" charset="utf-8"></script><script src="../_common_/js_common.js" charset="utf-8"></script><script src="../_common_/slide-menu.js" charset="utf-8"></script>
+</body>
+</html>
