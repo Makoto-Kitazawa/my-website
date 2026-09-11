@@ -118,7 +118,7 @@ function updateLegendRegression(data) { const details = getLegendDetails(data, r
 async function downloadExactPng() { try { const imageCanvas = await captureChartFrame(); imageCanvas.toBlob((blob) => { if (!blob) return; const link = document.createElement('a'); link.download = `${datasetName.value.trim() || 'error-bar-graph'}.png`; link.href = URL.createObjectURL(blob); link.click(); URL.revokeObjectURL(link.href); }, 'image/png'); } catch (error) { console.error(error); setShareStatus(`PNG出力エラー: ${error.message}`); } }
 async function downloadExactSvg() { try { const imageCanvas = await captureChartFrame(); const image = imageCanvas.toDataURL('image/png'); const width = imageCanvas.width; const height = imageCanvas.height; const title = escapeSvgText(datasetName.value.trim() || 'データセット'); const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><title>${title}</title><image href="${image}" width="${width}" height="${height}"/></svg>`; saveBlob(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }), `${datasetName.value.trim() || 'error-bar-graph'}.svg`); } catch (error) { console.error(error); setShareStatus(`SVG出力エラー: ${error.message}`); } }
 const exactDownloadButton = document.getElementById('downloadButton'); const exactSvgButton = document.getElementById('svgButton'); exactDownloadButton.replaceWith(exactDownloadButton.cloneNode(true)); exactSvgButton.replaceWith(exactSvgButton.cloneNode(true)); document.getElementById('downloadButton').addEventListener('click', downloadExactPng); document.getElementById('svgButton').addEventListener('click', downloadExactSvg); setTimeout(() => { const finalDownloadButton = document.getElementById('downloadButton'); const finalSvgButton = document.getElementById('svgButton'); finalDownloadButton.replaceWith(finalDownloadButton.cloneNode(true)); finalSvgButton.replaceWith(finalSvgButton.cloneNode(true)); document.getElementById('downloadButton').addEventListener('click', downloadExactPng); document.getElementById('svgButton').addEventListener('click', downloadExactSvg); }, 0);
-async function captureChartFrame() { if (typeof html2canvas !== 'function') throw new Error('画像出力ライブラリを読み込めません'); return html2canvas(document.querySelector('.chart-frame'), { backgroundColor: null, scale: window.devicePixelRatio || 1, useCORS: true, logging: false }); }
+async function captureChartFrame() { if (typeof html2canvas !== 'function') throw new Error('画像出力ライブラリを読み込めません'); return html2canvas(document.querySelector('.chart-export-area'), { backgroundColor: null, scale: window.devicePixelRatio || 1, useCORS: true, logging: false }); }
 async function downloadChart() { try { const imageCanvas = await captureChartFrame(); imageCanvas.toBlob((blob) => { if (!blob) return; const link = document.createElement('a'); link.download = `${datasetName.value.trim() || 'error-bar-graph'}.png`; link.href = URL.createObjectURL(blob); link.click(); URL.revokeObjectURL(link.href); }, 'image/png'); } catch (error) { console.error(error); setShareStatus(`PNG出力エラー: ${error.message}`); } }
 async function downloadSvg() { try { const imageCanvas = await captureChartFrame(); const image = imageCanvas.toDataURL('image/png'); const width = imageCanvas.width; const height = imageCanvas.height; const title = escapeSvgText(datasetName.value.trim() || 'データセット'); const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><title>${title}</title><image href="${image}" width="${width}" height="${height}"/></svg>`; saveBlob(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }), `${datasetName.value.trim() || 'error-bar-graph'}.svg`); } catch (error) { console.error(error); setShareStatus(`SVG出力エラー: ${error.message}`); } }
 function copyLegendStyles(source, target) { const style = getComputedStyle(source); const properties = ['box-sizing', 'position', 'left', 'top', 'width', 'height', 'max-width', 'padding', 'margin', 'border', 'border-radius', 'color', 'background-color', 'box-shadow', 'font-family', 'font-size', 'font-weight', 'font-style', 'line-height', 'display', 'align-items', 'justify-content', 'gap', 'flex-wrap', 'overflow-wrap', 'white-space', 'vertical-align']; target.setAttribute('style', `${properties.map((property) => `${property}:${style.getPropertyValue(property)}`).join(';')};right:auto;bottom:auto;cursor:default;`); [...source.children].forEach((child, index) => copyLegendStyles(child, target.children[index])); }
@@ -128,4 +128,197 @@ function downloadSvg() { saveBlob(new Blob([buildExportSvg()], { type: 'image/sv
 function getExportLegendLines(data) { const lines = ['平均値 / 標準誤差']; const type = regressionDisplayType === 'exponentialDecay' || regressionDisplayType === 'exponentialHalfLife' ? 'exponential' : regressionDisplayType; const details = getLegendDetails(data, type); if (!details) return lines; let label = details.label; let equation = { linear: 'y = Ax + B', quadratic: 'y = Ax² + Bx + C', exponential: 'y = Ae^(Bx)', inverse: 'y = A/x + B' }[type] || ''; let parameters = details.parameters.map((parameter) => `${parameter.name} = ${format(parameter.value)} ± ${format(parameter.error)}`); if (regressionDisplayType === 'exponentialDecay') { const slope = details.parameters.find((parameter) => parameter.name === 'b'); const tau = slope && slope.value < 0 ? -1 / slope.value : NaN; const tauError = slope && Number.isFinite(tau) ? slope.error / slope.value ** 2 : NaN; label = '指数回帰（減衰）'; equation = 'y = Ae^(-x/τ)'; parameters = [`A = ${format(details.parameters[0].value)} ± ${format(details.parameters[0].error)}`, `τ = ${Number.isFinite(tau) ? `${format(tau)} ± ${format(tauError)}` : '計算不可'}`]; } if (regressionDisplayType === 'exponentialHalfLife') { const slope = details.parameters.find((parameter) => parameter.name === 'b'); const halfLife = slope && slope.value < 0 ? -Math.LN2 / slope.value : NaN; const halfLifeError = slope && Number.isFinite(halfLife) ? Math.LN2 * slope.error / slope.value ** 2 : NaN; label = '指数回帰（半減期）'; equation = 'y = N₀(1/2)^(x/T)'; parameters = [`N₀ = ${format(details.parameters[0].value)} ± ${format(details.parameters[0].error)}`, `T = ${Number.isFinite(halfLife) ? `${format(halfLife)} ± ${format(halfLifeError)}` : '計算不可'}`]; } return [lines[0], label, equation, ...parameters]; }
 function downloadChart() { const data = getData(); const exportCanvas = document.createElement('canvas'); exportCanvas.width = canvas.width; exportCanvas.height = canvas.height; const exportContext = exportCanvas.getContext('2d'); exportContext.drawImage(canvas, 0, 0); const ratio = window.devicePixelRatio || 1; const lines = [datasetName.value.trim() || 'データセット', ...getExportLegendLines(data)]; const lineHeight = 20 * ratio; const boxWidth = 280 * ratio; const boxHeight = (lines.length * lineHeight) + 20 * ratio; const margin = 16 * ratio; const legendX = exportCanvas.width - boxWidth - margin; const legendY = margin; exportContext.fillStyle = '#ffffffeb'; exportContext.strokeStyle = '#d8e0e5'; exportContext.lineWidth = ratio; exportContext.fillRect(legendX, legendY, boxWidth, boxHeight); exportContext.strokeRect(legendX, legendY, boxWidth, boxHeight); lines.forEach((line, index) => { exportContext.fillStyle = index === 0 ? '#18232d' : '#52616c'; exportContext.font = `${index === 0 ? '700 ' : ''}${(index === 0 ? 16 : 12) * ratio}px sans-serif`; exportContext.fillText(line, legendX + 12 * ratio, legendY + (index + 1) * lineHeight); }); exportCanvas.toBlob((blob) => { if (!blob) return; const link = document.createElement('a'); link.download = `${datasetName.value.trim() || 'error-bar-graph'}.png`; link.href = URL.createObjectURL(blob); link.click(); URL.revokeObjectURL(link.href); }, 'image/png'); }
 function escapeSvgText(value) { return String(value).replace(/[<&>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[character])); }
+function getLegendDetailsWithUppercaseParameters(data, type) {
+  const details = getLegendDetails(data, type);
+  if (!details) return null;
+  return {
+    ...details,
+    parameters: details.parameters.map((parameter) => ({
+      ...parameter,
+      name: ({ a: 'A', b: 'B', c: 'C' }[parameter.name] || parameter.name)
+    }))
+  };
+}
+function updateLegendRegression(data) {
+  const fitType = ['exponentialDecay', 'exponentialHalfLife'].includes(regressionDisplayType) ? 'exponential' : regressionDisplayType;
+  const details = getLegendDetailsWithUppercaseParameters(data, fitType);
+  legendCurveBlock.hidden = !details;
+  legendHalfLife.hidden = regressionDisplayType !== 'exponentialDecay' || !details;
+  if (!details) {
+    legendCurveParameters.replaceChildren();
+    legendHalfLife.textContent = '';
+    return;
+  }
+  if (fitType === 'quadratic') {
+    const errors = getQuadraticParameterErrors(data);
+    if (errors) details.parameters.forEach((parameter, index) => { parameter.error = errors[2 - index]; });
+  }
+  const equations = { linear: 'y = Ax <span class="legend-operator">+</span> B', quadratic: 'y = Ax<sup>2</sup> <span class="legend-operator">+</span> Bx <span class="legend-operator">+</span> C', polynomial: details.equation, squareRoot: details.equation, exponential: regressionDisplayType === 'exponentialDecay' ? 'y = Ae<sup><span class="legend-operator">-</span>x/τ</sup>' : 'y = Ae<sup>Bx</sup>', inverse: 'y = A/x <span class="legend-operator">+</span> B' };
+  legendCurveLabel.textContent = regressionDisplayType === 'exponentialDecay' ? '指数回帰（減衰）' : details.label;
+  if (regressionDisplayType === 'exponentialDecay') {
+    const slope = details.parameters.find((parameter) => parameter.name === 'B');
+    const tau = slope && slope.value < 0 ? -1 / slope.value : NaN;
+    const tauError = slope && Number.isFinite(tau) ? slope.error / slope.value ** 2 : NaN;
+    details.parameters = [{ name: 'A', value: details.parameters[0].value, error: details.parameters[0].error }, { name: 'τ', value: tau, error: tauError }];
+    const halfLife = Number.isFinite(tau) ? tau * Math.LN2 : NaN;
+    const halfLifeError = Number.isFinite(tauError) ? tauError * Math.LN2 : NaN;
+    legendHalfLife.textContent = Number.isFinite(halfLife) ? `半減期 = ${format(halfLife)} ± ${format(halfLifeError)}` : '半減期 = 計算不可';
+  }
+  legendCurveEquation.innerHTML = equations[fitType] || '';
+  legendCurveParameters.replaceChildren();
+  details.parameters.forEach((parameter) => {
+    const row = document.createElement('div');
+    row.textContent = Number.isFinite(parameter.value) ? `${parameter.name} = ${format(parameter.value)} ± ${format(parameter.error)}` : `${parameter.name} = 計算不可`;
+    legendCurveParameters.appendChild(row);
+  });
+}
 function downloadSvg() { const image = canvas.toDataURL('image/png'); const width = canvas.width; const height = canvas.height; const ratio = window.devicePixelRatio || 1; const lines = [datasetName.value.trim() || 'データセット', ...getExportLegendLines(getData())]; const boxWidth = 280 * ratio; const lineHeight = 20 * ratio; const boxHeight = lines.length * lineHeight + 20 * ratio; const margin = 16 * ratio; const legendX = width - boxWidth - margin; const legendY = margin; const text = lines.map((line, index) => `<text x="${legendX + 12 * ratio}" y="${legendY + (index + 1) * lineHeight}" fill="${index === 0 ? '#18232d' : '#52616c'}" font-family="sans-serif" font-size="${(index === 0 ? 16 : 12) * ratio}px" ${index === 0 ? 'font-weight="700"' : ''}>${escapeSvgText(line)}</text>`).join(''); const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><image href="${image}" width="${width}" height="${height}"/><rect x="${legendX}" y="${legendY}" width="${boxWidth}" height="${boxHeight}" rx="5" fill="#ffffff" fill-opacity="0.92" stroke="#d8e0e5"/>${text}</svg>`; saveBlob(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }), `${datasetName.value.trim() || 'error-bar-graph'}.svg`); }
+
+const polynomialDegree = document.getElementById('polynomialDegree');
+const polynomialDegreeControl = document.getElementById('polynomialDegreeControl');
+const polynomialWarning = document.getElementById('polynomialWarning');
+const chartFrame = chartLegend.parentElement;
+const chartExportArea = document.createElement('div');
+chartExportArea.className = 'chart-export-area';
+chartFrame.before(chartExportArea);
+chartExportArea.append(chartFrame, polynomialWarning);
+const originalFitCurve = fitCurve;
+const originalGetLegendDetails = getLegendDetails;
+const originalGetExportLegendLines = getExportLegendLines;
+const squareRootOption = document.createElement('option');
+squareRootOption.value = 'squareRoot';
+squareRootOption.textContent = '平方根回帰';
+regressionButton.appendChild(squareRootOption);
+const squareRootOriginControl = document.createElement('label');
+squareRootOriginControl.className = 'square-root-origin-control';
+squareRootOriginControl.hidden = true;
+squareRootOriginControl.innerHTML = '<input id="squareRootOrigin" type="checkbox" checked>原点を通る';
+polynomialDegreeControl.after(squareRootOriginControl);
+const squareRootOrigin = squareRootOriginControl.querySelector('input');
+
+function getPolynomialDegree() {
+  const degree = Math.min(6, Math.max(2, Number.parseInt(polynomialDegree.value, 10) || 2));
+  polynomialDegree.value = degree;
+  return degree;
+}
+
+function getPolynomialRegression(data, degree = getPolynomialDegree()) {
+  if (data.length < degree + 1) return null;
+  const size = degree + 1;
+  const matrix = Array.from({ length: size }, (_, row) => Array.from({ length: size + 1 }, (_, column) => {
+    if (column === size) return data.reduce((sum, point) => sum + point.mean * point.x ** row, 0);
+    return data.reduce((sum, point) => sum + point.x ** (row + column), 0);
+  }));
+  for (let pivot = 0; pivot < size; pivot += 1) {
+    const pivotRow = matrix.slice(pivot).reduce((best, row, index) => Math.abs(row[pivot]) > Math.abs(matrix[best][pivot]) ? pivot + index : best, pivot);
+    [matrix[pivot], matrix[pivotRow]] = [matrix[pivotRow], matrix[pivot]];
+    if (Math.abs(matrix[pivot][pivot]) < 1e-12) return null;
+    for (let row = pivot + 1; row < size; row += 1) {
+      const factor = matrix[row][pivot] / matrix[pivot][pivot];
+      for (let column = pivot; column <= size; column += 1) matrix[row][column] -= factor * matrix[pivot][column];
+    }
+  }
+  const coefficients = Array(size).fill(0);
+  for (let row = size - 1; row >= 0; row -= 1) coefficients[row] = (matrix[row][size] - matrix[row].slice(row + 1, size).reduce((sum, value, index) => sum + value * coefficients[row + index + 1], 0)) / matrix[row][row];
+  const evaluate = (x) => coefficients.reduce((sum, coefficient, index) => sum + coefficient * x ** index, 0);
+  const inverse = getMatrixInverse(Array.from({ length: size }, (_, row) => Array.from({ length: size }, (_, column) => data.reduce((sum, point) => sum + point.x ** (row + column), 0))));
+  const residual = data.reduce((sum, point) => sum + (point.mean - evaluate(point.x)) ** 2, 0);
+  const degreesOfFreedom = data.length - size;
+  const errors = degreesOfFreedom > 0 && inverse ? inverse.map((row, index) => Math.sqrt(Math.max(0, residual / degreesOfFreedom * row[index]))) : Array(size).fill(NaN);
+  return { coefficients, errors, evaluate, rSquared: getRSquared(data, evaluate), degreesOfFreedom };
+}
+
+function getMatrixInverse(source) {
+  const size = source.length;
+  const matrix = source.map((row, index) => [...row, ...Array.from({ length: size }, (_, column) => column === index ? 1 : 0)]);
+  for (let pivot = 0; pivot < size; pivot += 1) {
+    const pivotRow = matrix.slice(pivot).reduce((best, row, index) => Math.abs(row[pivot]) > Math.abs(matrix[best][pivot]) ? pivot + index : best, pivot);
+    [matrix[pivot], matrix[pivotRow]] = [matrix[pivotRow], matrix[pivot]];
+    const pivotValue = matrix[pivot][pivot];
+    if (Math.abs(pivotValue) < 1e-12) return null;
+    for (let column = 0; column < size * 2; column += 1) matrix[pivot][column] /= pivotValue;
+    for (let row = 0; row < size; row += 1) {
+      if (row === pivot) continue;
+      const factor = matrix[row][pivot];
+      for (let column = 0; column < size * 2; column += 1) matrix[row][column] -= factor * matrix[pivot][column];
+    }
+  }
+  return matrix.map((row) => row.slice(size));
+}
+
+function getPolynomialLegendDetails(data) {
+  const degree = getPolynomialDegree();
+  const regression = getPolynomialRegression(data, degree);
+  if (!regression) return null;
+  const parameterNames = Array.from({ length: degree + 1 }, (_, index) => String.fromCharCode(65 + index));
+  const equation = regression.coefficients.slice().reverse().map((_, index) => {
+    const power = degree - index;
+    const name = parameterNames[index];
+    return power === 0 ? name : power === 1 ? `${name}x` : `${name}x<sup>${power}</sup>`;
+  }).join(' <span class="legend-operator">+</span> ');
+  return { label: `${degree}次多項式回帰`, equation: `y = ${equation}`, parameters: regression.coefficients.slice().reverse().map((value, index) => ({ name: parameterNames[index], value, error: regression.errors[degree - index] })) };
+}
+
+function getSquareRootRegression(data) {
+  const validData = data.filter((point) => point.x >= 0);
+  if (validData.length < 2) return null;
+  const transformed = validData.map((point) => ({ x: Math.sqrt(point.x), mean: point.mean }));
+  if (squareRootOrigin.checked) {
+    const denominator = transformed.reduce((sum, point) => sum + point.x ** 2, 0);
+    if (denominator === 0) return null;
+    const slope = transformed.reduce((sum, point) => sum + point.x * point.mean, 0) / denominator;
+    const evaluate = (x) => x < 0 ? NaN : slope * Math.sqrt(x);
+    const residual = transformed.reduce((sum, point) => sum + (point.mean - slope * point.x) ** 2, 0);
+    const slopeError = Math.sqrt(residual / Math.max(1, transformed.length - 1) / denominator);
+    return { slope, intercept: 0, slopeError, interceptError: 0, evaluate, rSquared: getRSquared(validData, evaluate), transformed };
+  }
+  const regression = getRegression(transformed);
+  if (!regression) return null;
+  const meanX = transformed.reduce((sum, point) => sum + point.x, 0) / transformed.length;
+  const denominator = transformed.reduce((sum, point) => sum + (point.x - meanX) ** 2, 0);
+  const residual = transformed.reduce((sum, point) => sum + (point.mean - regression.slope * point.x - regression.intercept) ** 2, 0);
+  const variance = residual / Math.max(1, transformed.length - 2);
+  const evaluate = (x) => x < 0 ? NaN : regression.evaluate(Math.sqrt(x));
+  return { ...regression, slopeError: Math.sqrt(variance / denominator), interceptError: Math.sqrt(variance * (1 / transformed.length + meanX ** 2 / denominator)), evaluate, rSquared: getRSquared(validData, evaluate), transformed };
+}
+
+function getSquareRootLegendDetails(data) {
+  const regression = getSquareRootRegression(data);
+  if (!regression) return null;
+  const throughOrigin = squareRootOrigin.checked;
+  return { label: throughOrigin ? '平方根回帰（原点通過）' : '平方根回帰', equation: throughOrigin ? 'y = A√x' : 'y = A√x <span class="legend-operator">+</span> B', parameters: throughOrigin ? [{ name: 'A', value: regression.slope, error: regression.slopeError }] : [{ name: 'A', value: regression.slope, error: regression.slopeError }, { name: 'B', value: regression.intercept, error: regression.interceptError }] };
+}
+
+function updatePolynomialControls(data = getData()) {
+  const isPolynomial = regressionDisplayType === 'polynomial';
+  polynomialDegreeControl.hidden = !isPolynomial;
+  squareRootOriginControl.hidden = regressionDisplayType !== 'squareRoot';
+  polynomialWarning.hidden = !isPolynomial || data.length !== getPolynomialDegree() + 1;
+  if (!polynomialWarning.hidden) polynomialWarning.textContent = 'この次数ではすべての点を通るため、係数の誤差は算出できません。';
+}
+
+fitCurve = (data, type) => type === 'polynomial' ? getPolynomialRegression(data) : type === 'squareRoot' ? getSquareRootRegression(data) : originalFitCurve(data, type);
+getLegendDetails = (data, type) => type === 'polynomial' ? getPolynomialLegendDetails(data) : type === 'squareRoot' ? getSquareRootLegendDetails(data) : originalGetLegendDetails(data, type);
+getExportLegendLines = (data) => {
+  if (!['polynomial', 'squareRoot'].includes(regressionDisplayType)) return originalGetExportLegendLines(data);
+  const details = regressionDisplayType === 'polynomial' ? getPolynomialLegendDetails(data) : getSquareRootLegendDetails(data);
+  if (!details) return ['平均値 / 標準誤差'];
+  const lines = ['平均値 / 標準誤差', details.label, details.equation.replace(/<[^>]+>/g, ''), ...details.parameters.map((parameter) => `${parameter.name} = ${format(parameter.value)}`)];
+  if (!polynomialWarning.hidden) lines.push(polynomialWarning.textContent);
+  return lines;
+};
+
+regressionButton.addEventListener('change', () => {
+  updatePolynomialControls();
+});
+polynomialDegree.addEventListener('change', () => {
+  getPolynomialDegree();
+  update();
+});
+squareRootOrigin.addEventListener('change', update);
+const originalUpdate = update;
+update = () => {
+  originalUpdate();
+  updatePolynomialControls();
+};
+updatePolynomialControls();

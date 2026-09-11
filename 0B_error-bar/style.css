@@ -42,6 +42,13 @@ table { width:100%; border-collapse:collapse; font-size:14px; } th,td { padding:
 @media (max-width:480px) { .data-panel,.chart-panel { padding:18px; } h1 { font-size:25px; } .workspace { gap:14px; } }
 .chart-actions { flex-wrap:wrap; }
 .regression-select { border:1px solid var(--accent); border-radius:4px; padding:5px 7px; color:var(--accent); background:#fff8f6; font-size:11px; cursor:pointer; }
+.polynomial-degree-control { display:flex; align-items:center; gap:4px; color:var(--muted); font-size:11px; white-space:nowrap; }
+.polynomial-degree-control[hidden] { display:none; }
+.polynomial-degree-control input { width:42px; border:1px solid var(--accent); border-radius:4px; padding:5px; color:var(--accent); background:#fff8f6; font-size:11px; text-align:center; }
+.polynomial-warning { display:block; margin-top:8px; color:#9a6811; font-size:11px; line-height:1.35; }
+.square-root-origin-control { display:flex; align-items:center; gap:4px; color:var(--muted); font-size:11px; white-space:nowrap; }
+.square-root-origin-control[hidden] { display:none; }
+.square-root-origin-control input { margin:0; accent-color:var(--accent); }
 .chart-legend { pointer-events:auto; cursor:grab; touch-action:none; user-select:none; }
 .chart-legend.dragging { cursor:grabbing; }
 .chart-legend.corner-top-right { top:72px; right:72px; }

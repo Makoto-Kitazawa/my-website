@@ -57,34 +57,45 @@ async function initSlideMenu() {
     const projectsTitle = document.createElement('h3');
     projectsTitle.textContent = 'プロジェクト';
     menuContent.appendChild(projectsTitle);
-    
-    const projectsList = document.createElement('ul');
-    projectsList.className = 'slide-menu-list';
-    
-    // metadata オブジェクトをループして、フォルダ名をキーとして使用
-    for (const [folderName, projectInfo] of Object.entries(config.metadata)) {
-      // フォルダ名からパスを構築
-      // フォルダ名が "soundwave" なら "../01_soundwave/index.html" など
-      const folderPath = getProjectPath(folderName, siteRoot);
-      
-      const listItem = document.createElement('li');
-      const link = document.createElement('a');
-      link.href = folderPath;
-      link.className = 'slide-menu-item project-link';
-      
-      // statusがpreparingの場合は見た目を変える
-      if (projectInfo.status === 'preparing') {
-        link.classList.add('preparing');
-        link.innerHTML = `${projectInfo.icon} ${projectInfo.title} <span class="status-badge">準備中</span>`;
-      } else {
-        link.innerHTML = `${projectInfo.icon} ${projectInfo.title}`;
+
+    const projectsByCategory = Object.entries(config.metadata).reduce((groups, [folderName, projectInfo]) => {
+      const category = projectInfo.category || 'その他';
+      if (!groups[category]) groups[category] = [];
+      groups[category].push([folderName, projectInfo]);
+      return groups;
+    }, {});
+    const categoryOrder = [...(config.categoryOrder || []), ...Object.keys(projectsByCategory)];
+
+    for (const category of [...new Set(categoryOrder)]) {
+      const projects = projectsByCategory[category];
+      if (!projects) continue;
+
+      const categoryTitle = document.createElement('h3');
+      categoryTitle.textContent = category;
+      menuContent.appendChild(categoryTitle);
+
+      const projectsList = document.createElement('ul');
+      projectsList.className = 'slide-menu-list';
+
+      for (const [folderName, projectInfo] of projects) {
+        const listItem = document.createElement('li');
+        const link = document.createElement('a');
+        link.href = getProjectPath(folderName, siteRoot);
+        link.className = 'slide-menu-item project-link';
+
+        if (projectInfo.status === 'preparing') {
+          link.classList.add('preparing');
+          link.innerHTML = `${projectInfo.icon} ${projectInfo.title} <span class="status-badge">準備中</span>`;
+        } else {
+          link.innerHTML = `${projectInfo.icon} ${projectInfo.title}`;
+        }
+
+        listItem.appendChild(link);
+        projectsList.appendChild(listItem);
       }
-      
-      listItem.appendChild(link);
-      projectsList.appendChild(listItem);
+
+      menuContent.appendChild(projectsList);
     }
-    
-    menuContent.appendChild(projectsList);
   }
   
   // その他のリンク
