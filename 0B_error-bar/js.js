@@ -18,17 +18,38 @@ const legendCurveEquation = document.getElementById('legendCurveEquation');
 const legendCurveParameters = document.getElementById('legendCurveParameters');
 const legendHalfLife = { hidden: true, textContent: '' };
 const regressionButton = document.getElementById('regressionSelect');
-const axisVariableQuery = new URLSearchParams(window.location.search).get('yx') || 'yx';
-const axisVariables = { y: axisVariableQuery.slice(0, 1) || 'y', x: axisVariableQuery.slice(1, 2) || 'x' };
+const pageQuery = new URLSearchParams(window.location.search);
+const axisVariableQuery = pageQuery.get('xy');
+const legacyAxisVariableQuery = pageQuery.get('yx');
+const axisVariables = axisVariableQuery ? { x: axisVariableQuery.slice(0, 1) || 'x', y: axisVariableQuery.slice(1, 2) || 'y' } : { y: legacyAxisVariableQuery?.slice(0, 1) || 'y', x: legacyAxisVariableQuery?.slice(1, 2) || 'x' };
 const shareButton = document.getElementById('shareButton');
 const shareCodeInput = document.getElementById('shareCodeInput');
 const loadShareButton = document.getElementById('loadShareButton');
 const shareStatus = document.getElementById('shareStatus');
+const settingsButton = document.getElementById('settingsButton');
+const advancedSettingsDialog = document.getElementById('advancedSettingsDialog');
+const showGridToggle = document.getElementById('showGridToggle');
+const showErrorBarsToggle = document.getElementById('showErrorBarsToggle');
+const showRegressionToggle = document.getElementById('showRegressionToggle');
+const logXToggle = document.getElementById('logXToggle');
+const logYToggle = document.getElementById('logYToggle');
+const axisXInput = document.getElementById('axisXInput');
+const axisYInput = document.getElementById('axisYInput');
+axisXInput.value = axisVariables.x;
+axisYInput.value = axisVariables.y;
 let regressionEnabled = false;
 let regressionType = 'none';
 let regressionDisplayType = 'none';
 const datasetName = document.getElementById('datasetName');
-const sampleData = { name: '反比例の測定', x: [0.8, 1.6, 2.7, 4.2], y: [[6.0, 4.4, 5.3, 7.1], [3.5, 2.7, 3.2, 2.3], [2.0, 1.6, 2.3, 1.8], [1.5, 0.9, 1.2, 1.0]] };
+const sampleDatasets = [
+  { name: '反比例の測定', x: [0.8, 1.6, 2.7, 4.2], y: [[5.4, 6.4, 6.2, 6.1], [2.8, 3.5, 3.6, 3.4], [2.0, 2.6, 2.8, 2.4], [0.5, 0.8, 1.0, 0.7]] },
+  { name: '比例の測定', x: [1, 2, 3, 4], y: [[2.5, 3.4, 3.3, 3.1], [4.7, 5.4, 5.6, 5.2], [7.3, 7.9, 8.1, 7.8], [11.3, 12.2, 12.4, 11.8]] },
+  { name: '2次関数の測定', x: [-2, -1, 1, 2], y: [[3.3, 4.1, 4.2, 3.9], [1.5, 2.1, 2.3, 2.1], [1.0, 1.6, 1.8, 1.6], [3.9, 4.6, 4.8, 4.5]] },
+  { name: '指数減衰の測定', x: [0, 1, 2, 3], y: [[7.4, 8.4, 8.6, 8.0], [4.8, 5.5, 5.8, 5.3], [3.2, 3.8, 4.1, 3.8], [1.5, 1.9, 2.2, 2.0]] },
+  { name: '平方根の測定', x: [0, 1, 4, 9], y: [[0.7, 1.2, 1.3, 1.0], [3.0, 3.6, 3.8, 3.4], [4.4, 5.0, 5.3, 4.9], [7.5, 8.3, 8.5, 7.8]] }
+];
+let sampleIndex = 0;
+let sampleData = sampleDatasets[sampleIndex];
 let shareDatabase = null;
 try { if (window.firebaseConfig?.projectId && window.firebase?.initializeApp) shareDatabase = (firebase.apps.length ? firebase.app() : firebase.initializeApp(window.firebaseConfig)).firestore(); } catch (error) { console.error(error); }
 let activeShareCode = new URLSearchParams(window.location.search).get('share')?.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4) || '';
@@ -53,7 +74,8 @@ function getSharePayloadSignature(payload = readSharePayload()) {
 function clampCount(input) { const count = Math.min(12, Math.max(1, Number.parseInt(input.value, 10) || 1)); input.value = count; return count; }
 function makeInput(label, value, className) { const input = document.createElement('input'); input.className = `data-input ${className}`; input.type = 'number'; input.step = 'any'; input.inputMode = 'decimal'; input.value = value ?? ''; input.setAttribute('aria-label', label); input.addEventListener('input', update); return input; }
 function readGridValues() { const xInputs = [...document.querySelectorAll('.x-value')]; const yInputs = [...document.querySelectorAll('.y-value')]; const columns = xInputs.length; const measurements = columns > 0 ? yInputs.length / columns : 0; if (columns === 0) return null; return { name: datasetName.value, x: xInputs.map((input) => input.value), y: Array.from({ length: columns }, (_, column) => Array.from({ length: measurements }, (_, row) => yInputs[row * columns + column]?.value ?? '')) }; }
-function renderInputs(values = readGridValues()) { const columns = clampCount(pointCount); const measurements = clampCount(sampleCount); const source = values ?? sampleData; datasetName.value = source.name ?? ''; pointCount.dataset.previousValue = columns; sampleCount.dataset.previousValue = measurements; inputHead.innerHTML = `<tr><th scope="col">項目</th>${Array.from({ length: columns }, (_, index) => `<th scope="col">データ ${index + 1}</th>`).join('')}</tr>`; inputBody.replaceChildren(); const xRow = document.createElement('tr'); xRow.innerHTML = `<th scope="row">横軸 ${axisVariables.x}</th>`; for (let column = 0; column < columns; column += 1) { const cell = document.createElement('td'); cell.appendChild(makeInput(`データ ${column + 1} の ${axisVariables.x}`, source.x[column] ?? '', 'x-value')); xRow.appendChild(cell); } inputBody.appendChild(xRow); for (let rowIndex = 0; rowIndex < measurements; rowIndex += 1) { const row = document.createElement('tr'); row.innerHTML = `<th scope="row">測定 ${rowIndex + 1}</th>`; for (let column = 0; column < columns; column += 1) { const cell = document.createElement('td'); cell.appendChild(makeInput(`データ ${column + 1} の測定 ${rowIndex + 1}`, source.y[column]?.[rowIndex] ?? '', 'y-value')); row.appendChild(cell); } inputBody.appendChild(row); } dataCount.textContent = `${columns} 列`; update(); }
+function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character])); }
+function renderInputs(values = readGridValues()) { const columns = clampCount(pointCount); const measurements = clampCount(sampleCount); const source = values ?? sampleData; datasetName.value = source.name ?? ''; pointCount.dataset.previousValue = columns; sampleCount.dataset.previousValue = measurements; inputHead.innerHTML = `<tr><th scope="col">項目</th>${Array.from({ length: columns }, (_, index) => `<th scope="col">データ ${index + 1}</th>`).join('')}</tr>`; inputBody.replaceChildren(); const xRow = document.createElement('tr'); xRow.innerHTML = `<th scope="row">横軸 ${escapeHtml(axisVariables.x)}</th>`; for (let column = 0; column < columns; column += 1) { const cell = document.createElement('td'); cell.appendChild(makeInput(`データ ${column + 1} の ${axisVariables.x}`, source.x[column] ?? '', 'x-value')); xRow.appendChild(cell); } inputBody.appendChild(xRow); for (let rowIndex = 0; rowIndex < measurements; rowIndex += 1) { const row = document.createElement('tr'); row.innerHTML = `<th scope="row">測定 ${rowIndex + 1}</th>`; for (let column = 0; column < columns; column += 1) { const cell = document.createElement('td'); cell.appendChild(makeInput(`データ ${column + 1} の測定 ${rowIndex + 1}`, source.y[column]?.[rowIndex] ?? '', 'y-value')); row.appendChild(cell); } inputBody.appendChild(row); } dataCount.textContent = `${columns} 列`; update(); }
 function readNumber(input) { const value = Number.parseFloat(input.value); return Number.isFinite(value) ? value : null; }
 function getData() { const xInputs = [...document.querySelectorAll('.x-value')]; const yInputs = [...document.querySelectorAll('.y-value')]; const measurements = clampCount(sampleCount); const data = []; xInputs.forEach((input, column) => { const x = readNumber(input); const values = yInputs.filter((_, index) => index % xInputs.length === column).slice(0, measurements).map(readNumber).filter((value) => value !== null); if (x === null || values.length === 0) return; const mean = values.reduce((sum, value) => sum + value, 0) / values.length; const variance = values.length > 1 ? values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (values.length - 1) : 0; data.push({ x, mean, error: Math.sqrt(variance) / Math.sqrt(values.length) }); }); return data; }
 function readSharePayload() { const values = readGridValues(); return { name: datasetName.value, x: values.x, y: values.y.flat(), pointCount: clampCount(pointCount), sampleCount: clampCount(sampleCount), updatedAt: firebase.firestore.FieldValue.serverTimestamp() }; }
@@ -80,10 +102,13 @@ function renderResults(data) { resultHead.innerHTML = `<tr><th scope="col">項�
 function moveVerticalInput(input, direction) { const cell = input.closest('td'); const row = input.closest('tr'); if (!cell || !row) return; const targetRow = direction < 0 ? row.previousElementSibling : row.nextElementSibling; const target = targetRow?.querySelector(`td:nth-child(${cell.cellIndex + 1}) input`); if (target) { target.focus(); target.select(); } }
 function pasteTableValues(event) { const target = event.target.closest('input'); if (!target || !target.classList.contains('data-input')) return; const text = event.clipboardData?.getData('text/plain') || ''; if (!text.includes('\t') && !text.includes('\n')) return; const sourceRows = text.replace(/\r/g, '').split('\n').filter((row) => row.length > 0).map((row) => row.split('\t')); const startCell = target.closest('td'); const startRow = target.closest('tr'); if (!startCell || !startRow) return; event.preventDefault(); const startRowIndex = [...inputBody.rows].indexOf(startRow); const startColumnIndex = startCell.cellIndex - 1; sourceRows.forEach((sourceRow, rowOffset) => { const destinationRow = inputBody.rows[startRowIndex + rowOffset]; if (!destinationRow) return; sourceRow.forEach((value, columnOffset) => { const destinationCell = destinationRow.cells[startColumnIndex + columnOffset + 1]; const destinationInput = destinationCell?.querySelector('input'); if (destinationInput && value.trim() !== '') destinationInput.value = value.trim(); }); }); update(); }
 function getQuadrantStatus(data) { const quadrants = new Set(); data.forEach((point) => { if (point.x >= 0 && point.mean >= 0) quadrants.add('第1象限'); if (point.x < 0 && point.mean >= 0) quadrants.add('第2象限'); if (point.x < 0 && point.mean < 0) quadrants.add('第3象限'); if (point.x >= 0 && point.mean < 0) quadrants.add('第4象限'); }); return quadrants.size > 0 ? [...quadrants].join('・') : 'データなし'; }
+function axisDisplayValue(value, logarithmic) { return logarithmic ? (value > 0 ? Math.log10(value) : NaN) : value; }
+function axisDisplayLabel(value, exponent, logarithmic, isYAxis = false) { return logarithmic ? `10^${format(value)}` : formatAxis(value, exponent, isYAxis); }
+function drawLogTickLabel(context, value, x, y, align = 'center') { context.save(); context.textAlign = align; context.fillStyle = '#65747d'; context.font = '14px sans-serif'; context.fillText('10', x, y); const width = context.measureText('10').width; context.font = '9px sans-serif'; context.fillText(String(value), x + (align === 'right' ? -width - 1 : width + 1), y - 5); context.restore(); }
 function draw(data, size = canvas.clientWidth) { context.clearRect(0, 0, size, size); context.fillStyle = '#fcfdfd'; context.fillRect(0, 0, size, size); const xValues = data.map((point) => point.x); const yValues = data.flatMap((point) => [point.mean + point.error, point.mean - point.error]); const hasNegativeX = xValues.some((value) => value < 0); const hasNegativeY = yValues.some((value) => value < 0); const xPositiveMax = Math.max(1, ...xValues.filter((value) => value >= 0)); const xNegativeMax = Math.max(1, ...xValues.filter((value) => value < 0).map((value) => Math.abs(value))); const yPositiveMax = Math.max(1, ...yValues.filter((value) => value >= 0)); const yNegativeMax = Math.max(1, ...yValues.filter((value) => value < 0).map((value) => Math.abs(value))); const xLimit = Math.max(xPositiveMax, xNegativeMax) * 1.18; const yLimit = niceAxisLimit(Math.max(yPositiveMax, yNegativeMax) * 1.18); const xMin = hasNegativeX ? -xLimit : 0; const yMin = hasNegativeY ? -yLimit : 0; const xRange = xLimit - xMin; const yRange = yLimit - yMin; const exponent = getAxisExponent(Math.max(xLimit, yLimit)); const padding = 72; const plotSize = size - padding * 2; const toX = (value) => padding + ((value - xMin) / xRange) * plotSize; const toY = (value) => size - padding - ((value - yMin) / yRange) * plotSize; chartStatus.textContent = getQuadrantStatus(data);
-  context.strokeStyle = '#e7edef'; context.lineWidth = 1; const divisions = 5; for (let index = 0; index <= divisions; index += 1) { const xValue = xMin + (xRange / divisions) * index; const yValue = yMin + (yRange / divisions) * index; const px = toX(xValue); const py = toY(yValue); context.beginPath(); context.moveTo(px, padding); context.lineTo(px, size - padding); context.stroke(); context.beginPath(); context.moveTo(padding, py); context.lineTo(size - padding, py); context.stroke(); context.fillStyle = '#65747d'; context.font = '24px sans-serif'; context.fillText(formatAxis(xValue, exponent), px - 18, size - padding + 30); context.fillText(formatAxis(yValue, exponent, true), 8, py + 8); }
+  context.strokeStyle = '#e7edef'; context.lineWidth = 1; const divisions = 5; for (let index = 0; index <= divisions; index += 1) { const xValue = xMin + (xRange / divisions) * index; const yValue = yMin + (yRange / divisions) * index; const px = toX(xValue); const py = toY(yValue); if (showGridToggle.checked) { context.beginPath(); context.moveTo(px, padding); context.lineTo(px, size - padding); context.stroke(); context.beginPath(); context.moveTo(padding, py); context.lineTo(size - padding, py); context.stroke(); } context.fillStyle = '#65747d'; context.font = '24px sans-serif'; context.fillText(formatAxis(xValue, exponent), px - 18, size - padding + 30); context.fillText(formatAxis(yValue, exponent, true), 8, py + 8); }
   const xAxisY = toY(0); const yAxisX = toX(0); context.strokeStyle = '#60717b'; context.fillStyle = '#60717b'; context.lineWidth = 1.5; context.beginPath(); context.moveTo(padding, xAxisY); context.lineTo(size - padding, xAxisY); context.stroke(); context.beginPath(); context.moveTo(toX(0), padding); context.lineTo(yAxisX, size - padding); context.stroke(); context.beginPath(); context.moveTo(size - padding, xAxisY); context.lineTo(size - padding - 10, xAxisY - 5); context.lineTo(size - padding - 10, xAxisY + 5); context.closePath(); context.fill(); context.beginPath(); context.moveTo(yAxisX, padding); context.lineTo(yAxisX - 5, padding + 10); context.lineTo(yAxisX + 5, padding + 10); context.closePath(); context.fill(); context.fillStyle = '#50616b'; context.font = 'italic 36px "KaTeX Math", "STIX Two Math", "Cambria Math", "Times New Roman", serif'; context.fillText('x', size - padding + 10, xAxisY - 4); context.font = 'italic 36px "KaTeX Math", "STIX Two Math", "Cambria Math", "Times New Roman", serif'; context.fillText('y', yAxisX + 10, padding - 14); if (exponent !== 0) { drawScaleLabel(context, size - padding + 4, xAxisY + 16, exponent); drawScaleLabel(context, yAxisX + 34, padding - 14, exponent); }
-  data.forEach((point) => { const px = toX(point.x); const meanY = toY(point.mean); const topY = toY(point.mean + point.error); const bottomY = toY(point.mean - point.error); context.strokeStyle = '#e56b4d'; context.lineWidth = 2; context.beginPath(); context.moveTo(px, topY); context.lineTo(px, bottomY); context.stroke(); context.fillStyle = '#e56b4d'; context.beginPath(); context.arc(px, meanY, 5, 0, Math.PI * 2); context.fill(); context.strokeStyle = '#fff'; context.lineWidth = 1.5; context.stroke(); });
+  data.forEach((point) => { const px = toX(point.x); const meanY = toY(point.mean); const topY = toY(point.mean + point.error); const bottomY = toY(point.mean - point.error); context.strokeStyle = '#e56b4d'; context.lineWidth = 2; if (showErrorBarsToggle.checked) { context.beginPath(); context.moveTo(px, topY); context.lineTo(px, bottomY); context.stroke(); } context.fillStyle = '#e56b4d'; context.beginPath(); context.arc(px, meanY, 5, 0, Math.PI * 2); context.fill(); context.strokeStyle = '#fff'; context.lineWidth = 1.5; context.stroke(); });
   const regression = regressionEnabled ? getRegression(data) : null; if (regression) { context.strokeStyle = '#327b9f'; context.lineWidth = 2.5; context.setLineDash([8, 5]); context.beginPath(); context.moveTo(toX(xMin), toY(regression.slope * xMin + regression.intercept)); context.lineTo(toX(xLimit), toY(regression.slope * xLimit + regression.intercept)); context.stroke(); context.setLineDash([]); }
 }
 function resizeCanvas() { const size = canvas.clientWidth; const ratio = window.devicePixelRatio || 1; canvas.width = Math.max(1, Math.floor(size * ratio)); canvas.height = Math.max(1, Math.floor(size * ratio)); context.setTransform(ratio, 0, 0, ratio, 0, 0); draw(getData(), size); }
@@ -100,7 +125,7 @@ function enableLegendDrag() { let drag = null; chartLegend.addEventListener('poi
 function saveBlob(blob, fileName) { const link = document.createElement('a'); link.download = fileName; link.href = URL.createObjectURL(blob); link.click(); URL.revokeObjectURL(link.href); }
 function downloadSvg() { const image = canvas.toDataURL('image/png'); const width = canvas.width; const height = canvas.height; const ratio = window.devicePixelRatio || 1; const boxWidth = 230 * ratio; const boxHeight = 76 * ratio; const margin = 16 * ratio; const legendClass = [...chartLegend.classList].find((name) => name.startsWith('corner-')) || 'corner-top-right'; const positions = { 'corner-top-right': [width - boxWidth - margin, margin], 'corner-top-left': [70 * ratio, margin], 'corner-bottom-left': [70 * ratio, height - boxHeight - 70 * ratio], 'corner-bottom-right': [width - boxWidth - 70 * ratio, height - boxHeight - 70 * ratio] }; const [legendX, legendY] = positions[legendClass]; const title = (datasetName.value.trim() || 'データセット').replace(/[<&>"']/g, ''); const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><title>${title}</title><image href="${image}" width="${width}" height="${height}"/><g><rect x="${legendX}" y="${legendY}" width="${boxWidth}" height="${boxHeight}" rx="5" fill="#ffffff" fill-opacity="0.92" stroke="#d8e0e5"/><text x="${legendX + 12 * ratio}" y="${legendY + 25 * ratio}" fill="#18232d" font-family="sans-serif" font-size="${20 * ratio}px" font-weight="700">${title}</text><circle cx="${legendX + 17 * ratio}" cy="${legendY + 48 * ratio}" r="${4 * ratio}" fill="#e56b4d"/><path d="M ${legendX + 37 * ratio} ${legendY + 39 * ratio} V ${legendY + 57 * ratio} M ${legendX + 32 * ratio} ${legendY + 39 * ratio} H ${legendX + 42 * ratio} M ${legendX + 32 * ratio} ${legendY + 57 * ratio} H ${legendX + 42 * ratio}" fill="none" stroke="#e56b4d" stroke-width="${2 * ratio}"/><text x="${legendX + 52 * ratio}" y="${legendY + 51 * ratio}" fill="#6b7883" font-family="sans-serif" font-size="${12 * ratio}px">平均値 / 標準誤差</text></g></svg>`; saveBlob(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }), `${datasetName.value.trim() || 'error-bar-graph'}.svg`); }
 function csvEscape(value) { const text = String(value ?? ''); return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text; }
-function downloadCsv() { const rows = [['データ名', datasetName.value.trim() || 'データセット'], [], ['データ番号', 'x', '平均 y', '標準誤差']]; getData().forEach((point, index) => rows.push([`データ ${index + 1}`, point.x, point.mean, point.error])); const csv = `\ufeff${rows.map((row) => row.map(csvEscape).join(',')).join('\r\n')}`; saveBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `${datasetName.value.trim() || 'error-bar-data'}.csv`); }
+function downloadCsv() { const rows = [['データ名', datasetName.value.trim() || 'データセット'], [], ['データ番号', axisVariables.x, `平均 ${axisVariables.y}`, '標準誤差']]; getData().forEach((point, index) => rows.push([`データ ${index + 1}`, point.x, point.mean, point.error])); const csv = `\ufeff${rows.map((row) => row.map(csvEscape).join(',')).join('\r\n')}`; saveBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `${datasetName.value.trim() || 'error-bar-data'}.csv`); }
 function hasActualData() { return [...document.querySelectorAll('.data-input')].some((input) => input.value.trim() !== ''); }
 function hasEnteredData() { return hasActualData(); }
 function hasDataOutsideGrid(values, columns, measurements) { const removedColumns = values.x.slice(columns).some((value) => String(value).trim() !== '') || values.y.slice(columns).some((column) => column.some((value) => String(value).trim() !== '')); const removedRows = values.y.some((column) => column.slice(measurements).some((value) => String(value).trim() !== '')); return removedColumns || removedRows; }
@@ -178,10 +203,12 @@ const polynomialDegree = document.getElementById('polynomialDegree');
 const polynomialDegreeControl = document.getElementById('polynomialDegreeControl');
 const polynomialWarning = document.getElementById('polynomialWarning');
 const chartFrame = chartLegend.parentElement;
+const downloadActions = document.querySelector('.download-actions');
 const chartExportArea = document.createElement('div');
 chartExportArea.className = 'chart-export-area';
 chartFrame.before(chartExportArea);
 chartExportArea.append(chartFrame, polynomialWarning);
+settingsButton.after(downloadActions);
 const originalFitCurve = fitCurve;
 const originalGetLegendDetails = getLegendDetails;
 const originalGetExportLegendLines = getExportLegendLines;
@@ -293,8 +320,9 @@ function updatePolynomialControls(data = getData()) {
   const isPolynomial = regressionDisplayType === 'polynomial';
   polynomialDegreeControl.hidden = !isPolynomial;
   squareRootOriginControl.hidden = regressionDisplayType !== 'squareRoot';
-  polynomialWarning.hidden = !isPolynomial || data.length !== getPolynomialDegree() + 1;
-  if (!polynomialWarning.hidden) polynomialWarning.textContent = 'この次数ではすべての点を通るため、係数の誤差は算出できません。';
+  const degreesOfFreedom = data.length - getPolynomialDegree() - 1;
+  polynomialWarning.hidden = !isPolynomial || degreesOfFreedom !== 0;
+  polynomialWarning.textContent = polynomialWarning.hidden ? '' : 'この次数ではすべての点を通るため、係数の誤差は算出できません。';
 }
 
 fitCurve = (data, type) => type === 'polynomial' ? getPolynomialRegression(data) : type === 'squareRoot' ? getSquareRootRegression(data) : originalFitCurve(data, type);
@@ -315,10 +343,61 @@ polynomialDegree.addEventListener('change', () => {
   getPolynomialDegree();
   update();
 });
+polynomialDegree.addEventListener('input', update);
 squareRootOrigin.addEventListener('change', update);
 const originalUpdate = update;
 update = () => {
   originalUpdate();
   updatePolynomialControls();
+  if (!showRegressionToggle.checked) legendCurveBlock.hidden = true;
 };
 updatePolynomialControls();
+const originalDrawSelectedRegression = drawSelectedRegression;
+drawSelectedRegression = (data) => {
+  if (showRegressionToggle.checked && !logXToggle.checked && !logYToggle.checked) originalDrawSelectedRegression(data);
+};
+const originalDraw = draw;
+function drawLogChart(data, size) {
+  const points = data.filter((point) => (!logXToggle.checked || point.x > 0) && (!logYToggle.checked || point.mean > 0));
+  context.clearRect(0, 0, size, size);
+  context.fillStyle = '#fcfdfd';
+  context.fillRect(0, 0, size, size);
+  if (points.length === 0) return;
+  const xValues = points.map((point) => axisDisplayValue(point.x, logXToggle.checked));
+  const yValues = points.flatMap((point) => [axisDisplayValue(point.mean + point.error, logYToggle.checked), axisDisplayValue(Math.max(Number.MIN_VALUE, point.mean - point.error), logYToggle.checked)]);
+  const rawXMin = Math.min(...xValues); const rawXMax = Math.max(...xValues); const rawYMin = Math.min(...yValues); const rawYMax = Math.max(...yValues);
+  const xMin = logXToggle.checked ? Math.floor(rawXMin) : rawXMin; const xMax = logXToggle.checked ? Math.max(Math.ceil(rawXMax), xMin + 1) : rawXMax; const yMin = logYToggle.checked ? Math.floor(rawYMin) : rawYMin; const yMax = logYToggle.checked ? Math.max(Math.ceil(rawYMax), yMin + 1) : rawYMax;
+  const xPad = logXToggle.checked ? 0 : Math.max(0.2, (xMax - xMin) * 0.08); const yPad = logYToggle.checked ? 0 : Math.max(0.2, (yMax - yMin) * 0.08); const left = 72; const right = size - 72; const top = 72; const bottom = size - 72;
+  const toX = (value) => left + ((axisDisplayValue(value, logXToggle.checked) - (xMin - xPad)) / (xMax - xMin + xPad * 2)) * (right - left);
+  const toY = (value) => bottom - ((axisDisplayValue(value, logYToggle.checked) - (yMin - yPad)) / (yMax - yMin + yPad * 2)) * (bottom - top);
+  context.strokeStyle = '#e7edef'; context.lineWidth = 1;
+  const xTicks = logXToggle.checked ? Math.max(1, xMax - xMin) : 5; const yTicks = logYToggle.checked ? Math.max(1, yMax - yMin) : 5;
+  for (let index = 0; index <= xTicks; index += 1) { const x = left + (right - left) * index / xTicks; const xValue = xMin + (xMax - xMin + xPad * 2) * index / xTicks; if (showGridToggle.checked) { context.beginPath(); context.moveTo(x, top); context.lineTo(x, bottom); context.stroke(); } if (logXToggle.checked) drawLogTickLabel(context, xValue, x, bottom + 28); else { context.fillStyle = '#65747d'; context.font = '14px sans-serif'; context.fillText(formatAxis(xValue, 0), x - 16, bottom + 28); } }
+  for (let index = 0; index <= yTicks; index += 1) { const y = bottom - (bottom - top) * index / yTicks; const yValue = yMin + (yMax - yMin + yPad * 2) * index / yTicks; if (showGridToggle.checked) { context.beginPath(); context.moveTo(left, y); context.lineTo(right, y); context.stroke(); } if (logYToggle.checked) drawLogTickLabel(context, yValue, 8, y + 5, 'left'); else { context.fillStyle = '#65747d'; context.font = '14px sans-serif'; context.fillText(formatAxis(yValue, 0, true), 8, y + 5); } }
+  context.strokeStyle = '#60717b'; context.lineWidth = 1.5; context.beginPath(); context.moveTo(left, bottom); context.lineTo(right, bottom); context.stroke(); context.beginPath(); context.moveTo(left, top); context.lineTo(left, bottom); context.stroke(); context.fillStyle = '#50616b'; context.font = 'italic 36px "KaTeX Math", "STIX Two Math", "Cambria Math", "Times New Roman", serif'; context.fillText(axisVariables.x, right + 10, bottom - 4); context.fillText(axisVariables.y, left + 10, top - 14);
+  points.forEach((point) => { const px = toX(point.x); const meanY = toY(point.mean); const topY = toY(point.mean + point.error); const bottomY = toY(Math.max(Number.MIN_VALUE, point.mean - point.error)); context.strokeStyle = '#e56b4d'; context.lineWidth = 2; if (showErrorBarsToggle.checked) { context.beginPath(); context.moveTo(px, topY); context.lineTo(px, bottomY); context.stroke(); } context.fillStyle = '#e56b4d'; context.beginPath(); context.arc(px, meanY, 5, 0, Math.PI * 2); context.fill(); });
+}
+draw = (data, size = canvas.clientWidth) => { if (logXToggle.checked || logYToggle.checked) { drawLogChart(data, size); return; } originalDraw(data, size); context.fillStyle = '#fcfdfd'; context.fillRect(size - 90, size - 100, 90, 45); context.fillRect(68, 20, 80, 55); context.fillStyle = '#50616b'; context.font = 'italic 36px "KaTeX Math", "STIX Two Math", "Cambria Math", "Times New Roman", serif'; context.fillText(axisVariables.x, size - 72, size - 76); context.fillText(axisVariables.y, 82, 58); };
+settingsButton.addEventListener('click', () => advancedSettingsDialog.showModal());
+[showGridToggle, showErrorBarsToggle, showRegressionToggle, logXToggle, logYToggle].forEach((toggle) => toggle.addEventListener('change', update));
+document.getElementById('applySettingsButton').addEventListener('click', () => {
+  const params = new URLSearchParams();
+  const shareCode = pageQuery.get('share');
+  if (shareCode) params.set('share', shareCode);
+  params.set('xy', `${axisVariables.x}${axisVariables.y}`);
+  params.delete('yx');
+  history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
+});
+axisXInput.addEventListener('input', () => { axisVariables.x = axisXInput.value.trim() || 'x'; update(); });
+axisYInput.addEventListener('input', () => { axisVariables.y = axisYInput.value.trim() || 'y'; update(); });
+const resetButton = document.getElementById('resetButton');
+const resetButtonReplacement = resetButton.cloneNode(true);
+resetButton.replaceWith(resetButtonReplacement);
+resetButtonReplacement.addEventListener('click', () => {
+  if (hasActualData() && !isSample() && !window.confirm('入力したデータが消えます。次のサンプルに切り替えますか？')) return;
+  sampleIndex = (sampleIndex + 1) % sampleDatasets.length;
+  sampleData = sampleDatasets[sampleIndex];
+  pointCount.value = sampleData.x.length;
+  sampleCount.value = sampleData.y[0].length;
+  renderInputs(sampleData);
+});

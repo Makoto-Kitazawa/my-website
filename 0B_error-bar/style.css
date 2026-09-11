@@ -20,7 +20,10 @@ h1,h2,p { margin-top:0; } h1 { margin-bottom:0; font-size:clamp(24px,3vw,38px); 
 .chart-panel { grid-column:2; grid-row:1; } .data-panel { grid-column:1; grid-row:1; }
 .section-heading,.chart-header { display:flex; justify-content:space-between; align-items:start; gap:12px; } .data-count,.chart-status { color:var(--blue); background:#edf6f8; border-radius:3px; padding:5px 8px; font-size:12px; white-space:nowrap; }
 .chart-actions { display:flex; align-items:center; gap:8px; }
+.download-actions { display:flex; gap:8px; }
 .download-button { border:1px solid var(--blue); border-radius:4px; padding:5px 8px; color:var(--blue); background:#fff; font-size:11px; cursor:pointer; } .download-button:hover { color:#fff; background:var(--blue); }
+.settings-button { border:1px solid var(--line); border-radius:4px; padding:5px 8px; color:var(--muted); background:#fff; font-size:11px; cursor:pointer; }
+.settings-button:hover { border-color:var(--accent); color:var(--accent); }
 .regression-button { border:1px solid var(--accent); border-radius:4px; padding:5px 8px; color:var(--accent); background:#fff8f6; font-size:11px; cursor:pointer; } .regression-button:hover,.regression-button.active { color:#fff; background:var(--accent); }
 .settings-grid { display:grid; grid-template-columns:1fr 96px; gap:8px 12px; align-items:center; margin:18px 0 12px; padding-bottom:12px; border-bottom:1px solid var(--line); } .field-label { font-weight:700; font-size:14px; }
 .number-input,.data-input { width:100%; border:1px solid var(--line); border-radius:4px; padding:7px 8px; color:var(--ink); background:#fbfcfd; } .number-input:focus,.data-input:focus { outline:2px solid #f6c2b5; border-color:var(--accent); }
@@ -36,6 +39,11 @@ table { width:100%; border-collapse:collapse; font-size:14px; } th,td { padding:
 .chart-frame { position:relative; width:100%; aspect-ratio:1/1; margin-top:18px; background:#fcfdfd; border:1px solid #e0e8eb; } canvas { display:block; width:100%; height:100%; }
 .chart-legend { position:absolute; z-index:2; max-width:48%; padding:10px 12px; border:1px solid #d8e0e5; border-radius:5px; color:var(--muted); background:rgba(255,255,255,.92); filter:drop-shadow(0 4px 12px rgba(24,35,45,.07)); font-size:12px; pointer-events:none; } .chart-legend.corner-top-right { top:12px; right:12px; } .chart-legend.corner-top-left { top:12px; left:70px; } .chart-legend.corner-bottom-left { bottom:70px; left:70px; } .chart-legend.corner-bottom-right { right:70px; bottom:70px; } .legend-title { margin-bottom:7px; color:var(--ink); font-size:20px; font-weight:700; line-height:1.2; overflow-wrap:anywhere; } .legend-key { display:flex; align-items:center; gap:8px; flex-wrap:wrap; } .legend-dot { width:9px; height:9px; border-radius:50%; background:var(--accent); } .legend-bar { width:2px; height:18px; margin-left:10px; background:var(--accent); }
 .info-dialog { width:min(420px,calc(100% - 32px)); border:0; border-top:4px solid var(--accent); border-radius:8px; padding:28px; color:var(--ink); box-shadow:0 16px 50px #17232d30; } .info-dialog::backdrop { background:#17232d66; } .info-dialog h2 { margin-bottom:16px; } .info-dialog p:not(.section-kicker) { color:#52616c; font-size:14px; line-height:1.8; }
+.math-variable { font-family:"KaTeX Math","STIX Two Math","Cambria Math","Times New Roman",serif; font-style:italic; color:var(--blue); }
+.math-fraction { display:inline-flex; flex-direction:column; align-items:center; justify-content:center; margin-left:4px; font-family:"KaTeX Math","STIX Two Math","Cambria Math","Times New Roman",serif; font-size:1.35em; font-style:italic; line-height:1; vertical-align:middle; }
+.math-numerator { min-width:28px; padding:0 7px 5px; border-bottom:1px solid currentColor; text-align:center; }
+.math-denominator { display:inline-flex; align-items:center; gap:1px; padding-top:5px; }
+.math-radical { font-style:normal; font-size:1.05em; line-height:.8; }
 .dialog-close { position:absolute; top:10px; right:14px; border:0; color:var(--muted); background:transparent; font-size:25px; cursor:pointer; } .formula { margin:18px 0; padding:15px; color:var(--blue); background:#edf6f8; text-align:center; font-size:18px; font-weight:700; }
 .last-updated { position:fixed; bottom:10px; left:14px; color:#92a0a8; font-size:11px; }
 @media (max-width:820px) { .app-shell { padding:24px 16px 40px; } .page-header { align-items:start; flex-direction:column; } .header-actions { justify-content:flex-start; } .workspace { grid-template-columns:1fr; } .chart-panel,.data-panel { grid-column:auto; grid-row:auto; } }
@@ -49,6 +57,16 @@ table { width:100%; border-collapse:collapse; font-size:14px; } th,td { padding:
 .square-root-origin-control { display:flex; align-items:center; gap:4px; color:var(--muted); font-size:11px; white-space:nowrap; }
 .square-root-origin-control[hidden] { display:none; }
 .square-root-origin-control input { margin:0; accent-color:var(--accent); }
+.advanced-settings-dialog { width:min(380px,calc(100% - 32px)); border:0; border-top:4px solid var(--accent); border-radius:8px; padding:28px; color:var(--ink); box-shadow:0 16px 50px #17232d30; }
+.advanced-settings-dialog::backdrop { background:#17232d66; }
+.advanced-settings-dialog h2 { margin-bottom:18px; }
+.advanced-settings-list { display:grid; gap:14px; margin:20px 0; }
+.advanced-settings-list label { display:flex; align-items:center; gap:8px; color:#52616c; font-size:14px; }
+.advanced-settings-list label:has(input[type="text"]) { justify-content:space-between; }
+.advanced-settings-list input[type="text"] { width:120px; border:1px solid var(--line); border-radius:4px; padding:6px 8px; color:var(--ink); background:#fbfcfd; }
+.advanced-settings-list input { accent-color:var(--accent); }
+.advanced-settings-actions { display:flex; justify-content:flex-end; }
+.settings-apply-button { border:1px solid var(--accent); border-radius:4px; padding:8px 16px; color:#fff; background:var(--accent); cursor:pointer; }
 .chart-legend { pointer-events:auto; cursor:grab; touch-action:none; user-select:none; }
 .chart-legend.dragging { cursor:grabbing; }
 .chart-legend.corner-top-right { top:72px; right:72px; }
