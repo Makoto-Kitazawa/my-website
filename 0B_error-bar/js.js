@@ -58,8 +58,10 @@ let applyingSharedData = false;
 let shareReady = false;
 let shareSaveTimer = null;
 let lastSyncedShareSignature = '';
+let isShareActionPending = false;
 const shareAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const SHARE_SYNC_DEBOUNCE_MS = 800;
+const SHARE_SYNC_DEBOUNCE_MS = 1200;
+const SHARE_EXPIRATION_HOURS = 168;
 
 function getSharePayloadSignature(payload = readSharePayload()) {
   return JSON.stringify({
@@ -78,15 +80,101 @@ function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (character
 function renderInputs(values = readGridValues()) { const columns = clampCount(pointCount); const measurements = clampCount(sampleCount); const source = values ?? sampleData; datasetName.value = source.name ?? ''; pointCount.dataset.previousValue = columns; sampleCount.dataset.previousValue = measurements; inputHead.innerHTML = `<tr><th scope="col">項目</th>${Array.from({ length: columns }, (_, index) => `<th scope="col">データ ${index + 1}</th>`).join('')}</tr>`; inputBody.replaceChildren(); const xRow = document.createElement('tr'); xRow.innerHTML = `<th scope="row">横軸 ${escapeHtml(axisVariables.x)}</th>`; for (let column = 0; column < columns; column += 1) { const cell = document.createElement('td'); cell.appendChild(makeInput(`データ ${column + 1} の ${axisVariables.x}`, source.x[column] ?? '', 'x-value')); xRow.appendChild(cell); } inputBody.appendChild(xRow); for (let rowIndex = 0; rowIndex < measurements; rowIndex += 1) { const row = document.createElement('tr'); row.innerHTML = `<th scope="row">測定 ${rowIndex + 1}</th>`; for (let column = 0; column < columns; column += 1) { const cell = document.createElement('td'); cell.appendChild(makeInput(`データ ${column + 1} の測定 ${rowIndex + 1}`, source.y[column]?.[rowIndex] ?? '', 'y-value')); row.appendChild(cell); } inputBody.appendChild(row); } dataCount.textContent = `${columns} 列`; update(); }
 function readNumber(input) { const value = Number.parseFloat(input.value); return Number.isFinite(value) ? value : null; }
 function getData() { const xInputs = [...document.querySelectorAll('.x-value')]; const yInputs = [...document.querySelectorAll('.y-value')]; const measurements = clampCount(sampleCount); const data = []; xInputs.forEach((input, column) => { const x = readNumber(input); const values = yInputs.filter((_, index) => index % xInputs.length === column).slice(0, measurements).map(readNumber).filter((value) => value !== null); if (x === null || values.length === 0) return; const mean = values.reduce((sum, value) => sum + value, 0) / values.length; const variance = values.length > 1 ? values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (values.length - 1) : 0; data.push({ x, mean, error: Math.sqrt(variance) / Math.sqrt(values.length) }); }); return data; }
-function readSharePayload() { const values = readGridValues(); return { name: datasetName.value, x: values.x, y: values.y.flat(), pointCount: clampCount(pointCount), sampleCount: clampCount(sampleCount), updatedAt: firebase.firestore.FieldValue.serverTimestamp() }; }
+function readSharePayload() {
+  const values = readGridValues();
+  const expiresDate = new Date(Date.now() + SHARE_EXPIRATION_HOURS * 60 * 60 * 1000);
+  return {
+    name: datasetName.value,
+    x: values.x,
+    y: values.y.flat(),
+    pointCount: clampCount(pointCount),
+    sampleCount: clampCount(sampleCount),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    expiresAt: firebase.firestore.Timestamp.fromDate(expiresDate)
+  };
+}
 function decodeSharePayload(payload) { const measurements = Math.min(12, Math.max(1, Number.parseInt(payload.sampleCount, 10) || 1)); const columns = Math.min(12, Math.max(1, Number.parseInt(payload.pointCount, 10) || 1)); return { ...payload, y: Array.from({ length: columns }, (_, column) => payload.y.slice(column * measurements, (column + 1) * measurements)) }; }
 function setShareStatus(message) { shareStatus.textContent = message; }
-function formatShareError(error) { if (error?.code === 'permission-denied') return 'Firestoreの権限で拒否されました。firestore.rulesを公開してください'; if (error?.code === 'failed-precondition') return 'Firestore Databaseが作成されていません'; if (error?.code === 'unavailable') return 'Firestoreへ接続できません'; return `共有エラー: ${error?.message || '原因不明'}`; }
+function formatShareError(error) { if (error?.code === 'permission-denied') return '更新頻度が高すぎるか、Firestoreの権限で拒否されました'; if (error?.code === 'failed-precondition') return 'Firestore Databaseが作成されていません'; if (error?.code === 'unavailable') return 'Firestoreへ接続できません'; return `共有エラー: ${error?.message || '原因不明'}`; }
 function createShareCode() { return Array.from({ length: 4 }, () => shareAlphabet[Math.floor(Math.random() * shareAlphabet.length)]).join(''); }
 function updateShareQuery(code) { const url = new URL(window.location.href); url.searchParams.set('share', code); history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`); }
-async function createSharedDataset() { if (!shareDatabase) { setShareStatus('Firebase設定が必要です'); return; } setShareStatus('共有コードを作成中...'); try { let code = createShareCode(); for (let attempt = 0; attempt < 5; attempt += 1) { const reference = shareDatabase.collection('sharedDatasets').doc(code); if (!(await reference.get()).exists) break; code = createShareCode(); } activeShareCode = code; shareCodeInput.value = code; await shareDatabase.collection('sharedDatasets').doc(code).set(readSharePayload()); shareReady = true; updateShareQuery(code); subscribeToSharedDataset(); await navigator.clipboard?.writeText(window.location.href); setShareStatus(`共有中: ${code}`); } catch (error) { console.error(error); setShareStatus(formatShareError(error)); } }
-function subscribeToSharedDataset() { if (!shareDatabase || !activeShareCode) return; shareReady = false; shareUnsubscribe?.(); shareUnsubscribe = shareDatabase.collection('sharedDatasets').doc(activeShareCode).onSnapshot((snapshot) => { if (!snapshot.exists) { shareReady = false; setShareStatus(`共有コード ${activeShareCode} が見つかりません`); return; } const payload = snapshot.data(); const payloadSignature = getSharePayloadSignature(payload); if (applyingSharedData) return; if (payloadSignature === lastSyncedShareSignature) { shareReady = true; setShareStatus(`共有中: ${activeShareCode}`); return; } applyingSharedData = true; pointCount.value = payload.pointCount; sampleCount.value = payload.sampleCount; renderInputs(decodeSharePayload(payload)); applyingSharedData = false; lastSyncedShareSignature = payloadSignature; shareReady = true; setShareStatus(`共有中: ${activeShareCode}`); }, (error) => { shareReady = false; console.error(error); setShareStatus(formatShareError(error)); }); }
-async function loadSharedDataset() { const code = shareCodeInput.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, ''); if (code.length !== 4 || !shareDatabase) { setShareStatus(shareDatabase ? '4桁の共有コードを入力してください' : 'Firebase設定が必要です'); return; } activeShareCode = code; updateShareQuery(code); subscribeToSharedDataset(); }
+async function createSharedDataset() {
+  if (!shareDatabase) { setShareStatus('Firebase設定が必要です'); return; }
+  if (isShareActionPending) return;
+  isShareActionPending = true;
+  setShareStatus('共有コードを作成中...');
+  try {
+    let code = createShareCode();
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const reference = shareDatabase.collection('sharedDatasets').doc(code);
+      if (!(await reference.get()).exists) break;
+      code = createShareCode();
+    }
+    activeShareCode = code;
+    shareCodeInput.value = code;
+    await shareDatabase.collection('sharedDatasets').doc(code).set(readSharePayload());
+    shareReady = true;
+    updateShareQuery(code);
+    subscribeToSharedDataset();
+    await navigator.clipboard?.writeText(window.location.href);
+    setShareStatus(`共有中: ${code}`);
+  } catch (error) {
+    console.error(error);
+    setShareStatus(formatShareError(error));
+  } finally {
+    setTimeout(() => { isShareActionPending = false; }, 1000);
+  }
+}
+function subscribeToSharedDataset() {
+  if (!shareDatabase || !activeShareCode) return;
+  shareReady = false;
+  shareUnsubscribe?.();
+  shareUnsubscribe = shareDatabase.collection('sharedDatasets').doc(activeShareCode).onSnapshot((snapshot) => {
+    if (!snapshot.exists) {
+      shareReady = false;
+      setShareStatus(`共有コード ${activeShareCode} が見つかりません`);
+      return;
+    }
+    const payload = snapshot.data();
+    if (payload?.expiresAt && payload.expiresAt.toDate() < new Date()) {
+      shareReady = false;
+      setShareStatus(`共有コード ${activeShareCode} の有効期限（1週間）が切れています`);
+      return;
+    }
+    const payloadSignature = getSharePayloadSignature(payload);
+    if (applyingSharedData) return;
+    if (payloadSignature === lastSyncedShareSignature) {
+      shareReady = true;
+      setShareStatus(`共有中: ${activeShareCode}`);
+      return;
+    }
+    applyingSharedData = true;
+    pointCount.value = payload.pointCount;
+    sampleCount.value = payload.sampleCount;
+    renderInputs(decodeSharePayload(payload));
+    applyingSharedData = false;
+    lastSyncedShareSignature = payloadSignature;
+    shareReady = true;
+    setShareStatus(`共有中: ${activeShareCode}`);
+  }, (error) => {
+    shareReady = false;
+    console.error(error);
+    setShareStatus(formatShareError(error));
+  });
+}
+async function loadSharedDataset() {
+  if (isShareActionPending) return;
+  const code = shareCodeInput.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length !== 4 || !shareDatabase) {
+    setShareStatus(shareDatabase ? '4桁の共有コードを入力してください' : 'Firebase設定が必要です');
+    return;
+  }
+  isShareActionPending = true;
+  activeShareCode = code;
+  updateShareQuery(code);
+  subscribeToSharedDataset();
+  setTimeout(() => { isShareActionPending = false; }, 1000);
+}
 function saveSharedDataset() { if (!shareDatabase || !activeShareCode || !shareReady || applyingSharedData) return; const payload = readSharePayload(); const payloadSignature = getSharePayloadSignature(payload); if (payloadSignature === lastSyncedShareSignature) return; clearTimeout(shareSaveTimer); shareSaveTimer = setTimeout(async () => { const latestPayload = readSharePayload(); const latestSignature = getSharePayloadSignature(latestPayload); if (latestSignature === lastSyncedShareSignature) return; lastSyncedShareSignature = latestSignature; try { await shareDatabase.collection('sharedDatasets').doc(activeShareCode).set(latestPayload, { merge: true }); setShareStatus(`共有中: ${activeShareCode}`); } catch (error) { console.error(error); setShareStatus(formatShareError(error)); } }, SHARE_SYNC_DEBOUNCE_MS); }
 function getRegression(data) { if (data.length < 2) return null; const meanX = data.reduce((sum, point) => sum + point.x, 0) / data.length; const meanY = data.reduce((sum, point) => sum + point.mean, 0) / data.length; const denominator = data.reduce((sum, point) => sum + (point.x - meanX) ** 2, 0); if (denominator === 0) return null; const slope = data.reduce((sum, point) => sum + (point.x - meanX) * (point.mean - meanY), 0) / denominator; const intercept = meanY - slope * meanX; const total = data.reduce((sum, point) => sum + (point.mean - meanY) ** 2, 0); const residual = data.reduce((sum, point) => sum + (point.mean - (slope * point.x + intercept)) ** 2, 0); return { slope, intercept, rSquared: total === 0 ? 1 : Math.max(0, 1 - residual / total), evaluate: (x) => slope * x + intercept }; }
 function fitCurve(data, type) { if (type === 'none' || data.length < 2) return null; if (type === 'linear') return getRegression(data); if (type === 'quadratic') { const sums = data.reduce((result, point) => { const x = point.x; const y = point.mean; result.x += x; result.x2 += x ** 2; result.x3 += x ** 3; result.x4 += x ** 4; result.y += y; result.xy += x * y; result.x2y += x ** 2 * y; return result; }, { x: 0, x2: 0, x3: 0, x4: 0, y: 0, xy: 0, x2y: 0 }); const matrix = [[data.length, sums.x, sums.x2, sums.y], [sums.x, sums.x2, sums.x3, sums.xy], [sums.x2, sums.x3, sums.x4, sums.x2y]]; for (let pivot = 0; pivot < 3; pivot += 1) { const row = matrix.slice(pivot).sort((a, b) => Math.abs(b[pivot]) - Math.abs(a[pivot]))[0]; const rowIndex = matrix.indexOf(row); [matrix[pivot], matrix[rowIndex]] = [matrix[rowIndex], matrix[pivot]]; if (Math.abs(matrix[pivot][pivot]) < 1e-12) return null; for (let rowIndex = pivot + 1; rowIndex < 3; rowIndex += 1) { const factor = matrix[rowIndex][pivot] / matrix[pivot][pivot]; for (let column = pivot; column <= 3; column += 1) matrix[rowIndex][column] -= factor * matrix[pivot][column]; } } const coefficients = [0, 0, 0]; for (let row = 2; row >= 0; row -= 1) coefficients[row] = (matrix[row][3] - matrix[row].slice(row + 1, 3).reduce((sum, value, index) => sum + value * coefficients[row + index + 1], 0)) / matrix[row][row]; const evaluate = (x) => coefficients[2] * x ** 2 + coefficients[1] * x + coefficients[0]; return { evaluate, rSquared: getRSquared(data, evaluate) }; } if (type === 'exponential') { const positive = data.filter((point) => point.mean > 0); const linear = getRegression(positive.map((point) => ({ x: point.x, mean: Math.log(point.mean) }))); if (!linear) return null; const evaluate = (x) => Math.exp(linear.intercept + linear.slope * x); return { evaluate, rSquared: getRSquared(data, evaluate) }; } const inverse = data.filter((point) => point.x !== 0); const linear = getRegression(inverse.map((point) => ({ x: 1 / point.x, mean: point.mean }))); if (!linear) return null; const evaluate = (x) => x === 0 ? NaN : linear.slope / x + linear.intercept; return { evaluate, rSquared: getRSquared(data, evaluate) }; }
