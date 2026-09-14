@@ -42,11 +42,11 @@ let regressionType = 'none';
 let regressionDisplayType = 'none';
 const datasetName = document.getElementById('datasetName');
 const sampleDatasets = [
-  { name: '反比例の測定', x: [0.8, 1.6, 2.7, 4.2], y: [[5.4, 6.4, 6.2, 6.1], [2.8, 3.5, 3.6, 3.4], [2.0, 2.6, 2.8, 2.4], [0.5, 0.8, 1.0, 0.7]] },
-  { name: '比例の測定', x: [1, 2, 3, 4], y: [[2.5, 3.4, 3.3, 3.1], [4.7, 5.4, 5.6, 5.2], [7.3, 7.9, 8.1, 7.8], [11.3, 12.2, 12.4, 11.8]] },
-  { name: '2次関数の測定', x: [-2, -1, 1, 2], y: [[3.3, 4.1, 4.2, 3.9], [1.5, 2.1, 2.3, 2.1], [1.0, 1.6, 1.8, 1.6], [3.9, 4.6, 4.8, 4.5]] },
-  { name: '指数減衰の測定', x: [0, 1, 2, 3], y: [[7.4, 8.4, 8.6, 8.0], [4.8, 5.5, 5.8, 5.3], [3.2, 3.8, 4.1, 3.8], [1.5, 1.9, 2.2, 2.0]] },
-  { name: '平方根の測定', x: [0, 1, 4, 9], y: [[0.7, 1.2, 1.3, 1.0], [3.0, 3.6, 3.8, 3.4], [4.4, 5.0, 5.3, 4.9], [7.5, 8.3, 8.5, 7.8]] }
+  { name: '反比例の分布', x: [0.8, 1.6, 2.7, 4.2], y: [[5.4, 6.4, 6.2, 6.1], [2.8, 3.5, 3.6, 3.4], [2.0, 2.6, 2.8, 2.4], [0.5, 0.8, 1.0, 0.7]] },
+  { name: '比例の分布', x: [1, 2, 3, 4], y: [[2.5, 3.4, 3.3, 3.1], [4.7, 5.4, 5.6, 5.2], [7.3, 7.9, 8.1, 7.8], [11.3, 12.2, 12.4, 11.8]] },
+  { name: '2次関数の分布', x: [-2, -1, 1, 2], y: [[3.3, 4.1, 4.2, 3.9], [1.5, 2.1, 2.3, 2.1], [1.0, 1.6, 1.8, 1.6], [3.9, 4.6, 4.8, 4.5]] },
+  { name: '指数減衰の分布', x: [0, 1, 2, 3], y: [[7.4, 8.4, 8.6, 8.0], [4.8, 5.5, 5.8, 5.3], [3.2, 3.8, 4.1, 3.8], [1.5, 1.9, 2.2, 2.0]] },
+  { name: '平方根の分布', x: [0, 1, 4, 9], y: [[0.7, 1.2, 1.3, 1.0], [3.0, 3.6, 3.8, 3.4], [4.4, 5.0, 5.3, 4.9], [7.5, 8.3, 8.5, 7.8]] }
 ];
 let sampleIndex = 0;
 let sampleData = sampleDatasets[sampleIndex];
@@ -95,7 +95,7 @@ function readSharePayload() {
 }
 function decodeSharePayload(payload) { const measurements = Math.min(12, Math.max(1, Number.parseInt(payload.sampleCount, 10) || 1)); const columns = Math.min(12, Math.max(1, Number.parseInt(payload.pointCount, 10) || 1)); return { ...payload, y: Array.from({ length: columns }, (_, column) => payload.y.slice(column * measurements, (column + 1) * measurements)) }; }
 function setShareStatus(message) { shareStatus.textContent = message; }
-function formatShareError(error) { if (error?.code === 'permission-denied') return '更新頻度が高すぎるか、Firestoreの権限で拒否されました'; if (error?.code === 'failed-precondition') return 'Firestore Databaseが作成されていません'; if (error?.code === 'unavailable') return 'Firestoreへ接続できません'; return `共有エラー: ${error?.message || '原因不明'}`; }
+function formatShareError(error) { if (error?.code === 'permission-denied') return 'Firestoreの権限または共有データの有効期限により拒否されました'; if (error?.code === 'failed-precondition') return 'Firestore Databaseが作成されていません'; if (error?.code === 'unavailable') return 'Firestoreへ接続できません'; return `共有エラー: ${error?.message || '原因不明'}`; }
 function createShareCode() { return Array.from({ length: 4 }, () => shareAlphabet[Math.floor(Math.random() * shareAlphabet.length)]).join(''); }
 function updateShareQuery(code) { const url = new URL(window.location.href); url.searchParams.set('share', code); history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`); }
 async function createSharedDataset() {
@@ -107,16 +107,32 @@ async function createSharedDataset() {
     let code = createShareCode();
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const reference = shareDatabase.collection('sharedDatasets').doc(code);
-      if (!(await reference.get()).exists) break;
-      code = createShareCode();
+      try {
+        await shareDatabase.runTransaction(async (transaction) => {
+          const snapshot = await transaction.get(reference);
+          if (snapshot.exists) {
+            const error = new Error('共有コードが使用されています');
+            error.code = 'already-exists';
+            throw error;
+          }
+          transaction.set(reference, readSharePayload());
+        });
+        break;
+      } catch (error) {
+        if (error?.code !== 'already-exists' || attempt === 4) throw error;
+        code = createShareCode();
+      }
     }
     activeShareCode = code;
     shareCodeInput.value = code;
-    await shareDatabase.collection('sharedDatasets').doc(code).set(readSharePayload());
     shareReady = true;
     updateShareQuery(code);
     subscribeToSharedDataset();
-    await navigator.clipboard?.writeText(window.location.href);
+    try {
+      await navigator.clipboard?.writeText(window.location.href);
+    } catch (error) {
+      console.warn('共有URLをクリップボードへコピーできませんでした', error);
+    }
     setShareStatus(`共有中: ${code}`);
   } catch (error) {
     console.error(error);
@@ -466,7 +482,7 @@ function drawLogChart(data, size) {
   context.strokeStyle = '#60717b'; context.lineWidth = 1.5; context.beginPath(); context.moveTo(left, bottom); context.lineTo(right, bottom); context.stroke(); context.beginPath(); context.moveTo(left, top); context.lineTo(left, bottom); context.stroke(); context.fillStyle = '#50616b'; context.font = 'italic 36px "KaTeX Math", "STIX Two Math", "Cambria Math", "Times New Roman", serif'; context.fillText(axisVariables.x, right + 10, bottom - 4); context.fillText(axisVariables.y, left + 10, top - 14);
   points.forEach((point) => { const px = toX(point.x); const meanY = toY(point.mean); const topY = toY(point.mean + point.error); const bottomY = toY(Math.max(Number.MIN_VALUE, point.mean - point.error)); context.strokeStyle = '#e56b4d'; context.lineWidth = 2; if (showErrorBarsToggle.checked) { context.beginPath(); context.moveTo(px, topY); context.lineTo(px, bottomY); context.stroke(); } context.fillStyle = '#e56b4d'; context.beginPath(); context.arc(px, meanY, 5, 0, Math.PI * 2); context.fill(); });
 }
-draw = (data, size = canvas.clientWidth) => { if (logXToggle.checked || logYToggle.checked) { drawLogChart(data, size); return; } originalDraw(data, size); context.fillStyle = '#fcfdfd'; context.fillRect(size - 90, size - 100, 90, 45); context.fillRect(68, 20, 80, 55); context.fillStyle = '#50616b'; context.font = 'italic 36px "KaTeX Math", "STIX Two Math", "Cambria Math", "Times New Roman", serif'; context.fillText(axisVariables.x, size - 72, size - 76); context.fillText(axisVariables.y, 82, 58); };
+draw = (data, size = canvas.clientWidth) => { if (logXToggle.checked || logYToggle.checked) { drawLogChart(data, size); return; } originalDraw(data, size); };
 settingsButton.addEventListener('click', () => advancedSettingsDialog.showModal());
 [showGridToggle, showErrorBarsToggle, showRegressionToggle, logXToggle, logYToggle].forEach((toggle) => toggle.addEventListener('change', update));
 document.getElementById('applySettingsButton').addEventListener('click', () => {

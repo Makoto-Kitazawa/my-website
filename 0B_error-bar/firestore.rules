@@ -4,7 +4,9 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /sharedDatasets/{code} {
       allow read: if code.matches('[A-Z0-9]{4}')
-        && (!resource.data.keys().hasAll(['expiresAt']) || resource.data.expiresAt > request.time);
+        && (!exists(/databases/$(database)/documents/sharedDatasets/$(code))
+          || !resource.data.keys().hasAll(['expiresAt'])
+          || resource.data.expiresAt > request.time);
 
       allow create: if code.matches('[A-Z0-9]{4}')
         && request.resource.data.keys().hasOnly([
