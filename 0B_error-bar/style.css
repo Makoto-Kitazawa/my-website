@@ -63,8 +63,12 @@ table { width:100%; border-collapse:collapse; font-size:14px; } th,td { padding:
 .advanced-settings-list { display:grid; gap:14px; margin:20px 0; }
 .advanced-settings-list label { display:flex; align-items:center; gap:8px; color:#52616c; font-size:14px; }
 .advanced-settings-list label:has(input[type="text"]) { justify-content:space-between; }
+.advanced-settings-list label:has(input[type="number"]) { justify-content:space-between; }
 .advanced-settings-list input[type="text"] { width:120px; border:1px solid var(--line); border-radius:4px; padding:6px 8px; color:var(--ink); background:#fbfcfd; }
+.advanced-settings-list label:has(input[type="number"]) input[type="number"] { width:64px; border:1px solid var(--line); border-radius:4px; padding:6px 8px; color:var(--ink); background:#fbfcfd; }
 .advanced-settings-list input { accent-color:var(--accent); }
+.axis-label-row .axis-label-fields { display:flex; gap:6px; }
+.axis-label-row .axis-label-fields input[type="text"] { width:66px; }
 .advanced-settings-actions { display:flex; justify-content:flex-end; }
 .settings-apply-button { border:1px solid var(--accent); border-radius:4px; padding:8px 16px; color:#fff; background:var(--accent); cursor:pointer; }
 .chart-legend { pointer-events:auto; cursor:grab; touch-action:none; user-select:none; }
