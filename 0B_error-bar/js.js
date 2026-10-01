@@ -16,6 +16,9 @@ const legendCurveLabel = document.getElementById('legendCurveLabel');
 const legendCurveBlock = document.getElementById('legendCurveBlock');
 const legendCurveEquation = document.getElementById('legendCurveEquation');
 const legendCurveParameters = document.getElementById('legendCurveParameters');
+const legendCustomFunctionBlock = document.getElementById('legendCustomFunctionBlock');
+const legendCustomFunctionLabel = document.getElementById('legendCustomFunctionLabel');
+const legendCustomFunctionEquation = document.getElementById('legendCustomFunctionEquation');
 const legendHalfLife = { hidden: true, textContent: '' };
 const regressionButton = document.getElementById('regressionSelect');
 const pageQuery = new URLSearchParams(window.location.search);
@@ -31,8 +34,14 @@ const advancedSettingsDialog = document.getElementById('advancedSettingsDialog')
 const showGridToggle = document.getElementById('showGridToggle');
 const showErrorBarsToggle = document.getElementById('showErrorBarsToggle');
 const showRegressionToggle = document.getElementById('showRegressionToggle');
+const showRegressionBandToggle = document.getElementById('showRegressionBandToggle');
 const logXToggle = document.getElementById('logXToggle');
 const logYToggle = document.getElementById('logYToggle');
+const showCustomFunctionToggle = document.getElementById('showCustomFunctionToggle');
+const customFunctionType = document.getElementById('customFunctionType');
+const customFunctionParameters = document.getElementById('customFunctionParameters');
+const customFunctionState = { type: 'linear', values: { A: 1, B: 0, C: 0 } };
+let controlsReady = false;
 const axisXInput = document.getElementById('axisXInput');
 const axisYInput = document.getElementById('axisYInput');
 const axisXLabelInput = document.getElementById('axisXLabelInput');
@@ -52,7 +61,6 @@ function drawAxisLabels(left, right, top, bottom, size, yTitleX = 18, labelFontS
   if (xLabelText) { context.textAlign = 'center'; context.fillText(xLabelText, (left + right) / 2, size - 14); context.textAlign = 'left'; }
   if (yLabelText) { context.save(); context.translate(yTitleX, (top + bottom) / 2); context.rotate(-Math.PI / 2); context.textAlign = 'center'; context.fillText(yLabelText, 0, 0); context.restore(); }
 }
-let regressionEnabled = false;
 let regressionType = 'none';
 let regressionDisplayType = 'none';
 const datasetName = document.getElementById('datasetName');
@@ -240,7 +248,6 @@ function draw(data, size = canvas.clientWidth) { context.clearRect(0, 0, size, s
   context.strokeStyle = '#e7edef'; context.lineWidth = 1; for (let index = 0; index <= divisions; index += 1) { const xValue = xMin + (xRange / divisions) * index; const yValue = yMin + (yRange / divisions) * index; const px = toX(xValue); const py = toY(yValue); if (showGridToggle.checked) { context.beginPath(); context.moveTo(px, paddingTop); context.lineTo(px, size - paddingBottom); context.stroke(); context.beginPath(); context.moveTo(paddingLeft, py); context.lineTo(size - paddingRight, py); context.stroke(); } context.fillStyle = '#65747d'; context.font = '24px sans-serif'; context.fillText(formatAxis(xValue, exponent), px - 18, size - paddingBottom + 30); context.fillText(formatAxis(yValue, exponent, true), yTickX, py + 8); }
   const xAxisY = toY(0); const yAxisX = toX(0); context.strokeStyle = '#60717b'; context.fillStyle = '#60717b'; context.lineWidth = 1.5; context.beginPath(); context.moveTo(paddingLeft, xAxisY); context.lineTo(size - paddingRight, xAxisY); context.stroke(); context.beginPath(); context.moveTo(yAxisX, paddingTop); context.lineTo(yAxisX, size - paddingBottom); context.stroke(); context.beginPath(); context.moveTo(size - paddingRight, xAxisY); context.lineTo(size - paddingRight - 10, xAxisY - 5); context.lineTo(size - paddingRight - 10, xAxisY + 5); context.closePath(); context.fill(); context.beginPath(); context.moveTo(yAxisX, paddingTop); context.lineTo(yAxisX - 5, paddingTop + 10); context.lineTo(yAxisX + 5, paddingTop + 10); context.closePath(); context.fill(); context.fillStyle = '#50616b'; context.font = 'italic 36px "KaTeX Math", "STIX Two Math", "Cambria Math", "Times New Roman", serif'; context.fillText(axisVariables.x, size - paddingRight + 10, xAxisY - 4); context.font = 'italic 36px "KaTeX Math", "STIX Two Math", "Cambria Math", "Times New Roman", serif'; context.fillText(axisVariables.y, yAxisX + 10, paddingTop - 14); if (exponent !== 0) { drawScaleLabel(context, size - paddingRight + 4, xAxisY + 16, exponent); drawScaleLabel(context, yAxisX + 34, paddingTop - 14, exponent); }
   data.forEach((point) => { const px = toX(point.x); const meanY = toY(point.mean); const topY = toY(point.mean + point.error); const bottomY = toY(point.mean - point.error); context.strokeStyle = '#e56b4d'; context.lineWidth = 2; if (showErrorBarsToggle.checked) { context.beginPath(); context.moveTo(px, topY); context.lineTo(px, bottomY); context.stroke(); } context.fillStyle = '#e56b4d'; context.beginPath(); context.arc(px, meanY, 5, 0, Math.PI * 2); context.fill(); context.strokeStyle = '#fff'; context.lineWidth = 1.5; context.stroke(); });
-  const regression = regressionEnabled ? getRegression(data) : null; if (regression) { context.strokeStyle = '#327b9f'; context.lineWidth = 2.5; context.setLineDash([8, 5]); context.beginPath(); context.moveTo(toX(xMin), toY(regression.slope * xMin + regression.intercept)); context.lineTo(toX(xLimit), toY(regression.slope * xLimit + regression.intercept)); context.stroke(); context.setLineDash([]); }
   drawAxisLabels(paddingLeft, size - paddingRight, paddingTop, size - paddingBottom, size, yTitleX, labelFontSize);
 }
 function resizeCanvas() { const size = canvas.clientWidth; const ratio = window.devicePixelRatio || 1; canvas.width = Math.max(1, Math.floor(size * ratio)); canvas.height = Math.max(1, Math.floor(size * ratio)); context.setTransform(ratio, 0, 0, ratio, 0, 0); draw(getData(), size); }
@@ -250,7 +257,7 @@ function updateDecayLegend(data) { if (regressionDisplayType !== 'exponentialDec
 function updateHalfLifeLegend(data) { if (regressionDisplayType !== 'exponentialHalfLife') return; const details = getLegendDetails(data, 'exponential'); if (!details) return; const slope = details.parameters.find((parameter) => parameter.name === 'b'); const halfLife = slope && slope.value < 0 ? -Math.LN2 / slope.value : NaN; const halfLifeError = slope && Number.isFinite(halfLife) ? Math.LN2 * slope.error / slope.value ** 2 : NaN; legendCurveLabel.textContent = '指数回帰（半減期）'; legendCurveEquation.innerHTML = 'y = N<sub>0</sub><span class="legend-upright">(</span><span class="legend-fraction"><span>1</span><span>2</span></span><span class="legend-upright">)</span><sup>x/T</sup>'; legendCurveParameters.replaceChildren(); [{ name: 'N₀', value: details.parameters[0].value, error: details.parameters[0].error }, { name: 'T', value: halfLife, error: halfLifeError }].forEach((parameter) => { const row = document.createElement('div'); row.textContent = Number.isFinite(parameter.value) ? `${parameter.name} = ${format(parameter.value)} ± ${format(parameter.error)}` : `${parameter.name} = 計算不可`; legendCurveParameters.appendChild(row); }); }
 function setHalfLifeEquation() { if (regressionDisplayType === 'exponentialHalfLife') legendCurveEquation.innerHTML = 'y = N<sub>0</sub><span class="legend-upright">(</span><span class="legend-fraction"><span>1</span><span>2</span></span><span class="legend-upright">)</span><sup>x/T</sup>'; updateLegendFitRate(getData()); }
 function drawSelectedRegressionClipped(data) { const size = canvas.clientWidth; const { paddingLeft, paddingRight, paddingTop, paddingBottom } = computeLinearLayout(data, size); context.save(); context.beginPath(); context.rect(paddingLeft, paddingTop, Math.max(0, size - paddingLeft - paddingRight), Math.max(0, size - paddingTop - paddingBottom)); context.clip(); drawSelectedRegression(data); context.restore(); }
-function update() { regressionEnabled = false; const data = getData(); resizeCanvas(); drawSelectedRegressionClipped(data); renderResults(data); updateLegendRegression(data); updateDecayLegend(data); updateHalfLifeLegend(data); setHalfLifeEquation(); saveSharedDataset(); }
+function update() { const data = getData(); resizeCanvas(); renderResults(data); updateLegendRegression(data); updateDecayLegend(data); updateHalfLifeLegend(data); setHalfLifeEquation(); if (controlsReady) { updatePolynomialControls(); updateCustomFunctionLegend(); if (!showRegressionToggle.checked) legendCurveBlock.hidden = true; } saveSharedDataset(); }
 function downloadChart() { const exportCanvas = document.createElement('canvas'); exportCanvas.width = canvas.width; exportCanvas.height = canvas.height; const exportContext = exportCanvas.getContext('2d'); exportContext.drawImage(canvas, 0, 0); const ratio = window.devicePixelRatio || 1; const legendWidth = 230 * ratio; const legendHeight = 76 * ratio; const margin = 16 * ratio; const legendX = exportCanvas.width - legendWidth - margin; const legendY = margin; const accent = '#e56b4d'; exportContext.fillStyle = '#ffffffeb'; exportContext.strokeStyle = '#d8e0e5'; exportContext.lineWidth = ratio; exportContext.fillRect(legendX, legendY, legendWidth, legendHeight); exportContext.strokeRect(legendX, legendY, legendWidth, legendHeight); exportContext.fillStyle = '#18232d'; exportContext.font = `700 ${20 * ratio}px sans-serif`; exportContext.fillText(datasetName.value.trim() || 'データセット', legendX + 12 * ratio, legendY + 25 * ratio); exportContext.fillStyle = accent; exportContext.beginPath(); exportContext.arc(legendX + 17 * ratio, legendY + 48 * ratio, 4 * ratio, 0, Math.PI * 2); exportContext.fill(); exportContext.strokeStyle = accent; exportContext.lineWidth = 2 * ratio; exportContext.beginPath(); exportContext.moveTo(legendX + 37 * ratio, legendY + 39 * ratio); exportContext.lineTo(legendX + 37 * ratio, legendY + 57 * ratio); exportContext.moveTo(legendX + 32 * ratio, legendY + 39 * ratio); exportContext.lineTo(legendX + 42 * ratio, legendY + 39 * ratio); exportContext.moveTo(legendX + 32 * ratio, legendY + 57 * ratio); exportContext.lineTo(legendX + 42 * ratio, legendY + 57 * ratio); exportContext.stroke(); exportContext.fillStyle = '#6b7883'; exportContext.font = `${12 * ratio}px sans-serif`; exportContext.fillText('平均値 / 標準誤差', legendX + 52 * ratio, legendY + 51 * ratio); exportCanvas.toBlob((blob) => { if (!blob) return; const link = document.createElement('a'); link.download = `${datasetName.value.trim() || 'error-bar-graph'}.png`; link.href = URL.createObjectURL(blob); link.click(); URL.revokeObjectURL(link.href); }, 'image/png'); }
 function drawSelectedRegression(data) { const regression = fitCurve(data, regressionType); if (!regression || data.length < 2) return; const size = canvas.clientWidth; const { xMin, xLimit, toX, toY } = computeLinearLayout(data, size); const steps = 160; context.strokeStyle = '#327b9f'; context.lineWidth = 2.5; context.setLineDash([8, 5]); context.beginPath(); let started = false; for (let index = 0; index <= steps; index += 1) { const x = xMin + (xLimit - xMin) * index / steps; const y = regression.evaluate(x); if (!Number.isFinite(y)) { started = false; continue; } if (!started) { context.moveTo(toX(x), toY(y)); started = true; } else context.lineTo(toX(x), toY(y)); } context.stroke(); context.setLineDash([]); }
 function enableLegendDrag() { let drag = null; chartLegend.addEventListener('pointerdown', (event) => { const frame = chartLegend.parentElement.getBoundingClientRect(); const legend = chartLegend.getBoundingClientRect(); drag = { offsetX: event.clientX - legend.left, offsetY: event.clientY - legend.top, frame }; chartLegend.classList.add('dragging'); chartLegend.setPointerCapture(event.pointerId); chartLegend.style.left = `${legend.left - frame.left}px`; chartLegend.style.top = `${legend.top - frame.top}px`; chartLegend.style.right = 'auto'; chartLegend.style.bottom = 'auto'; }); chartLegend.addEventListener('pointermove', (event) => { if (!drag) return; const frame = chartLegend.parentElement.getBoundingClientRect(); const x = Math.max(0, Math.min(frame.width - chartLegend.offsetWidth, event.clientX - frame.left - drag.offsetX)); const y = Math.max(0, Math.min(frame.height - chartLegend.offsetHeight, event.clientY - frame.top - drag.offsetY)); chartLegend.style.left = `${x}px`; chartLegend.style.top = `${y}px`; }); const stop = () => { drag = null; chartLegend.classList.remove('dragging'); }; chartLegend.addEventListener('pointerup', stop); chartLegend.addEventListener('pointercancel', stop); }
@@ -264,8 +271,8 @@ function hasDataOutsideGrid(values, columns, measurements) { const removedColumn
 function isSample() { const xInputs = [...document.querySelectorAll('.x-value')]; const yInputs = [...document.querySelectorAll('.y-value')]; const columns = xInputs.length; const measurements = columns > 0 ? yInputs.length / columns : 0; if (columns === 0 || !Number.isInteger(measurements)) return false; return datasetName.value === sampleData.name && xInputs.every((input, column) => Number(input.value) === sampleData.x[column]) && yInputs.every((input, index) => Number(input.value) === sampleData.y[index % columns]?.[Math.floor(index / columns)]); }
 function clearData() { if (hasActualData() && !isSample() && !window.confirm('入力したデータを消去します。よろしいですか？')) return; datasetName.value = ''; document.querySelectorAll('.data-input').forEach((input) => { input.value = ''; }); update(); }
 function handleCountChange(event) { const values = readGridValues(); const columns = event.target === pointCount ? clampCount(event.target) : values.x.length; const measurements = event.target === sampleCount ? clampCount(event.target) : values.y[0]?.length ?? 0; if (hasDataOutsideGrid(values, columns, measurements) && !isSample() && !window.confirm('入力したデータが消えます。設定を変更しますか？')) { event.target.value = event.target.dataset.previousValue; return; } renderInputs(values); }
-datasetName.addEventListener('input', update); regressionButton.addEventListener('click', () => { regressionEnabled = !regressionEnabled; update(); }); pointCount.addEventListener('change', handleCountChange); sampleCount.addEventListener('change', handleCountChange); inputBody.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; event.preventDefault(); moveVerticalInput(event.target, event.shiftKey ? -1 : 1); }); inputBody.addEventListener('paste', pasteTableValues); document.getElementById('clearButton').addEventListener('click', clearData); document.getElementById('resetButton').addEventListener('click', () => { if (hasActualData() && !isSample() && !window.confirm('入力したデータをサンプルに戻します。よろしいですか？')) return; pointCount.value = sampleData.x.length; sampleCount.value = sampleData.y[0].length; renderInputs(sampleData); }); document.getElementById('dialogClose').addEventListener('click', () => infoDialog.close()); document.getElementById('downloadButton').addEventListener('click', downloadChart); document.getElementById('svgButton').addEventListener('click', downloadSvg); document.getElementById('csvButton').addEventListener('click', downloadCsv); window.addEventListener('resize', resizeCanvas); renderInputs();
-regressionButton.addEventListener('change', () => { regressionType = regressionButton.value; regressionEnabled = false; update(); }); enableLegendDrag();
+datasetName.addEventListener('input', update); pointCount.addEventListener('change', handleCountChange); sampleCount.addEventListener('change', handleCountChange); inputBody.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; event.preventDefault(); moveVerticalInput(event.target, event.shiftKey ? -1 : 1); }); inputBody.addEventListener('paste', pasteTableValues); document.getElementById('clearButton').addEventListener('click', clearData); document.getElementById('resetButton').addEventListener('click', () => { if (hasActualData() && !isSample() && !window.confirm('入力したデータをサンプルに戻します。よろしいですか？')) return; pointCount.value = sampleData.x.length; sampleCount.value = sampleData.y[0].length; renderInputs(sampleData); }); document.getElementById('dialogClose').addEventListener('click', () => infoDialog.close()); document.getElementById('downloadButton').addEventListener('click', downloadChart); document.getElementById('svgButton').addEventListener('click', downloadSvg); document.getElementById('csvButton').addEventListener('click', downloadCsv); window.addEventListener('resize', resizeCanvas); renderInputs();
+regressionButton.addEventListener('change', () => { regressionType = regressionButton.value; update(); }); enableLegendDrag();
 regressionButton.addEventListener('change', () => { regressionDisplayType = regressionButton.value; regressionType = ['exponentialDecay', 'exponentialHalfLife'].includes(regressionDisplayType) ? 'exponential' : regressionDisplayType; update(); });
 shareButton.addEventListener('click', createSharedDataset); loadShareButton.addEventListener('click', loadSharedDataset); shareCodeInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') loadSharedDataset(); }); if (!shareDatabase) setShareStatus('共有機能を使うにはFirebase設定が必要です'); if (activeShareCode) { shareCodeInput.value = activeShareCode; subscribeToSharedDataset(); }
 function updateLegendRegression(data) { const fitType = regressionDisplayType === 'exponentialDecay' ? 'exponential' : regressionDisplayType; const details = getLegendDetails(data, fitType); legendCurveBlock.hidden = !details; legendHalfLife.hidden = regressionDisplayType !== 'exponentialDecay' || !details; if (!details) { legendCurveParameters.replaceChildren(); legendHalfLife.textContent = ''; return; } if (fitType === 'quadratic') { const errors = getQuadraticParameterErrors(data); if (errors) details.parameters.forEach((parameter, index) => { parameter.error = errors[2 - index]; }); } const equations = { linear: 'y = Ax + B', quadratic: 'y = Ax<sup>2</sup> <span class="legend-operator">+</span> Bx <span class="legend-operator">+</span> C', exponential: regressionDisplayType === 'exponentialDecay' ? 'y = Ae<sup><span class="legend-operator">-</span>x/τ</sup>' : 'y = Ae<sup>Bx</sup>', inverse: 'y = A/x <span class="legend-operator">+</span> B' }; legendCurveLabel.textContent = regressionDisplayType === 'exponentialDecay' ? '指数回帰（減衰）' : details.label; if (regressionDisplayType === 'exponentialDecay') { const slope = details.parameters.find((parameter) => parameter.name === 'b'); const tau = slope && slope.value < 0 ? -1 / slope.value : NaN; const tauError = slope && Number.isFinite(tau) ? slope.error / slope.value ** 2 : NaN; details.parameters = [{ name: 'A', value: details.parameters[0].value, error: details.parameters[0].error }, { name: 'τ', value: tau, error: tauError }]; const halfLife = Number.isFinite(tau) ? tau * Math.LN2 : NaN; const halfLifeError = Number.isFinite(tauError) ? tauError * Math.LN2 : NaN; legendHalfLife.textContent = Number.isFinite(halfLife) ? `半減期 = ${format(halfLife)} ± ${format(halfLifeError)}` : '半減期 = 計算不可'; } legendCurveEquation.innerHTML = equations[fitType] || ''; legendCurveParameters.replaceChildren(); details.parameters.forEach((parameter) => { const row = document.createElement('div'); row.textContent = Number.isFinite(parameter.value) ? `${parameter.name} = ${format(parameter.value)} ± ${format(parameter.error)}` : `${parameter.name} = 計算不可`; legendCurveParameters.appendChild(row); }); }
@@ -407,7 +414,7 @@ function getMatrixInverse(source) {
 
 function getPolynomialLegendDetails(data) {
   const degree = getPolynomialDegree();
-  const regression = getPolynomialRegression(data, degree);
+  const regression = getImprovedRegression(data, 'polynomial');
   if (!regression) return null;
   const parameterNames = Array.from({ length: degree + 1 }, (_, index) => String.fromCharCode(65 + index));
   const equation = regression.coefficients.slice().reverse().map((_, index) => {
@@ -442,10 +449,135 @@ function getSquareRootRegression(data) {
 }
 
 function getSquareRootLegendDetails(data) {
-  const regression = getSquareRootRegression(data);
+  const regression = getImprovedRegression(data, 'squareRoot');
   if (!regression) return null;
   const throughOrigin = squareRootOrigin.checked;
-  return { label: throughOrigin ? '平方根回帰（原点通過）' : '平方根回帰', equation: throughOrigin ? 'y = A√x' : 'y = A√x <span class="legend-operator">+</span> B', parameters: throughOrigin ? [{ name: 'A', value: regression.slope, error: regression.slopeError }] : [{ name: 'A', value: regression.slope, error: regression.slopeError }, { name: 'B', value: regression.intercept, error: regression.interceptError }] };
+  const coefficients = throughOrigin ? regression.coefficients : [regression.coefficients[1], regression.coefficients[0]];
+  const errors = throughOrigin ? regression.errors : [regression.errors[1], regression.errors[0]];
+  return { label: throughOrigin ? '平方根回帰（原点通過）' : '平方根回帰', equation: throughOrigin ? 'y = A√x' : 'y = A√x <span class="legend-operator">+</span> B', parameters: throughOrigin ? [{ name: 'A', value: coefficients[0], error: errors[0] }] : [{ name: 'A', value: coefficients[0], error: errors[0] }, { name: 'B', value: coefficients[1], error: errors[1] }] };
+}
+
+const customFunctionParametersByType = {
+  linear: [{ name: 'A', value: 1 }, { name: 'B', value: 0 }],
+  quadratic: [{ name: 'A', value: 1 }, { name: 'B', value: 0 }, { name: 'C', value: 0 }],
+  exponential: [{ name: 'A', value: 1 }, { name: 'B', value: 1 }],
+  inverse: [{ name: 'A', value: 1 }, { name: 'B', value: 0 }],
+  squareRoot: [{ name: 'A', value: 1 }, { name: 'B', value: 0 }]
+};
+
+function renderCustomFunctionParameters() {
+  const definitions = customFunctionParametersByType[customFunctionType.value] || customFunctionParametersByType.linear;
+  customFunctionState.type = customFunctionType.value;
+  definitions.forEach(({ name, value }) => { if (!Number.isFinite(customFunctionState.values[name])) customFunctionState.values[name] = value; });
+  customFunctionParameters.className = 'custom-function-parameters';
+  customFunctionParameters.replaceChildren(...definitions.map(({ name }) => {
+    const label = document.createElement('label');
+    label.className = 'custom-function-parameter';
+    label.innerHTML = `<span>${name} =</span>`;
+    const input = document.createElement('input');
+    input.type = 'number'; input.step = 'any'; input.value = customFunctionState.values[name]; input.setAttribute('aria-label', `任意関数の定数 ${name}`);
+    input.addEventListener('input', () => { customFunctionState.values[name] = Number.parseFloat(input.value); update(); });
+    label.appendChild(input);
+    return label;
+  }));
+}
+
+function getCustomFunctionModel() {
+  const { A, B, C } = customFunctionState.values;
+  if (![A, B, C].some(Number.isNaN)) {
+    const evaluate = {
+      linear: (x) => A * x + B,
+      quadratic: (x) => A * x ** 2 + B * x + C,
+      exponential: (x) => A * Math.exp(B * x),
+      inverse: (x) => x === 0 ? NaN : A / x + B,
+      squareRoot: (x) => x < 0 ? NaN : A * Math.sqrt(x) + B
+    }[customFunctionState.type];
+    if (evaluate) return { evaluate };
+  }
+  return null;
+}
+
+function getCustomFunctionEquation() {
+  const { A, B, C } = customFunctionState.values;
+  const value = (number) => Number.isFinite(number) ? format(number) : '?';
+  return { linear: `y = ${value(A)}x + ${value(B)}`, quadratic: `y = ${value(A)}x² + ${value(B)}x + ${value(C)}`, exponential: `y = ${value(A)}e^(${value(B)}x)`, inverse: `y = ${value(A)}/x + ${value(B)}`, squareRoot: `y = ${value(A)}√x + ${value(B)}` }[customFunctionState.type];
+}
+
+function drawCustomFunction(data, size) {
+  if (!showCustomFunctionToggle.checked || logXToggle.checked || logYToggle.checked) return;
+  const model = getCustomFunctionModel();
+  if (!model) return;
+  const { xMin, xLimit, toX, toY } = computeLinearLayout(data, size);
+  context.strokeStyle = '#8c6fb1'; context.lineWidth = 2.5; context.setLineDash([2, 6]); context.beginPath();
+  let started = false;
+  for (let index = 0; index <= 160; index += 1) {
+    const x = xMin + (xLimit - xMin) * index / 160;
+    const y = model.evaluate(x);
+    if (!Number.isFinite(y)) { started = false; continue; }
+    if (!started) { context.moveTo(toX(x), toY(y)); started = true; } else context.lineTo(toX(x), toY(y));
+  }
+  context.stroke(); context.setLineDash([]);
+}
+
+function updateCustomFunctionLegend() {
+  const visible = showCustomFunctionToggle.checked && getCustomFunctionModel();
+  legendCustomFunctionBlock.hidden = !visible;
+  if (visible) { legendCustomFunctionLabel.textContent = '任意関数'; legendCustomFunctionEquation.textContent = getCustomFunctionEquation(); }
+}
+
+function fitWeightedModel(data, basis, valueOf, sigmaOf, evaluate) {
+  const validData = data.filter((point) => Number.isFinite(valueOf(point)) && basis.every((getBasis) => Number.isFinite(getBasis(point))));
+  const size = basis.length;
+  if (validData.length < size) return null;
+  const normal = Array.from({ length: size }, () => Array(size).fill(0));
+  const right = Array(size).fill(0);
+  validData.forEach((point) => {
+    const values = basis.map((getBasis) => getBasis(point));
+    const sigma = sigmaOf(point);
+    const weight = sigma > 0 && Number.isFinite(sigma) ? 1 / sigma ** 2 : 1;
+    values.forEach((value, row) => {
+      right[row] += weight * value * valueOf(point);
+      values.forEach((otherValue, column) => { normal[row][column] += weight * value * otherValue; });
+    });
+  });
+  const covariance = getMatrixInverse(normal);
+  if (!covariance) return null;
+  const coefficients = covariance.map((row) => row.reduce((sum, value, index) => sum + value * right[index], 0));
+  const predictionUncertainty = (x) => {
+    const values = basis.map((getBasis) => getBasis({ x }));
+    if (values.some((value) => !Number.isFinite(value))) return NaN;
+    const variance = values.reduce((sum, value, row) => sum + value * values.reduce((inner, otherValue, column) => inner + otherValue * covariance[row][column], 0), 0);
+    return Math.sqrt(Math.max(0, variance));
+  };
+  return { coefficients, covariance, errors: covariance.map((row, index) => Math.sqrt(Math.max(0, row[index]))), evaluate: (x) => evaluate(coefficients, x), uncertainty: (x) => predictionUncertainty(x), rSquared: getRSquared(data, (x) => evaluate(coefficients, x)) };
+}
+
+function getImprovedRegression(data, type) {
+  if (type === 'linear') return fitWeightedModel(data, [() => 1, (point) => point.x], (point) => point.mean, (point) => point.error, ([intercept, slope], x) => intercept + slope * x);
+  if (type === 'quadratic') return fitWeightedModel(data, [() => 1, (point) => point.x, (point) => point.x ** 2], (point) => point.mean, (point) => point.error, ([constant, linear, quadratic], x) => constant + linear * x + quadratic * x ** 2);
+  if (type === 'polynomial') {
+    const degree = getPolynomialDegree();
+    return fitWeightedModel(data, Array.from({ length: degree + 1 }, (_, power) => (point) => point.x ** power), (point) => point.mean, (point) => point.error, (coefficients, x) => coefficients.reduce((sum, coefficient, power) => sum + coefficient * x ** power, 0));
+  }
+  if (type === 'exponential') {
+    const positive = data.filter((point) => point.mean > 0);
+    const fit = fitWeightedModel(positive, [() => 1, (point) => point.x], (point) => Math.log(point.mean), (point) => point.error > 0 ? point.error / point.mean : 1, ([intercept, slope], x) => Math.exp(intercept + slope * x));
+    if (!fit) return null;
+    const transformedUncertainty = fit.uncertainty;
+    return { ...fit, uncertainty: (x) => { const value = fit.evaluate(x); return Number.isFinite(value) ? Math.abs(value) * transformedUncertainty(x) : NaN; }, rSquared: getRSquared(data, fit.evaluate) };
+  }
+  if (type === 'inverse') {
+    const valid = data.filter((point) => point.x !== 0);
+    return fitWeightedModel(valid, [() => 1, (point) => 1 / point.x], (point) => point.mean, (point) => point.error, ([intercept, coefficient], x) => x === 0 ? NaN : intercept + coefficient / x);
+  }
+  if (type === 'squareRoot') {
+    const valid = data.filter((point) => point.x >= 0);
+    const basis = squareRootOrigin.checked ? [(point) => Math.sqrt(point.x)] : [() => 1, (point) => Math.sqrt(point.x)];
+    const fit = fitWeightedModel(valid, basis, (point) => point.mean, (point) => point.error, (coefficients, x) => x < 0 ? NaN : coefficients.reduce((sum, coefficient, index) => sum + coefficient * (index === 0 && !squareRootOrigin.checked ? 1 : Math.sqrt(x)), 0));
+    if (!fit) return null;
+    return { ...fit, evaluate: (x) => x < 0 ? NaN : fit.evaluate(x) };
+  }
+  return null;
 }
 
 function updatePolynomialControls(data = getData()) {
@@ -457,8 +589,18 @@ function updatePolynomialControls(data = getData()) {
   polynomialWarning.textContent = polynomialWarning.hidden ? '' : 'この次数ではすべての点を通るため、係数の誤差は算出できません。';
 }
 
-fitCurve = (data, type) => type === 'polynomial' ? getPolynomialRegression(data) : type === 'squareRoot' ? getSquareRootRegression(data) : originalFitCurve(data, type);
-getLegendDetails = (data, type) => type === 'polynomial' ? getPolynomialLegendDetails(data) : type === 'squareRoot' ? getSquareRootLegendDetails(data) : originalGetLegendDetails(data, type);
+fitCurve = (data, type) => getImprovedRegression(data, type) || (type === 'polynomial' ? getPolynomialRegression(data) : type === 'squareRoot' ? getSquareRootRegression(data) : originalFitCurve(data, type));
+getLegendDetails = (data, type) => {
+  const fit = fitCurve(data, type);
+  if (!fit) return null;
+  if (type === 'linear') return { label: '1次回帰', equation: 'y = Ax + B', parameters: [{ name: 'A', value: fit.coefficients[1], error: fit.errors[1] }, { name: 'B', value: fit.coefficients[0], error: fit.errors[0] }] };
+  if (type === 'quadratic') return { label: '2次回帰', equation: 'y = Ax² + Bx + C', parameters: [{ name: 'A', value: fit.coefficients[2], error: fit.errors[2] }, { name: 'B', value: fit.coefficients[1], error: fit.errors[1] }, { name: 'C', value: fit.coefficients[0], error: fit.errors[0] }] };
+  if (type === 'polynomial') return getPolynomialLegendDetails(data);
+  if (type === 'exponential') { const amplitude = Math.exp(fit.coefficients[0]); return { label: '指数回帰', equation: 'y = Ae^(Bx)', parameters: [{ name: 'A', value: amplitude, error: amplitude * fit.errors[0] }, { name: 'B', value: fit.coefficients[1], error: fit.errors[1] }] }; }
+  if (type === 'inverse') return { label: '反比例回帰', equation: 'y = A/x + B', parameters: [{ name: 'A', value: fit.coefficients[1], error: fit.errors[1] }, { name: 'B', value: fit.coefficients[0], error: fit.errors[0] }] };
+  if (type === 'squareRoot') return getSquareRootLegendDetails(data);
+  return originalGetLegendDetails(data, type);
+};
 getExportLegendLines = (data) => {
   if (!['polynomial', 'squareRoot'].includes(regressionDisplayType)) return originalGetExportLegendLines(data);
   const details = regressionDisplayType === 'polynomial' ? getPolynomialLegendDetails(data) : getSquareRootLegendDetails(data);
@@ -475,18 +617,48 @@ polynomialDegree.addEventListener('change', () => {
   getPolynomialDegree();
   update();
 });
-polynomialDegree.addEventListener('input', () => update());
-squareRootOrigin.addEventListener('change', () => update());
-const originalUpdate = update;
-update = () => {
-  originalUpdate();
-  updatePolynomialControls();
-  if (!showRegressionToggle.checked) legendCurveBlock.hidden = true;
-};
+polynomialDegree.addEventListener('input', update);
+squareRootOrigin.addEventListener('change', update);
 updatePolynomialControls();
 const originalDrawSelectedRegression = drawSelectedRegression;
+function getRegressionUncertaintyBand(data, xMin, xLimit, steps) {
+  const baseRegression = fitCurve(data, regressionType);
+  if (!baseRegression?.uncertainty || !data.some((point) => point.error > 0)) return [];
+  const band = [];
+  for (let index = 0; index <= steps; index += 1) {
+    const x = xMin + (xLimit - xMin) * index / steps;
+    const baseValue = baseRegression.evaluate(x);
+    if (!Number.isFinite(baseValue)) { band.push(null); continue; }
+    const sigma = baseRegression.uncertainty(x);
+    band.push(Number.isFinite(sigma) ? { x, lower: baseValue - sigma, upper: baseValue + sigma } : null);
+  }
+  return band;
+}
+function drawRegressionUncertaintyBand(data) {
+  if (!showRegressionBandToggle.checked || !showRegressionToggle.checked || logXToggle.checked || logYToggle.checked) return;
+  const size = canvas.clientWidth;
+  const { xMin, xLimit, toX, toY } = computeLinearLayout(data, size);
+  const steps = 160;
+  const band = getRegressionUncertaintyBand(data, xMin, xLimit, steps);
+  const segments = [];
+  let segment = [];
+  band.forEach((point) => { if (point) segment.push(point); else if (segment.length) { segments.push(segment); segment = []; } });
+  if (segment.length) segments.push(segment);
+  context.fillStyle = 'rgba(50, 123, 159, 0.16)';
+  segments.forEach((points) => {
+    if (points.length < 2) return;
+    context.beginPath();
+    points.forEach((point, index) => { if (index === 0) context.moveTo(toX(point.x), toY(point.upper)); else context.lineTo(toX(point.x), toY(point.upper)); });
+    points.slice().reverse().forEach((point) => context.lineTo(toX(point.x), toY(point.lower)));
+    context.closePath();
+    context.fill();
+  });
+}
 drawSelectedRegression = (data) => {
-  if (showRegressionToggle.checked && !logXToggle.checked && !logYToggle.checked) originalDrawSelectedRegression(data);
+  if (showRegressionToggle.checked && !logXToggle.checked && !logYToggle.checked) {
+    drawRegressionUncertaintyBand(data);
+    originalDrawSelectedRegression(data);
+  }
 };
 const originalDraw = draw;
 function drawLogChart(data, size) {
@@ -516,9 +688,13 @@ function drawLogChart(data, size) {
   points.forEach((point) => { const px = toX(point.x); const meanY = toY(point.mean); const topY = toY(point.mean + point.error); const bottomY = toY(Math.max(Number.MIN_VALUE, point.mean - point.error)); context.strokeStyle = '#e56b4d'; context.lineWidth = 2; if (showErrorBarsToggle.checked) { context.beginPath(); context.moveTo(px, topY); context.lineTo(px, bottomY); context.stroke(); } context.fillStyle = '#e56b4d'; context.beginPath(); context.arc(px, meanY, 5, 0, Math.PI * 2); context.fill(); });
   drawAxisLabels(left, right, top, bottom, size, yTitleX, labelFontSize);
 }
-draw = (data, size = canvas.clientWidth) => { if (logXToggle.checked || logYToggle.checked) { drawLogChart(data, size); return; } originalDraw(data, size); };
+draw = (data, size = canvas.clientWidth) => { if (logXToggle.checked || logYToggle.checked) { drawLogChart(data, size); return; } originalDraw(data, size); drawSelectedRegressionClipped(data); drawCustomFunction(data, size); };
 settingsButton.addEventListener('click', () => advancedSettingsDialog.showModal());
-[showGridToggle, showErrorBarsToggle, showRegressionToggle, logXToggle, logYToggle].forEach((toggle) => toggle.addEventListener('change', () => update()));
+[showGridToggle, showErrorBarsToggle, showRegressionToggle, showRegressionBandToggle, logXToggle, logYToggle, showCustomFunctionToggle].forEach((toggle) => toggle.addEventListener('change', update));
+customFunctionType.addEventListener('change', () => { customFunctionState.type = customFunctionType.value; renderCustomFunctionParameters(); update(); });
+renderCustomFunctionParameters();
+controlsReady = true;
+update();
 document.getElementById('applySettingsButton').addEventListener('click', () => {
   const params = new URLSearchParams();
   const shareCode = pageQuery.get('share');
@@ -547,3 +723,6 @@ resetButtonReplacement.addEventListener('click', () => {
   sampleCount.value = sampleData.y[0].length;
   renderInputs(sampleData);
 });
+const chartResizeObserver = new ResizeObserver(() => resizeCanvas());
+chartResizeObserver.observe(chartFrame);
+window.addEventListener('scroll', () => requestAnimationFrame(resizeCanvas), { passive: true });
