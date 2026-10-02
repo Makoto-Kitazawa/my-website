@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 // 設定を読み込み
 const config = JSON.parse(fs.readFileSync('tree-config.json', 'utf8'));
@@ -247,6 +248,31 @@ for (const item of tree) {
 // 既存のconfigを更新
 config.metadata = updatedMetadata;
 
+// バージョン生成: "major.commitsSinceMajorChange"
+// config.version は開発者が管理するメジャー番号のみ（例: "1"）。
+// 2つ目の数字は、そのメジャー番号になってからのコミット回数。
+// tree-config.json の version が現在と異なる値に変更された最新のコミットを探し、
+// それ以降のコミット数を数える。見つからなければ全コミット数。
+function computeVersion() {
+  const major = String(config.version).replace(/^v/, '').split('.')[0] || '1';
+  try {
+    const history = execSync('git log --format=%H -G"\\\"version\\\"" -- tree-config.json', { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
+    let baseCommit = null;
+    for (const hash of history) {
+      const content = execSync(`git show ${hash}:tree-config.json`, { encoding: 'utf8' });
+      const oldMajor = String(JSON.parse(content).version).replace(/^v/, '').split('.')[0];
+      if (oldMajor !== major) { baseCommit = hash; break; }
+    }
+    const count = baseCommit
+      ? parseInt(execSync(`git rev-list --count ${baseCommit}..HEAD`, { encoding: 'utf8' }).trim(), 10)
+      : parseInt(execSync('git rev-list --count HEAD', { encoding: 'utf8' }).trim(), 10);
+    return `v${major}.${count}`;
+  } catch (error) {
+    console.warn('⚠️  gitからコミット数を取得できませんでした。major.0 を使用します:', error.message);
+    return `v${major}.0`;
+  }
+}
+
 // tree-config.jsonに書き戻し
 fs.writeFileSync('tree-config.json', JSON.stringify(config, null, 2));
 console.log('✅ tree-config.json updated successfully!');
@@ -256,10 +282,11 @@ const treeHTML = generateTreeHTML(groups);
 
 // テンプレートと結合
 const template = fs.readFileSync('index.template.html', 'utf8');
+const version = computeVersion();
 let finalHTML = template.replace('{{TREE}}', treeHTML);
-finalHTML = finalHTML.replace('{{VERSION}}', config.version);
+finalHTML = finalHTML.replace('{{VERSION}}', version);
 finalHTML = finalHTML.replace('{{ROOT_LABEL}}', config.rootLabel);
 
 fs.writeFileSync('index.html', finalHTML);
 console.log('✅ index.html generated successfully!');
-console.log(`   Version: ${config.version}`);
+console.log(`   Version: ${version}`);
