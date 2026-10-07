@@ -80,47 +80,57 @@ let sharePollTimer = null;
 let applyingSharedData = false;
 let shareReady = false;
 let shareSaveTimer = null;
-let lastSyncedShareSignature = '';
+let lastSyncedMetaSignature = '';
+let lastSyncedColumnValues = [];
 let isShareActionPending = false;
-let pendingRemotePayload = null;
+let pendingRemoteMeta = null;
+const pendingRemoteColumns = new Map();
 let lastLocalEditAt = 0;
+let metaDirty = false;
+const dirtyColumns = new Set();
 const shareAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SHARE_SYNC_DEBOUNCE_MS = 1200;
 const SHARE_POLL_INTERVAL_MS = 60000;
 const LOCAL_EDIT_GRACE_MS = 3000;
 const SHARE_EXPIRATION_HOURS = 168;
 
-function getSharePayloadSignature(payload = readSharePayload()) {
-  return JSON.stringify({
-    name: payload?.name ?? '',
-    x: payload?.x ?? [],
-    y: payload?.y ?? [],
-    pointCount: payload?.pointCount ?? 0,
-    sampleCount: payload?.sampleCount ?? 0,
-  });
+function getInputColumnIndex(input) {
+  const xInputs = [...document.querySelectorAll('.x-value')];
+  if (input.classList.contains('x-value')) return xInputs.indexOf(input);
+  if (xInputs.length === 0) return -1;
+  const index = [...document.querySelectorAll('.y-value')].indexOf(input);
+  return index >= 0 ? index % xInputs.length : -1;
 }
+function readColumnValue(column) {
+  const xInputs = [...document.querySelectorAll('.x-value')];
+  const yInputs = [...document.querySelectorAll('.y-value')];
+  const columns = xInputs.length;
+  const measurements = columns > 0 ? yInputs.length / columns : 0;
+  return { x: xInputs[column]?.value ?? '', y: Array.from({ length: measurements }, (_, row) => yInputs[row * columns + column]?.value ?? '') };
+}
+function normalizeColumnValue(value) { return { x: String(value?.x ?? ''), y: Array.isArray(value?.y) ? value.y.map((entry) => String(entry ?? '')) : [] }; }
+function getColumnSignature(value) { const normalized = normalizeColumnValue(value); return JSON.stringify([normalized.x, ...normalized.y]); }
+function readShareMeta() { return { name: datasetName.value, pointCount: clampCount(pointCount), sampleCount: clampCount(sampleCount) }; }
+function getMetaSignature(meta = readShareMeta()) { return JSON.stringify(meta); }
+function markLocalStateSynced() { lastSyncedMetaSignature = getMetaSignature(); const columns = document.querySelectorAll('.x-value').length; lastSyncedColumnValues = Array.from({ length: columns }, (_, column) => getColumnSignature(readColumnValue(column))); }
+function markAllColumnsDirty() { const columns = document.querySelectorAll('.x-value').length; for (let column = 0; column < columns; column += 1) dirtyColumns.add(column); }
+function hasUnsyncedLocalChanges() { if (metaDirty || dirtyColumns.size > 0) return true; if (lastSyncedMetaSignature === '') return false; return getMetaSignature() !== lastSyncedMetaSignature; }
 
 function clampCount(input) { const max = input === pointCount ? 40 : 12; const count = Math.min(max, Math.max(1, Number.parseInt(input.value, 10) || 1)); input.value = count; return count; }
-function noteLocalEdit() { lastLocalEditAt = Date.now(); }
-function makeInput(label, value, className) { const input = document.createElement('input'); input.className = `data-input ${className}`; input.type = 'number'; input.step = 'any'; input.inputMode = 'decimal'; input.value = value ?? ''; input.setAttribute('aria-label', label); input.addEventListener('input', () => { noteLocalEdit(); update(); }); return input; }
+function noteLocalEdit(input) {
+  lastLocalEditAt = Date.now();
+  if (input?.classList?.contains('data-input')) {
+    const column = getInputColumnIndex(input);
+    if (column >= 0) dirtyColumns.add(column);
+  }
+}
+function noteMetaEdit() { lastLocalEditAt = Date.now(); metaDirty = true; }
+function makeInput(label, value, className) { const input = document.createElement('input'); input.className = `data-input ${className}`; input.type = 'number'; input.step = 'any'; input.inputMode = 'decimal'; input.value = value ?? ''; input.setAttribute('aria-label', label); input.addEventListener('input', () => { noteLocalEdit(input); update(); }); return input; }
 function readGridValues() { const xInputs = [...document.querySelectorAll('.x-value')]; const yInputs = [...document.querySelectorAll('.y-value')]; const columns = xInputs.length; const measurements = columns > 0 ? yInputs.length / columns : 0; if (columns === 0) return null; return { name: datasetName.value, x: xInputs.map((input) => input.value), y: Array.from({ length: columns }, (_, column) => Array.from({ length: measurements }, (_, row) => yInputs[row * columns + column]?.value ?? '')) }; }
 function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character])); }
 function renderInputs(values = readGridValues()) { const columns = clampCount(pointCount); const measurements = clampCount(sampleCount); const source = values ?? sampleData; datasetName.value = source.name ?? ''; pointCount.dataset.previousValue = columns; sampleCount.dataset.previousValue = measurements; inputHead.innerHTML = `<tr><th scope="col">項目</th>${Array.from({ length: columns }, (_, index) => `<th scope="col">データ ${index + 1}</th>`).join('')}</tr>`; inputBody.replaceChildren(); const xRow = document.createElement('tr'); xRow.innerHTML = `<th scope="row">横軸 ${escapeHtml(axisVariables.x)}</th>`; for (let column = 0; column < columns; column += 1) { const cell = document.createElement('td'); cell.appendChild(makeInput(`データ ${column + 1} の ${axisVariables.x}`, source.x[column] ?? '', 'x-value')); xRow.appendChild(cell); } inputBody.appendChild(xRow); for (let rowIndex = 0; rowIndex < measurements; rowIndex += 1) { const row = document.createElement('tr'); row.innerHTML = `<th scope="row">測定 ${rowIndex + 1}</th>`; for (let column = 0; column < columns; column += 1) { const cell = document.createElement('td'); cell.appendChild(makeInput(`データ ${column + 1} の測定 ${rowIndex + 1}`, source.y[column]?.[rowIndex] ?? '', 'y-value')); row.appendChild(cell); } inputBody.appendChild(row); } dataCount.textContent = `${columns} 列`; update(); }
 function readNumber(input) { const value = Number.parseFloat(input.value); return Number.isFinite(value) ? value : null; }
 function getData() { const xInputs = [...document.querySelectorAll('.x-value')]; const yInputs = [...document.querySelectorAll('.y-value')]; const measurements = clampCount(sampleCount); const data = []; xInputs.forEach((input, column) => { const x = readNumber(input); const values = yInputs.filter((_, index) => index % xInputs.length === column).slice(0, measurements).map(readNumber).filter((value) => value !== null); if (x === null || values.length === 0) return; const mean = values.reduce((sum, value) => sum + value, 0) / values.length; const variance = values.length > 1 ? values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (values.length - 1) : 0; data.push({ x, mean, error: Math.sqrt(variance) / Math.sqrt(values.length) }); }); return data; }
-function readSharePayload() {
-  const values = readGridValues();
-  const expiresDate = new Date(Date.now() + SHARE_EXPIRATION_HOURS * 60 * 60 * 1000);
-  return {
-    name: datasetName.value,
-    x: values.x,
-    y: values.y.flat(),
-    pointCount: clampCount(pointCount),
-    sampleCount: clampCount(sampleCount),
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    expiresAt: firebase.firestore.Timestamp.fromDate(expiresDate)
-  };
-}
 function decodeSharePayload(payload) { const measurements = Math.min(12, Math.max(1, Number.parseInt(payload.sampleCount, 10) || 1)); const columns = Math.min(40, Math.max(1, Number.parseInt(payload.pointCount, 10) || 1)); return { ...payload, y: Array.from({ length: columns }, (_, column) => payload.y.slice(column * measurements, (column + 1) * measurements)) }; }
 function setShareStatus(message) { shareStatus.textContent = message; }
 function formatShareError(error) { if (error?.code === 'permission-denied') return 'Firestoreの権限または共有データの有効期限により拒否されました'; if (error?.code === 'failed-precondition') return 'Firestore Databaseが作成されていません'; if (error?.code === 'unavailable') return 'Firestoreへ接続できません'; return `共有エラー: ${error?.message || '原因不明'}`; }
@@ -143,7 +153,13 @@ async function createSharedDataset() {
             error.code = 'already-exists';
             throw error;
           }
-          transaction.set(reference, readSharePayload());
+          transaction.set(reference, {
+            ...readShareMeta(),
+            formatVersion: 2,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            expiresAt: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + SHARE_EXPIRATION_HOURS * 60 * 60 * 1000))
+          });
         });
         break;
       } catch (error) {
@@ -153,8 +169,11 @@ async function createSharedDataset() {
     }
     activeShareCode = code;
     shareCodeInput.value = code;
+    lastSyncedMetaSignature = '';
+    lastSyncedColumnValues = [];
     shareReady = true;
     updateShareQuery(code);
+    await commitSharedChanges();
     subscribeToSharedDataset();
     try {
       await navigator.clipboard?.writeText(window.location.href);
@@ -180,8 +199,9 @@ async function fetchSharedDataset() {
   if (!shareDatabase || !activeShareCode) return;
   flushPendingRemoteUpdate();
   try {
-    const snapshot = await shareDatabase.collection('sharedDatasets').doc(activeShareCode).get();
-    handleSharedSnapshot(snapshot);
+    const reference = shareDatabase.collection('sharedDatasets').doc(activeShareCode);
+    const [snapshot, columnsSnapshot] = await Promise.all([reference.get(), reference.collection('columns').get()]);
+    handleSharedSnapshot(snapshot, columnsSnapshot);
   } catch (error) {
     shareReady = false;
     console.error(error);
@@ -192,44 +212,62 @@ function isLocalEditInProgress() {
   const active = document.activeElement;
   if (active && (active.classList?.contains('data-input') || active === datasetName)) return true;
   if (Date.now() - lastLocalEditAt < LOCAL_EDIT_GRACE_MS) return true;
-  return lastSyncedShareSignature !== '' && getSharePayloadSignature() !== lastSyncedShareSignature;
+  return hasUnsyncedLocalChanges();
+}
+function isColumnEditInProgress(column) {
+  if (dirtyColumns.has(column)) return true;
+  const active = document.activeElement;
+  if (active?.classList?.contains('data-input') && getInputColumnIndex(active) === column) return true;
+  return Date.now() - lastLocalEditAt < LOCAL_EDIT_GRACE_MS;
 }
 function setRemoteInputValue(input, value) {
   const text = String(value ?? '');
   if (input === document.activeElement) return;
   if (input.value !== text) input.value = text;
 }
-function applyRemotePayload(payload, payloadSignature = getSharePayloadSignature(payload)) {
-  applyingSharedData = true;
-  const decoded = decodeSharePayload(payload);
+function applyRemoteColumn(column, value) {
   const xInputs = [...document.querySelectorAll('.x-value')];
   const yInputs = [...document.querySelectorAll('.y-value')];
-  const sameGrid = xInputs.length > 0 && xInputs.length === decoded.x.length && yInputs.length === decoded.x.length * (decoded.y[0]?.length ?? 0);
-  if (sameGrid) {
-    datasetName.value = decoded.name ?? '';
-    const columns = xInputs.length;
-    xInputs.forEach((input, column) => setRemoteInputValue(input, decoded.x[column]));
-    yInputs.forEach((input, index) => setRemoteInputValue(input, decoded.y[index % columns]?.[Math.floor(index / columns)]));
-    update();
-  } else {
-    pointCount.value = payload.pointCount;
-    sampleCount.value = payload.sampleCount;
-    renderInputs(decoded);
-  }
+  const columns = xInputs.length;
+  if (columns === 0 || column >= columns) return false;
+  const normalized = normalizeColumnValue(value);
+  const measurements = yInputs.length / columns;
+  setRemoteInputValue(xInputs[column], normalized.x);
+  for (let row = 0; row < measurements; row += 1) setRemoteInputValue(yInputs[row * columns + column], normalized.y[row]);
+  lastSyncedColumnValues[column] = getColumnSignature(normalized);
+  return true;
+}
+function applyRemoteStructure(meta, remoteColumns) {
+  applyingSharedData = true;
+  pointCount.value = meta.pointCount;
+  sampleCount.value = meta.sampleCount;
+  const x = Array.from({ length: meta.pointCount }, (_, column) => normalizeColumnValue(remoteColumns.get(column)).x);
+  const y = Array.from({ length: meta.pointCount }, (_, column) => normalizeColumnValue(remoteColumns.get(column)).y);
+  renderInputs({ name: meta.name, x, y });
   applyingSharedData = false;
-  lastSyncedShareSignature = payloadSignature;
+  markLocalStateSynced();
   shareReady = true;
   setShareStatus(`共有中: ${activeShareCode}`);
 }
 function flushPendingRemoteUpdate() {
-  if (!pendingRemotePayload || isLocalEditInProgress()) return;
-  const payload = pendingRemotePayload;
-  pendingRemotePayload = null;
-  const payloadSignature = getSharePayloadSignature(payload);
-  if (payloadSignature === lastSyncedShareSignature) { setShareStatus(`共有中: ${activeShareCode}`); return; }
-  applyRemotePayload(payload, payloadSignature);
+  if (pendingRemoteMeta) {
+    if (isLocalEditInProgress()) return;
+    const pending = pendingRemoteMeta;
+    pendingRemoteMeta = null;
+    applyRemoteStructure(pending.meta, pending.columns);
+    return;
+  }
+  let applied = false;
+  pendingRemoteColumns.forEach((value, column) => {
+    if (isColumnEditInProgress(column)) return;
+    if (applyRemoteColumn(column, value)) {
+      applied = true;
+      pendingRemoteColumns.delete(column);
+    }
+  });
+  if (applied) update();
 }
-function handleSharedSnapshot(snapshot) {
+function handleSharedSnapshot(snapshot, columnsSnapshot) {
   if (!snapshot.exists) {
     shareReady = false;
     setShareStatus(`共有コード ${activeShareCode} が見つかりません`);
@@ -241,20 +279,50 @@ function handleSharedSnapshot(snapshot) {
     setShareStatus(`共有コード ${activeShareCode} の有効期限（1週間）が切れています`);
     return;
   }
-  const payloadSignature = getSharePayloadSignature(payload);
   if (applyingSharedData) return;
-  if (payloadSignature === lastSyncedShareSignature) {
-    shareReady = true;
-    setShareStatus(`共有中: ${activeShareCode}`);
+  const meta = {
+    name: payload?.name ?? '',
+    pointCount: Math.min(40, Math.max(1, Number.parseInt(payload?.pointCount, 10) || 1)),
+    sampleCount: Math.min(12, Math.max(1, Number.parseInt(payload?.sampleCount, 10) || 1))
+  };
+  const remoteColumns = new Map();
+  if (columnsSnapshot && !columnsSnapshot.empty) {
+    columnsSnapshot.forEach((doc) => {
+      const column = Number.parseInt(doc.id, 10);
+      if (Number.isInteger(column) && column >= 0 && column < meta.pointCount) remoteColumns.set(column, normalizeColumnValue(doc.data()));
+    });
+  } else if (Array.isArray(payload?.x)) {
+    const decoded = decodeSharePayload(payload);
+    decoded.x.forEach((x, column) => remoteColumns.set(column, normalizeColumnValue({ x, y: decoded.y[column] })));
+  }
+  if (clampCount(pointCount) !== meta.pointCount || clampCount(sampleCount) !== meta.sampleCount) {
+    if (isLocalEditInProgress()) {
+      pendingRemoteMeta = { meta, columns: remoteColumns };
+      saveSharedDataset();
+      setShareStatus(`共有中: ${activeShareCode}（入力を優先するため受信データを保留中）`);
+      return;
+    }
+    applyRemoteStructure(meta, remoteColumns);
     return;
   }
-  if (isLocalEditInProgress()) {
-    pendingRemotePayload = payload;
-    saveSharedDataset();
-    setShareStatus(`共有中: ${activeShareCode}（入力を優先するため受信データを保留中）`);
-    return;
+  let applied = false;
+  const metaSignature = getMetaSignature(meta);
+  if (metaSignature !== lastSyncedMetaSignature && !metaDirty && document.activeElement !== datasetName) {
+    datasetName.value = meta.name;
+    lastSyncedMetaSignature = metaSignature;
+    applied = true;
   }
-  applyRemotePayload(payload, payloadSignature);
+  remoteColumns.forEach((value, column) => {
+    if (getColumnSignature(value) === lastSyncedColumnValues[column]) return;
+    if (isColumnEditInProgress(column)) {
+      pendingRemoteColumns.set(column, value);
+      return;
+    }
+    if (applyRemoteColumn(column, value)) applied = true;
+  });
+  if (applied) update();
+  shareReady = true;
+  setShareStatus(`共有中: ${activeShareCode}`);
 }
 async function loadSharedDataset() {
   if (isShareActionPending) return;
@@ -269,7 +337,81 @@ async function loadSharedDataset() {
   subscribeToSharedDataset();
   setTimeout(() => { isShareActionPending = false; }, 1000);
 }
-function saveSharedDataset() { if (!shareDatabase || !activeShareCode || !shareReady || applyingSharedData) return; const payload = readSharePayload(); const payloadSignature = getSharePayloadSignature(payload); if (payloadSignature === lastSyncedShareSignature) return; clearTimeout(shareSaveTimer); shareSaveTimer = setTimeout(async () => { const latestPayload = readSharePayload(); const latestSignature = getSharePayloadSignature(latestPayload); if (latestSignature === lastSyncedShareSignature) return; lastSyncedShareSignature = latestSignature; try { await shareDatabase.collection('sharedDatasets').doc(activeShareCode).set(latestPayload, { merge: true }); setShareStatus(`共有中: ${activeShareCode}`); flushPendingRemoteUpdate(); } catch (error) { console.error(error); setShareStatus(formatShareError(error)); } }, SHARE_SYNC_DEBOUNCE_MS); }
+function saveSharedDataset() {
+  if (!shareDatabase || !activeShareCode || !shareReady || applyingSharedData) return;
+  if (!hasUnsyncedLocalChanges()) return;
+  clearTimeout(shareSaveTimer);
+  shareSaveTimer = setTimeout(commitSharedChanges, SHARE_SYNC_DEBOUNCE_MS);
+}
+async function commitSharedChanges() {
+  if (!shareDatabase || !activeShareCode || !shareReady) return;
+  const meta = readShareMeta();
+  const metaSignature = getMetaSignature(meta);
+  const metaChanged = metaSignature !== lastSyncedMetaSignature;
+  const targetColumns = new Set(dirtyColumns);
+  if (metaChanged) for (let column = 0; column < meta.pointCount; column += 1) targetColumns.add(column);
+  const updates = [...targetColumns]
+    .filter((column) => column >= 0 && column < meta.pointCount)
+    .map((column) => ({ column, value: readColumnValue(column) }))
+    .filter(({ column, value }) => metaChanged || getColumnSignature(value) !== lastSyncedColumnValues[column]);
+  if (!metaChanged && updates.length === 0) {
+    dirtyColumns.clear();
+    metaDirty = false;
+    flushPendingRemoteUpdate();
+    return;
+  }
+  try {
+    const reference = shareDatabase.collection('sharedDatasets').doc(activeShareCode);
+    const batch = shareDatabase.batch();
+    if (metaChanged) {
+      batch.set(reference, {
+        name: meta.name,
+        pointCount: meta.pointCount,
+        sampleCount: meta.sampleCount,
+        x: firebase.firestore.FieldValue.delete(),
+        y: firebase.firestore.FieldValue.delete(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        expiresAt: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + SHARE_EXPIRATION_HOURS * 60 * 60 * 1000))
+      }, { merge: true });
+    }
+    updates.forEach(({ column, value }) => {
+      batch.set(reference.collection('columns').doc(String(column)), {
+        x: value.x,
+        y: value.y,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+    await batch.commit();
+    if (metaChanged) await deleteExcessColumns(reference, meta.pointCount);
+    lastSyncedMetaSignature = metaSignature;
+    if (getMetaSignature() === metaSignature) metaDirty = false;
+    updates.forEach(({ column, value }) => {
+      const signature = getColumnSignature(value);
+      lastSyncedColumnValues[column] = signature;
+      if (getColumnSignature(readColumnValue(column)) === signature) dirtyColumns.delete(column);
+    });
+    setShareStatus(`共有中: ${activeShareCode}`);
+    flushPendingRemoteUpdate();
+  } catch (error) {
+    console.error(error);
+    setShareStatus(formatShareError(error));
+  }
+}
+async function deleteExcessColumns(reference, count) {
+  try {
+    const snapshot = await reference.collection('columns').get();
+    const deletions = snapshot.docs.filter((doc) => {
+      const column = Number.parseInt(doc.id, 10);
+      return !Number.isInteger(column) || column < 0 || column >= count;
+    });
+    if (deletions.length === 0) return;
+    const batch = shareDatabase.batch();
+    deletions.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+  } catch (error) {
+    console.error(error);
+  }
+}
 function getRegression(data) { if (data.length < 2) return null; const meanX = data.reduce((sum, point) => sum + point.x, 0) / data.length; const meanY = data.reduce((sum, point) => sum + point.mean, 0) / data.length; const denominator = data.reduce((sum, point) => sum + (point.x - meanX) ** 2, 0); if (denominator === 0) return null; const slope = data.reduce((sum, point) => sum + (point.x - meanX) * (point.mean - meanY), 0) / denominator; const intercept = meanY - slope * meanX; const total = data.reduce((sum, point) => sum + (point.mean - meanY) ** 2, 0); const residual = data.reduce((sum, point) => sum + (point.mean - (slope * point.x + intercept)) ** 2, 0); return { slope, intercept, rSquared: total === 0 ? 1 : Math.max(0, 1 - residual / total), evaluate: (x) => slope * x + intercept }; }
 function fitCurve(data, type) { if (type === 'none' || data.length < 2) return null; if (type === 'linear') return getRegression(data); if (type === 'quadratic') { const sums = data.reduce((result, point) => { const x = point.x; const y = point.mean; result.x += x; result.x2 += x ** 2; result.x3 += x ** 3; result.x4 += x ** 4; result.y += y; result.xy += x * y; result.x2y += x ** 2 * y; return result; }, { x: 0, x2: 0, x3: 0, x4: 0, y: 0, xy: 0, x2y: 0 }); const matrix = [[data.length, sums.x, sums.x2, sums.y], [sums.x, sums.x2, sums.x3, sums.xy], [sums.x2, sums.x3, sums.x4, sums.x2y]]; for (let pivot = 0; pivot < 3; pivot += 1) { const row = matrix.slice(pivot).sort((a, b) => Math.abs(b[pivot]) - Math.abs(a[pivot]))[0]; const rowIndex = matrix.indexOf(row); [matrix[pivot], matrix[rowIndex]] = [matrix[rowIndex], matrix[pivot]]; if (Math.abs(matrix[pivot][pivot]) < 1e-12) return null; for (let rowIndex = pivot + 1; rowIndex < 3; rowIndex += 1) { const factor = matrix[rowIndex][pivot] / matrix[pivot][pivot]; for (let column = pivot; column <= 3; column += 1) matrix[rowIndex][column] -= factor * matrix[pivot][column]; } } const coefficients = [0, 0, 0]; for (let row = 2; row >= 0; row -= 1) coefficients[row] = (matrix[row][3] - matrix[row].slice(row + 1, 3).reduce((sum, value, index) => sum + value * coefficients[row + index + 1], 0)) / matrix[row][row]; const evaluate = (x) => coefficients[2] * x ** 2 + coefficients[1] * x + coefficients[0]; return { evaluate, rSquared: getRSquared(data, evaluate) }; } if (type === 'exponential') { const positive = data.filter((point) => point.mean > 0); const linear = getRegression(positive.map((point) => ({ x: point.x, mean: Math.log(point.mean) }))); if (!linear) return null; const evaluate = (x) => Math.exp(linear.intercept + linear.slope * x); return { evaluate, rSquared: getRSquared(data, evaluate) }; } const inverse = data.filter((point) => point.x !== 0); const linear = getRegression(inverse.map((point) => ({ x: 1 / point.x, mean: point.mean }))); if (!linear) return null; const evaluate = (x) => x === 0 ? NaN : linear.slope / x + linear.intercept; return { evaluate, rSquared: getRSquared(data, evaluate) }; }
 function getRSquared(data, evaluate) { const mean = data.reduce((sum, point) => sum + point.mean, 0) / data.length; const total = data.reduce((sum, point) => sum + (point.mean - mean) ** 2, 0); const residual = data.reduce((sum, point) => sum + (point.mean - evaluate(point.x)) ** 2, 0); return total === 0 ? 1 : Math.max(0, 1 - residual / total); }
@@ -283,7 +425,7 @@ function niceAxisLimit(value) { const steps = [1, 1.2, 1.5, 2, 3, 4, 5, 8, 10]; 
 function getSparseCorner(data) { if (data.length === 0) return 'corner-top-right'; const positiveX = data.filter((point) => point.x >= 0).map((point) => point.x); const positiveY = data.filter((point) => point.mean >= 0).map((point) => point.mean); const maxX = Math.max(1, ...positiveX); const maxY = Math.max(1, ...positiveY); const rightTopOccupied = data.some((point) => point.x >= maxX * 0.65 && point.mean >= maxY * 0.65); if (!rightTopOccupied) return 'corner-top-right'; const counts = { 'corner-top-right': 0, 'corner-top-left': 0, 'corner-bottom-left': 0, 'corner-bottom-right': 0 }; data.forEach((point) => { if (point.x >= 0 && point.mean >= 0) counts['corner-top-right'] += 1; if (point.x < 0 && point.mean >= 0) counts['corner-top-left'] += 1; if (point.x < 0 && point.mean < 0) counts['corner-bottom-left'] += 1; if (point.x >= 0 && point.mean < 0) counts['corner-bottom-right'] += 1; }); return Object.keys(counts).sort((a, b) => counts[a] - counts[b])[0]; }
 function renderResults(data) { resultHead.innerHTML = `<tr><th scope="col">項目</th>${data.map((_, index) => `<th scope="col">データ ${index + 1}</th>`).join('')}</tr>`; resultBody.replaceChildren(); legendTitle.textContent = datasetName.value.trim() || 'データセット'; chartLegend.className = `chart-legend ${getSparseCorner(data)}`; if (data.length === 0) { resultBody.innerHTML = '<tr><td colspan="2">数値を入力してください</td></tr>'; return; } const rows = [{ label: `横軸 ${axisVariables.x}`, value: (point) => format(point.x) }, { label: `平均 ${axisVariables.y}`, value: (point) => format(point.mean) }, { label: '標準誤差', value: (point) => format(point.error) }]; rows.forEach((rowData) => { const row = document.createElement('tr'); const labelCell = document.createElement('th'); labelCell.scope = 'row'; labelCell.textContent = rowData.label; if (rowData.label === '標準誤差') { const button = document.createElement('button'); button.className = 'info-button'; button.type = 'button'; button.textContent = 'i'; button.setAttribute('aria-label', '標準誤差の説明'); button.addEventListener('click', () => infoDialog.showModal()); labelCell.appendChild(button); } row.appendChild(labelCell); data.forEach((point) => { const cell = document.createElement('td'); cell.textContent = rowData.value(point); row.appendChild(cell); }); resultBody.appendChild(row); }); }
 function moveVerticalInput(input, direction) { const cell = input.closest('td'); const row = input.closest('tr'); if (!cell || !row) return; const targetRow = direction < 0 ? row.previousElementSibling : row.nextElementSibling; const target = targetRow?.querySelector(`td:nth-child(${cell.cellIndex + 1}) input`); if (target) { target.focus(); target.select(); } }
-function pasteTableValues(event) { const target = event.target.closest('input'); if (!target || !target.classList.contains('data-input')) return; const text = event.clipboardData?.getData('text/plain') || ''; if (!text.includes('\t') && !text.includes('\n')) return; const sourceRows = text.replace(/\r/g, '').split('\n').filter((row) => row.length > 0).map((row) => row.split('\t')); const startCell = target.closest('td'); const startRow = target.closest('tr'); if (!startCell || !startRow) return; event.preventDefault(); const startRowIndex = [...inputBody.rows].indexOf(startRow); const startColumnIndex = startCell.cellIndex - 1; sourceRows.forEach((sourceRow, rowOffset) => { const destinationRow = inputBody.rows[startRowIndex + rowOffset]; if (!destinationRow) return; sourceRow.forEach((value, columnOffset) => { const destinationCell = destinationRow.cells[startColumnIndex + columnOffset + 1]; const destinationInput = destinationCell?.querySelector('input'); if (destinationInput && value.trim() !== '') destinationInput.value = value.trim(); }); }); noteLocalEdit(); update(); }
+function pasteTableValues(event) { const target = event.target.closest('input'); if (!target || !target.classList.contains('data-input')) return; const text = event.clipboardData?.getData('text/plain') || ''; if (!text.includes('\t') && !text.includes('\n')) return; const sourceRows = text.replace(/\r/g, '').split('\n').filter((row) => row.length > 0).map((row) => row.split('\t')); const startCell = target.closest('td'); const startRow = target.closest('tr'); if (!startCell || !startRow) return; event.preventDefault(); const startRowIndex = [...inputBody.rows].indexOf(startRow); const startColumnIndex = startCell.cellIndex - 1; sourceRows.forEach((sourceRow, rowOffset) => { const destinationRow = inputBody.rows[startRowIndex + rowOffset]; if (!destinationRow) return; sourceRow.forEach((value, columnOffset) => { const destinationCell = destinationRow.cells[startColumnIndex + columnOffset + 1]; const destinationInput = destinationCell?.querySelector('input'); if (destinationInput && value.trim() !== '') { destinationInput.value = value.trim(); noteLocalEdit(destinationInput); } }); }); update(); }
 function getQuadrantStatus(data) { const quadrants = new Set(); data.forEach((point) => { if (point.x >= 0 && point.mean >= 0) quadrants.add('第1象限'); if (point.x < 0 && point.mean >= 0) quadrants.add('第2象限'); if (point.x < 0 && point.mean < 0) quadrants.add('第3象限'); if (point.x >= 0 && point.mean < 0) quadrants.add('第4象限'); }); return quadrants.size > 0 ? [...quadrants].join('・') : 'データなし'; }
 function axisDisplayValue(value, logarithmic) { return logarithmic ? (value > 0 ? Math.log10(value) : NaN) : value; }
 function axisDisplayLabel(value, exponent, logarithmic, isYAxis = false) { return logarithmic ? `10^${format(value)}` : formatAxis(value, exponent, isYAxis); }
@@ -324,9 +466,9 @@ function hasActualData() { return [...document.querySelectorAll('.data-input')].
 function hasEnteredData() { return hasActualData(); }
 function hasDataOutsideGrid(values, columns, measurements) { const removedColumns = values.x.slice(columns).some((value) => String(value).trim() !== '') || values.y.slice(columns).some((column) => column.some((value) => String(value).trim() !== '')); const removedRows = values.y.some((column) => column.slice(measurements).some((value) => String(value).trim() !== '')); return removedColumns || removedRows; }
 function isSample() { const xInputs = [...document.querySelectorAll('.x-value')]; const yInputs = [...document.querySelectorAll('.y-value')]; const columns = xInputs.length; const measurements = columns > 0 ? yInputs.length / columns : 0; if (columns === 0 || !Number.isInteger(measurements)) return false; return datasetName.value === sampleData.name && xInputs.every((input, column) => Number(input.value) === sampleData.x[column]) && yInputs.every((input, index) => Number(input.value) === sampleData.y[index % columns]?.[Math.floor(index / columns)]); }
-function clearData() { if (hasActualData() && !isSample() && !window.confirm('入力したデータを消去します。よろしいですか？')) return; datasetName.value = ''; document.querySelectorAll('.data-input').forEach((input) => { input.value = ''; }); update(); }
+function clearData() { if (hasActualData() && !isSample() && !window.confirm('入力したデータを消去します。よろしいですか？')) return; datasetName.value = ''; document.querySelectorAll('.data-input').forEach((input) => { input.value = ''; }); noteMetaEdit(); markAllColumnsDirty(); update(); }
 function handleCountChange(event) { const values = readGridValues(); const columns = event.target === pointCount ? clampCount(event.target) : values.x.length; const measurements = event.target === sampleCount ? clampCount(event.target) : values.y[0]?.length ?? 0; if (hasDataOutsideGrid(values, columns, measurements) && !isSample() && !window.confirm('入力したデータが消えます。設定を変更しますか？')) { event.target.value = event.target.dataset.previousValue; return; } renderInputs(values); }
-datasetName.addEventListener('input', () => { noteLocalEdit(); update(); }); pointCount.addEventListener('change', handleCountChange); sampleCount.addEventListener('change', handleCountChange); inputBody.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; event.preventDefault(); moveVerticalInput(event.target, event.shiftKey ? -1 : 1); }); inputBody.addEventListener('paste', pasteTableValues); document.getElementById('clearButton').addEventListener('click', clearData); document.getElementById('resetButton').addEventListener('click', () => { if (hasActualData() && !isSample() && !window.confirm('入力したデータをサンプルに戻します。よろしいですか？')) return; pointCount.value = sampleData.x.length; sampleCount.value = sampleData.y[0].length; renderInputs(sampleData); }); document.getElementById('dialogClose').addEventListener('click', () => infoDialog.close()); document.getElementById('downloadButton').addEventListener('click', downloadChart); document.getElementById('svgButton').addEventListener('click', downloadSvg); document.getElementById('csvButton').addEventListener('click', downloadCsv); window.addEventListener('resize', resizeCanvas); renderInputs();
+datasetName.addEventListener('input', () => { noteMetaEdit(); update(); }); inputBody.addEventListener('focusout', () => { setTimeout(flushPendingRemoteUpdate, 0); }); pointCount.addEventListener('change', handleCountChange); sampleCount.addEventListener('change', handleCountChange); inputBody.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; event.preventDefault(); moveVerticalInput(event.target, event.shiftKey ? -1 : 1); }); inputBody.addEventListener('paste', pasteTableValues); document.getElementById('clearButton').addEventListener('click', clearData); document.getElementById('resetButton').addEventListener('click', () => { if (hasActualData() && !isSample() && !window.confirm('入力したデータをサンプルに戻します。よろしいですか？')) return; noteMetaEdit(); markAllColumnsDirty(); pointCount.value = sampleData.x.length; sampleCount.value = sampleData.y[0].length; renderInputs(sampleData); }); document.getElementById('dialogClose').addEventListener('click', () => infoDialog.close()); document.getElementById('downloadButton').addEventListener('click', downloadChart); document.getElementById('svgButton').addEventListener('click', downloadSvg); document.getElementById('csvButton').addEventListener('click', downloadCsv); window.addEventListener('resize', resizeCanvas); renderInputs();
 regressionButton.addEventListener('change', () => { regressionType = regressionButton.value; update(); }); enableLegendDrag();
 regressionButton.addEventListener('change', () => { regressionDisplayType = regressionButton.value; regressionType = ['exponentialDecay', 'exponentialHalfLife'].includes(regressionDisplayType) ? 'exponential' : regressionDisplayType; update(); });
 shareButton.addEventListener('click', createSharedDataset); loadShareButton.addEventListener('click', loadSharedDataset); shareCodeInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') loadSharedDataset(); }); if (!shareDatabase) setShareStatus('共有機能を使うにはFirebase設定が必要です'); if (activeShareCode) { shareCodeInput.value = activeShareCode; subscribeToSharedDataset(); }
