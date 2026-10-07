@@ -1,0 +1,340 @@
+#photoelectric-app {
+  min-height: 100vh;
+  margin: 0;
+  color: #f5f1e8;
+  background: #111412;
+  font-family: 'Orbitron', 'Yu Gothic', sans-serif;
+  text-align: center;
+}
+
+#photoelectric-app .photoelectric-page {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 34px 0 52px;
+}
+
+#photoelectric-app .page-header {
+  margin-bottom: 26px;
+}
+
+#photoelectric-app .eyebrow {
+  margin: 0 0 8px;
+  color: #e2b84e;
+  font: 11px monospace;
+  letter-spacing: 2px;
+}
+
+#photoelectric-app h1 {
+  margin: 0;
+  font-size: clamp(25px, 4vw, 40px);
+  letter-spacing: 0;
+  text-shadow: 0 0 18px rgba(226, 184, 78, .2);
+}
+
+#photoelectric-app h1 span {
+  color: #84948a;
+  font: 12px monospace;
+  vertical-align: middle;
+}
+
+#photoelectric-app .intro {
+  margin: 10px 0 0;
+  color: #a7b0a8;
+  font-size: 14px;
+}
+
+#photoelectric-app .experiment {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  padding: 18px;
+  background: #1a1f1b;
+  border: 1px solid #354139;
+  border-radius: 8px;
+  box-shadow: 0 0 28px rgba(0, 0, 0, .4) inset;
+}
+
+#photoelectric-app .animation-panel {
+  min-width: 0;
+  padding: 14px;
+  background: #101310;
+  border: 1px solid #29332c;
+  border-radius: 6px;
+}
+
+#photoelectric-app .light-source-panel,
+#photoelectric-app .detector-panel {
+  display: none;
+}
+
+#photoelectric-app .panel-label {
+  color: #91a097;
+  font: 11px monospace;
+  letter-spacing: 1px;
+  text-align: left;
+  margin-bottom: 8px;
+}
+
+#photoelectric-app .live-dot,
+#photoelectric-app .detector-dot,
+#photoelectric-app .control-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
+}
+
+#photoelectric-app .live-dot {
+  background: #FFD700;
+  color: #FFD700;
+}
+
+#photoelectric-app .detector-dot {
+  background: #4a7c8c;
+  color: #4a7c8c;
+}
+
+#photoelectric-app svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+  background: radial-gradient(ellipse at center, rgba(20,20,18,0.5), rgba(10,10,8,0.8));
+  border-radius: 4px;
+}
+
+#photoelectric-app .grid line {
+  stroke: #344037;
+  stroke-width: 1;
+}
+
+#photoelectric-app svg text {
+  fill: #718077;
+  font: 11px monospace;
+}
+
+#photoelectric-app .intensity-readout,
+#photoelectric-app .detector-readout {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 7px;
+  margin-top: 8px;
+  font: 11px monospace;
+  color: #84948a;
+}
+
+#photoelectric-app .intensity-readout output,
+#photoelectric-app .detector-readout output {
+  color: #FFD700;
+  font-size: 17px;
+  font-weight: bold;
+}
+
+#photoelectric-app .intensity-readout output:nth-of-type(2),
+#photoelectric-app .detector-readout output:nth-of-type(2) {
+  margin-left: 14px;
+}
+
+#photoelectric-app .detector-readout output {
+  color: #4a7c8c;
+}
+
+#photoelectric-app .readout {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  align-items: center;
+  margin-top: 10px;
+  font: 11px monospace;
+  color: #84948a;
+}
+
+#photoelectric-app .readout div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+#photoelectric-app .readout output {
+  color: #FFD700;
+  font-size: 18px;
+  font-weight: bold;
+  min-width: 40px;
+  text-align: right;
+}
+
+#photoelectric-app .readout div:last-child output {
+  color: #4a7c8c;
+}
+
+#photoelectric-app .controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+  text-align: left;
+}
+
+#photoelectric-app .control-column {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+#photoelectric-app .control {
+  padding: 16px 17px 13px;
+  background: #1a1f1b;
+  border: 1px solid #354139;
+  border-top: 3px solid var(--control-color);
+  border-radius: 8px;
+}
+
+#photoelectric-app .intensity-control {
+  --control-color: #FFD700;
+}
+
+#photoelectric-app .frequency-control {
+  --control-color: #FF6B6B;
+}
+
+#photoelectric-app .control:nth-child(2) {
+  --control-color: #65d0c2;
+}
+
+#photoelectric-app .control-heading {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 12px;
+  color: #f5f1e8;
+  font-size: 14px;
+}
+
+#photoelectric-app .control-dot {
+  background: var(--control-color);
+}
+
+#photoelectric-app output {
+  margin-left: auto;
+  color: var(--control-color);
+  font: bold 16px monospace;
+}
+
+#photoelectric-app input[type="range"] {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--control-color);
+  cursor: pointer;
+}
+
+#photoelectric-app .action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+#photoelectric-app .action-buttons button {
+  padding: 9px 16px;
+  border: 1px solid #536258;
+  border-radius: 6px;
+  color: #f5f1e8;
+  background: #273129;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  flex: 1;
+}
+
+#photoelectric-app .action-buttons button:hover {
+  border-color: #65d0c2;
+  background: #304139;
+}
+
+#photoelectric-app #playButton.active {
+  color: #111412;
+  background: #e2b84e;
+  border-color: #e2b84e;
+}
+
+#photoelectric-app .info-panel {
+  margin-top: 20px;
+  padding: 16px;
+  background: #1a1f1b;
+  border: 1px solid #354139;
+  border-radius: 8px;
+  text-align: left;
+}
+
+#photoelectric-app .info-text {
+  margin: 0 0 12px;
+  color: #a7b0a8;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#photoelectric-app .formula {
+  margin: 8px 0;
+  color: #84948a;
+  font: 12px monospace;
+  letter-spacing: 0.5px;
+}
+
+#photoelectric-app .photosurface {
+  filter: drop-shadow(0 0 8px rgba(74, 124, 140, 0.3));
+}
+
+@media (min-width: 761px) and (max-width: 1280px) and (max-height: 850px) {
+  #photoelectric-app .photoelectric-page {
+    width: min(100% - 24px, calc((100vh - 34px) * 1.6), 1240px);
+    box-sizing: border-box;
+    padding: 14px 0 20px;
+  }
+  #photoelectric-app .page-header {
+    margin-bottom: 10px;
+  }
+  #photoelectric-app .eyebrow {
+    margin-bottom: 4px;
+    font-size: 9px;
+  }
+  #photoelectric-app h1 {
+    font-size: 28px;
+  }
+  #photoelectric-app h1 span {
+    font-size: 10px;
+  }
+  #photoelectric-app .intro {
+    margin-top: 5px;
+    font-size: 11px;
+  }
+  #photoelectric-app .experiment {
+    gap: 8px;
+    padding: 8px;
+  }
+  #photoelectric-app .light-source-panel,
+  #photoelectric-app .detector-panel {
+    padding: 8px;
+  }
+  #photoelectric-app .panel-label {
+    font-size: 9px;
+  }
+  #photoelectric-app svg {
+    height: auto;
+  }
+  #photoelectric-app .controls {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 760px) {
+  #photoelectric-app .experiment {
+    grid-template-columns: 1fr;
+  }
+  #photoelectric-app .controls {
+    grid-template-columns: 1fr;
+  }
+}

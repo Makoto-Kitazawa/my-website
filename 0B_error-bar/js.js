@@ -76,14 +76,18 @@ let sampleData = sampleDatasets[sampleIndex];
 let shareDatabase = null;
 try { if (window.firebaseConfig?.projectId && window.firebase?.initializeApp) shareDatabase = (firebase.apps.length ? firebase.app() : firebase.initializeApp(window.firebaseConfig)).firestore(); } catch (error) { console.error(error); }
 let activeShareCode = new URLSearchParams(window.location.search).get('share')?.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4) || '';
-let shareUnsubscribe = null;
+let sharePollTimer = null;
 let applyingSharedData = false;
 let shareReady = false;
 let shareSaveTimer = null;
 let lastSyncedShareSignature = '';
 let isShareActionPending = false;
+let pendingRemotePayload = null;
+let lastLocalEditAt = 0;
 const shareAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const SHARE_SYNC_DEBOUNCE_MS = 1200;
+const SHARE_POLL_INTERVAL_MS = 60000;
+const LOCAL_EDIT_GRACE_MS = 3000;
 const SHARE_EXPIRATION_HOURS = 168;
 
 function getSharePayloadSignature(payload = readSharePayload()) {
@@ -97,7 +101,8 @@ function getSharePayloadSignature(payload = readSharePayload()) {
 }
 
 function clampCount(input) { const max = input === pointCount ? 40 : 12; const count = Math.min(max, Math.max(1, Number.parseInt(input.value, 10) || 1)); input.value = count; return count; }
-function makeInput(label, value, className) { const input = document.createElement('input'); input.className = `data-input ${className}`; input.type = 'number'; input.step = 'any'; input.inputMode = 'decimal'; input.value = value ?? ''; input.setAttribute('aria-label', label); input.addEventListener('input', update); return input; }
+function noteLocalEdit() { lastLocalEditAt = Date.now(); }
+function makeInput(label, value, className) { const input = document.createElement('input'); input.className = `data-input ${className}`; input.type = 'number'; input.step = 'any'; input.inputMode = 'decimal'; input.value = value ?? ''; input.setAttribute('aria-label', label); input.addEventListener('input', () => { noteLocalEdit(); update(); }); return input; }
 function readGridValues() { const xInputs = [...document.querySelectorAll('.x-value')]; const yInputs = [...document.querySelectorAll('.y-value')]; const columns = xInputs.length; const measurements = columns > 0 ? yInputs.length / columns : 0; if (columns === 0) return null; return { name: datasetName.value, x: xInputs.map((input) => input.value), y: Array.from({ length: columns }, (_, column) => Array.from({ length: measurements }, (_, row) => yInputs[row * columns + column]?.value ?? '')) }; }
 function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character])); }
 function renderInputs(values = readGridValues()) { const columns = clampCount(pointCount); const measurements = clampCount(sampleCount); const source = values ?? sampleData; datasetName.value = source.name ?? ''; pointCount.dataset.previousValue = columns; sampleCount.dataset.previousValue = measurements; inputHead.innerHTML = `<tr><th scope="col">項目</th>${Array.from({ length: columns }, (_, index) => `<th scope="col">データ ${index + 1}</th>`).join('')}</tr>`; inputBody.replaceChildren(); const xRow = document.createElement('tr'); xRow.innerHTML = `<th scope="row">横軸 ${escapeHtml(axisVariables.x)}</th>`; for (let column = 0; column < columns; column += 1) { const cell = document.createElement('td'); cell.appendChild(makeInput(`データ ${column + 1} の ${axisVariables.x}`, source.x[column] ?? '', 'x-value')); xRow.appendChild(cell); } inputBody.appendChild(xRow); for (let rowIndex = 0; rowIndex < measurements; rowIndex += 1) { const row = document.createElement('tr'); row.innerHTML = `<th scope="row">測定 ${rowIndex + 1}</th>`; for (let column = 0; column < columns; column += 1) { const cell = document.createElement('td'); cell.appendChild(makeInput(`データ ${column + 1} の測定 ${rowIndex + 1}`, source.y[column]?.[rowIndex] ?? '', 'y-value')); row.appendChild(cell); } inputBody.appendChild(row); } dataCount.textContent = `${columns} 列`; update(); }
@@ -167,39 +172,89 @@ async function createSharedDataset() {
 function subscribeToSharedDataset() {
   if (!shareDatabase || !activeShareCode) return;
   shareReady = false;
-  shareUnsubscribe?.();
-  shareUnsubscribe = shareDatabase.collection('sharedDatasets').doc(activeShareCode).onSnapshot((snapshot) => {
-    if (!snapshot.exists) {
-      shareReady = false;
-      setShareStatus(`共有コード ${activeShareCode} が見つかりません`);
-      return;
-    }
-    const payload = snapshot.data();
-    if (payload?.expiresAt && payload.expiresAt.toDate() < new Date()) {
-      shareReady = false;
-      setShareStatus(`共有コード ${activeShareCode} の有効期限（1週間）が切れています`);
-      return;
-    }
-    const payloadSignature = getSharePayloadSignature(payload);
-    if (applyingSharedData) return;
-    if (payloadSignature === lastSyncedShareSignature) {
-      shareReady = true;
-      setShareStatus(`共有中: ${activeShareCode}`);
-      return;
-    }
-    applyingSharedData = true;
-    pointCount.value = payload.pointCount;
-    sampleCount.value = payload.sampleCount;
-    renderInputs(decodeSharePayload(payload));
-    applyingSharedData = false;
-    lastSyncedShareSignature = payloadSignature;
-    shareReady = true;
-    setShareStatus(`共有中: ${activeShareCode}`);
-  }, (error) => {
+  clearInterval(sharePollTimer);
+  fetchSharedDataset();
+  sharePollTimer = setInterval(fetchSharedDataset, SHARE_POLL_INTERVAL_MS);
+}
+async function fetchSharedDataset() {
+  if (!shareDatabase || !activeShareCode) return;
+  flushPendingRemoteUpdate();
+  try {
+    const snapshot = await shareDatabase.collection('sharedDatasets').doc(activeShareCode).get();
+    handleSharedSnapshot(snapshot);
+  } catch (error) {
     shareReady = false;
     console.error(error);
     setShareStatus(formatShareError(error));
-  });
+  }
+}
+function isLocalEditInProgress() {
+  const active = document.activeElement;
+  if (active && (active.classList?.contains('data-input') || active === datasetName)) return true;
+  if (Date.now() - lastLocalEditAt < LOCAL_EDIT_GRACE_MS) return true;
+  return lastSyncedShareSignature !== '' && getSharePayloadSignature() !== lastSyncedShareSignature;
+}
+function setRemoteInputValue(input, value) {
+  const text = String(value ?? '');
+  if (input === document.activeElement) return;
+  if (input.value !== text) input.value = text;
+}
+function applyRemotePayload(payload, payloadSignature = getSharePayloadSignature(payload)) {
+  applyingSharedData = true;
+  const decoded = decodeSharePayload(payload);
+  const xInputs = [...document.querySelectorAll('.x-value')];
+  const yInputs = [...document.querySelectorAll('.y-value')];
+  const sameGrid = xInputs.length > 0 && xInputs.length === decoded.x.length && yInputs.length === decoded.x.length * (decoded.y[0]?.length ?? 0);
+  if (sameGrid) {
+    datasetName.value = decoded.name ?? '';
+    const columns = xInputs.length;
+    xInputs.forEach((input, column) => setRemoteInputValue(input, decoded.x[column]));
+    yInputs.forEach((input, index) => setRemoteInputValue(input, decoded.y[index % columns]?.[Math.floor(index / columns)]));
+    update();
+  } else {
+    pointCount.value = payload.pointCount;
+    sampleCount.value = payload.sampleCount;
+    renderInputs(decoded);
+  }
+  applyingSharedData = false;
+  lastSyncedShareSignature = payloadSignature;
+  shareReady = true;
+  setShareStatus(`共有中: ${activeShareCode}`);
+}
+function flushPendingRemoteUpdate() {
+  if (!pendingRemotePayload || isLocalEditInProgress()) return;
+  const payload = pendingRemotePayload;
+  pendingRemotePayload = null;
+  const payloadSignature = getSharePayloadSignature(payload);
+  if (payloadSignature === lastSyncedShareSignature) { setShareStatus(`共有中: ${activeShareCode}`); return; }
+  applyRemotePayload(payload, payloadSignature);
+}
+function handleSharedSnapshot(snapshot) {
+  if (!snapshot.exists) {
+    shareReady = false;
+    setShareStatus(`共有コード ${activeShareCode} が見つかりません`);
+    return;
+  }
+  const payload = snapshot.data();
+  if (payload?.expiresAt && payload.expiresAt.toDate() < new Date()) {
+    shareReady = false;
+    setShareStatus(`共有コード ${activeShareCode} の有効期限（1週間）が切れています`);
+    return;
+  }
+  const payloadSignature = getSharePayloadSignature(payload);
+  if (applyingSharedData) return;
+  if (payloadSignature === lastSyncedShareSignature) {
+    shareReady = true;
+    setShareStatus(`共有中: ${activeShareCode}`);
+    return;
+  }
+  if (isLocalEditInProgress()) {
+    pendingRemotePayload = payload;
+    saveSharedDataset();
+    setShareStatus(`共有中: ${activeShareCode}（入力を優先するため受信データを保留中）`);
+    return;
+  }
+  applyRemotePayload(payload, payloadSignature);
 }
 async function loadSharedDataset() {
   if (isShareActionPending) return;
@@ -214,7 +269,7 @@ async function loadSharedDataset() {
   subscribeToSharedDataset();
   setTimeout(() => { isShareActionPending = false; }, 1000);
 }
-function saveSharedDataset() { if (!shareDatabase || !activeShareCode || !shareReady || applyingSharedData) return; const payload = readSharePayload(); const payloadSignature = getSharePayloadSignature(payload); if (payloadSignature === lastSyncedShareSignature) return; clearTimeout(shareSaveTimer); shareSaveTimer = setTimeout(async () => { const latestPayload = readSharePayload(); const latestSignature = getSharePayloadSignature(latestPayload); if (latestSignature === lastSyncedShareSignature) return; lastSyncedShareSignature = latestSignature; try { await shareDatabase.collection('sharedDatasets').doc(activeShareCode).set(latestPayload, { merge: true }); setShareStatus(`共有中: ${activeShareCode}`); } catch (error) { console.error(error); setShareStatus(formatShareError(error)); } }, SHARE_SYNC_DEBOUNCE_MS); }
+function saveSharedDataset() { if (!shareDatabase || !activeShareCode || !shareReady || applyingSharedData) return; const payload = readSharePayload(); const payloadSignature = getSharePayloadSignature(payload); if (payloadSignature === lastSyncedShareSignature) return; clearTimeout(shareSaveTimer); shareSaveTimer = setTimeout(async () => { const latestPayload = readSharePayload(); const latestSignature = getSharePayloadSignature(latestPayload); if (latestSignature === lastSyncedShareSignature) return; lastSyncedShareSignature = latestSignature; try { await shareDatabase.collection('sharedDatasets').doc(activeShareCode).set(latestPayload, { merge: true }); setShareStatus(`共有中: ${activeShareCode}`); flushPendingRemoteUpdate(); } catch (error) { console.error(error); setShareStatus(formatShareError(error)); } }, SHARE_SYNC_DEBOUNCE_MS); }
 function getRegression(data) { if (data.length < 2) return null; const meanX = data.reduce((sum, point) => sum + point.x, 0) / data.length; const meanY = data.reduce((sum, point) => sum + point.mean, 0) / data.length; const denominator = data.reduce((sum, point) => sum + (point.x - meanX) ** 2, 0); if (denominator === 0) return null; const slope = data.reduce((sum, point) => sum + (point.x - meanX) * (point.mean - meanY), 0) / denominator; const intercept = meanY - slope * meanX; const total = data.reduce((sum, point) => sum + (point.mean - meanY) ** 2, 0); const residual = data.reduce((sum, point) => sum + (point.mean - (slope * point.x + intercept)) ** 2, 0); return { slope, intercept, rSquared: total === 0 ? 1 : Math.max(0, 1 - residual / total), evaluate: (x) => slope * x + intercept }; }
 function fitCurve(data, type) { if (type === 'none' || data.length < 2) return null; if (type === 'linear') return getRegression(data); if (type === 'quadratic') { const sums = data.reduce((result, point) => { const x = point.x; const y = point.mean; result.x += x; result.x2 += x ** 2; result.x3 += x ** 3; result.x4 += x ** 4; result.y += y; result.xy += x * y; result.x2y += x ** 2 * y; return result; }, { x: 0, x2: 0, x3: 0, x4: 0, y: 0, xy: 0, x2y: 0 }); const matrix = [[data.length, sums.x, sums.x2, sums.y], [sums.x, sums.x2, sums.x3, sums.xy], [sums.x2, sums.x3, sums.x4, sums.x2y]]; for (let pivot = 0; pivot < 3; pivot += 1) { const row = matrix.slice(pivot).sort((a, b) => Math.abs(b[pivot]) - Math.abs(a[pivot]))[0]; const rowIndex = matrix.indexOf(row); [matrix[pivot], matrix[rowIndex]] = [matrix[rowIndex], matrix[pivot]]; if (Math.abs(matrix[pivot][pivot]) < 1e-12) return null; for (let rowIndex = pivot + 1; rowIndex < 3; rowIndex += 1) { const factor = matrix[rowIndex][pivot] / matrix[pivot][pivot]; for (let column = pivot; column <= 3; column += 1) matrix[rowIndex][column] -= factor * matrix[pivot][column]; } } const coefficients = [0, 0, 0]; for (let row = 2; row >= 0; row -= 1) coefficients[row] = (matrix[row][3] - matrix[row].slice(row + 1, 3).reduce((sum, value, index) => sum + value * coefficients[row + index + 1], 0)) / matrix[row][row]; const evaluate = (x) => coefficients[2] * x ** 2 + coefficients[1] * x + coefficients[0]; return { evaluate, rSquared: getRSquared(data, evaluate) }; } if (type === 'exponential') { const positive = data.filter((point) => point.mean > 0); const linear = getRegression(positive.map((point) => ({ x: point.x, mean: Math.log(point.mean) }))); if (!linear) return null; const evaluate = (x) => Math.exp(linear.intercept + linear.slope * x); return { evaluate, rSquared: getRSquared(data, evaluate) }; } const inverse = data.filter((point) => point.x !== 0); const linear = getRegression(inverse.map((point) => ({ x: 1 / point.x, mean: point.mean }))); if (!linear) return null; const evaluate = (x) => x === 0 ? NaN : linear.slope / x + linear.intercept; return { evaluate, rSquared: getRSquared(data, evaluate) }; }
 function getRSquared(data, evaluate) { const mean = data.reduce((sum, point) => sum + point.mean, 0) / data.length; const total = data.reduce((sum, point) => sum + (point.mean - mean) ** 2, 0); const residual = data.reduce((sum, point) => sum + (point.mean - evaluate(point.x)) ** 2, 0); return total === 0 ? 1 : Math.max(0, 1 - residual / total); }
@@ -228,7 +283,7 @@ function niceAxisLimit(value) { const steps = [1, 1.2, 1.5, 2, 3, 4, 5, 8, 10]; 
 function getSparseCorner(data) { if (data.length === 0) return 'corner-top-right'; const positiveX = data.filter((point) => point.x >= 0).map((point) => point.x); const positiveY = data.filter((point) => point.mean >= 0).map((point) => point.mean); const maxX = Math.max(1, ...positiveX); const maxY = Math.max(1, ...positiveY); const rightTopOccupied = data.some((point) => point.x >= maxX * 0.65 && point.mean >= maxY * 0.65); if (!rightTopOccupied) return 'corner-top-right'; const counts = { 'corner-top-right': 0, 'corner-top-left': 0, 'corner-bottom-left': 0, 'corner-bottom-right': 0 }; data.forEach((point) => { if (point.x >= 0 && point.mean >= 0) counts['corner-top-right'] += 1; if (point.x < 0 && point.mean >= 0) counts['corner-top-left'] += 1; if (point.x < 0 && point.mean < 0) counts['corner-bottom-left'] += 1; if (point.x >= 0 && point.mean < 0) counts['corner-bottom-right'] += 1; }); return Object.keys(counts).sort((a, b) => counts[a] - counts[b])[0]; }
 function renderResults(data) { resultHead.innerHTML = `<tr><th scope="col">項目</th>${data.map((_, index) => `<th scope="col">データ ${index + 1}</th>`).join('')}</tr>`; resultBody.replaceChildren(); legendTitle.textContent = datasetName.value.trim() || 'データセット'; chartLegend.className = `chart-legend ${getSparseCorner(data)}`; if (data.length === 0) { resultBody.innerHTML = '<tr><td colspan="2">数値を入力してください</td></tr>'; return; } const rows = [{ label: `横軸 ${axisVariables.x}`, value: (point) => format(point.x) }, { label: `平均 ${axisVariables.y}`, value: (point) => format(point.mean) }, { label: '標準誤差', value: (point) => format(point.error) }]; rows.forEach((rowData) => { const row = document.createElement('tr'); const labelCell = document.createElement('th'); labelCell.scope = 'row'; labelCell.textContent = rowData.label; if (rowData.label === '標準誤差') { const button = document.createElement('button'); button.className = 'info-button'; button.type = 'button'; button.textContent = 'i'; button.setAttribute('aria-label', '標準誤差の説明'); button.addEventListener('click', () => infoDialog.showModal()); labelCell.appendChild(button); } row.appendChild(labelCell); data.forEach((point) => { const cell = document.createElement('td'); cell.textContent = rowData.value(point); row.appendChild(cell); }); resultBody.appendChild(row); }); }
 function moveVerticalInput(input, direction) { const cell = input.closest('td'); const row = input.closest('tr'); if (!cell || !row) return; const targetRow = direction < 0 ? row.previousElementSibling : row.nextElementSibling; const target = targetRow?.querySelector(`td:nth-child(${cell.cellIndex + 1}) input`); if (target) { target.focus(); target.select(); } }
-function pasteTableValues(event) { const target = event.target.closest('input'); if (!target || !target.classList.contains('data-input')) return; const text = event.clipboardData?.getData('text/plain') || ''; if (!text.includes('\t') && !text.includes('\n')) return; const sourceRows = text.replace(/\r/g, '').split('\n').filter((row) => row.length > 0).map((row) => row.split('\t')); const startCell = target.closest('td'); const startRow = target.closest('tr'); if (!startCell || !startRow) return; event.preventDefault(); const startRowIndex = [...inputBody.rows].indexOf(startRow); const startColumnIndex = startCell.cellIndex - 1; sourceRows.forEach((sourceRow, rowOffset) => { const destinationRow = inputBody.rows[startRowIndex + rowOffset]; if (!destinationRow) return; sourceRow.forEach((value, columnOffset) => { const destinationCell = destinationRow.cells[startColumnIndex + columnOffset + 1]; const destinationInput = destinationCell?.querySelector('input'); if (destinationInput && value.trim() !== '') destinationInput.value = value.trim(); }); }); update(); }
+function pasteTableValues(event) { const target = event.target.closest('input'); if (!target || !target.classList.contains('data-input')) return; const text = event.clipboardData?.getData('text/plain') || ''; if (!text.includes('\t') && !text.includes('\n')) return; const sourceRows = text.replace(/\r/g, '').split('\n').filter((row) => row.length > 0).map((row) => row.split('\t')); const startCell = target.closest('td'); const startRow = target.closest('tr'); if (!startCell || !startRow) return; event.preventDefault(); const startRowIndex = [...inputBody.rows].indexOf(startRow); const startColumnIndex = startCell.cellIndex - 1; sourceRows.forEach((sourceRow, rowOffset) => { const destinationRow = inputBody.rows[startRowIndex + rowOffset]; if (!destinationRow) return; sourceRow.forEach((value, columnOffset) => { const destinationCell = destinationRow.cells[startColumnIndex + columnOffset + 1]; const destinationInput = destinationCell?.querySelector('input'); if (destinationInput && value.trim() !== '') destinationInput.value = value.trim(); }); }); noteLocalEdit(); update(); }
 function getQuadrantStatus(data) { const quadrants = new Set(); data.forEach((point) => { if (point.x >= 0 && point.mean >= 0) quadrants.add('第1象限'); if (point.x < 0 && point.mean >= 0) quadrants.add('第2象限'); if (point.x < 0 && point.mean < 0) quadrants.add('第3象限'); if (point.x >= 0 && point.mean < 0) quadrants.add('第4象限'); }); return quadrants.size > 0 ? [...quadrants].join('・') : 'データなし'; }
 function axisDisplayValue(value, logarithmic) { return logarithmic ? (value > 0 ? Math.log10(value) : NaN) : value; }
 function axisDisplayLabel(value, exponent, logarithmic, isYAxis = false) { return logarithmic ? `10^${format(value)}` : formatAxis(value, exponent, isYAxis); }
@@ -271,7 +326,7 @@ function hasDataOutsideGrid(values, columns, measurements) { const removedColumn
 function isSample() { const xInputs = [...document.querySelectorAll('.x-value')]; const yInputs = [...document.querySelectorAll('.y-value')]; const columns = xInputs.length; const measurements = columns > 0 ? yInputs.length / columns : 0; if (columns === 0 || !Number.isInteger(measurements)) return false; return datasetName.value === sampleData.name && xInputs.every((input, column) => Number(input.value) === sampleData.x[column]) && yInputs.every((input, index) => Number(input.value) === sampleData.y[index % columns]?.[Math.floor(index / columns)]); }
 function clearData() { if (hasActualData() && !isSample() && !window.confirm('入力したデータを消去します。よろしいですか？')) return; datasetName.value = ''; document.querySelectorAll('.data-input').forEach((input) => { input.value = ''; }); update(); }
 function handleCountChange(event) { const values = readGridValues(); const columns = event.target === pointCount ? clampCount(event.target) : values.x.length; const measurements = event.target === sampleCount ? clampCount(event.target) : values.y[0]?.length ?? 0; if (hasDataOutsideGrid(values, columns, measurements) && !isSample() && !window.confirm('入力したデータが消えます。設定を変更しますか？')) { event.target.value = event.target.dataset.previousValue; return; } renderInputs(values); }
-datasetName.addEventListener('input', update); pointCount.addEventListener('change', handleCountChange); sampleCount.addEventListener('change', handleCountChange); inputBody.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; event.preventDefault(); moveVerticalInput(event.target, event.shiftKey ? -1 : 1); }); inputBody.addEventListener('paste', pasteTableValues); document.getElementById('clearButton').addEventListener('click', clearData); document.getElementById('resetButton').addEventListener('click', () => { if (hasActualData() && !isSample() && !window.confirm('入力したデータをサンプルに戻します。よろしいですか？')) return; pointCount.value = sampleData.x.length; sampleCount.value = sampleData.y[0].length; renderInputs(sampleData); }); document.getElementById('dialogClose').addEventListener('click', () => infoDialog.close()); document.getElementById('downloadButton').addEventListener('click', downloadChart); document.getElementById('svgButton').addEventListener('click', downloadSvg); document.getElementById('csvButton').addEventListener('click', downloadCsv); window.addEventListener('resize', resizeCanvas); renderInputs();
+datasetName.addEventListener('input', () => { noteLocalEdit(); update(); }); pointCount.addEventListener('change', handleCountChange); sampleCount.addEventListener('change', handleCountChange); inputBody.addEventListener('keydown', (event) => { if (event.key !== 'Enter') return; event.preventDefault(); moveVerticalInput(event.target, event.shiftKey ? -1 : 1); }); inputBody.addEventListener('paste', pasteTableValues); document.getElementById('clearButton').addEventListener('click', clearData); document.getElementById('resetButton').addEventListener('click', () => { if (hasActualData() && !isSample() && !window.confirm('入力したデータをサンプルに戻します。よろしいですか？')) return; pointCount.value = sampleData.x.length; sampleCount.value = sampleData.y[0].length; renderInputs(sampleData); }); document.getElementById('dialogClose').addEventListener('click', () => infoDialog.close()); document.getElementById('downloadButton').addEventListener('click', downloadChart); document.getElementById('svgButton').addEventListener('click', downloadSvg); document.getElementById('csvButton').addEventListener('click', downloadCsv); window.addEventListener('resize', resizeCanvas); renderInputs();
 regressionButton.addEventListener('change', () => { regressionType = regressionButton.value; update(); }); enableLegendDrag();
 regressionButton.addEventListener('change', () => { regressionDisplayType = regressionButton.value; regressionType = ['exponentialDecay', 'exponentialHalfLife'].includes(regressionDisplayType) ? 'exponential' : regressionDisplayType; update(); });
 shareButton.addEventListener('click', createSharedDataset); loadShareButton.addEventListener('click', loadSharedDataset); shareCodeInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') loadSharedDataset(); }); if (!shareDatabase) setShareStatus('共有機能を使うにはFirebase設定が必要です'); if (activeShareCode) { shareCodeInput.value = activeShareCode; subscribeToSharedDataset(); }
