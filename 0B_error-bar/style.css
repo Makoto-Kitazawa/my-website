@@ -16,6 +16,7 @@ h1,h2,p { margin-top:0; } h1 { margin-bottom:0; font-size:clamp(24px,3vw,38px); 
 .qr-dialog { width:min(320px,calc(100% - 32px)); border:0; border-top:4px solid var(--accent); border-radius:8px; padding:28px; color:var(--ink); box-shadow:0 16px 50px #17232d30; text-align:center; } .qr-dialog::backdrop { background:#17232d66; } .qr-dialog h2 { margin-bottom:16px; }
 .qr-image svg,.qr-image img { width:100%; height:auto; display:block; }
 .qr-url { margin:12px 0 0; color:var(--muted); font-size:11px; word-break:break-all; }
+.qr-download-button { margin-top:16px; border:1px solid var(--accent); border-radius:4px; padding:8px 16px; color:#fff; background:var(--accent); font-weight:700; cursor:pointer; } .qr-download-button:hover { filter:brightness(1.08); }
 .share-code-control input { width:72px; border:1px solid var(--line); border-radius:4px; padding:8px; color:var(--ink); background:#fff; font:700 14px ui-monospace,"SFMono-Regular","Roboto Mono","Courier New",monospace; text-align:center; text-transform:uppercase; letter-spacing:.08em; }
 .share-status { position:fixed; right:16px; bottom:10px; margin:0; color:var(--blue); font-size:12px; }
 .reset-button,.clear-button { border:1px solid var(--line); border-radius:5px; padding:10px 16px; color:var(--ink); background:var(--panel); cursor:pointer; } .reset-button:hover,.clear-button:hover { border-color:var(--accent); color:var(--accent); }
