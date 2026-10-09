@@ -4,10 +4,10 @@ const PHOTON_HEIGHT = 6;
 const PHOTON_SPEED = 2;
 const ELECTRON_SPEED = 3; // 高速化でメモリ負荷低減
 const MAX_ELECTRONS = 50; // 同時存在できる電子の最大数
-const LIGHT_BEAM_CENTER_Y = 175; // Center of light beam
+const LIGHT_BEAM_CENTER_Y = 140; // Center of light beam
 const LIGHT_BEAM_HEIGHT = 150; // Total height of light beam
 const DETECTOR_CENTER_X = 330;
-const DETECTOR_CENTER_Y = 175;
+const DETECTOR_CENTER_Y = 140;
 const DETECTOR_RADIUS = 80;
 const PHOTOSURFACE_X_START = 410; // X coordinate where photosurface starts
 

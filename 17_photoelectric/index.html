@@ -25,7 +25,7 @@
     <section class="experiment" aria-label="光電効果のシミュレーション">
       <div class="animation-panel">
         <div class="panel-label"><span class="live-dot"></span>PHOTOELECTRIC EFFECT / 光電効果</div>
-        <svg id="mainSvg" viewBox="0 0 500 350" preserveAspectRatio="xMidYMid meet" role="img" aria-label="光子が光電面に当たる">
+        <svg id="mainSvg" viewBox="0 0 500 280" preserveAspectRatio="xMidYMid meet" role="img" aria-label="光子が光電面に当たる">
           <defs>
             <linearGradient id="lightGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" style="stop-color:#FFD700;stop-opacity:0.3" />
@@ -49,21 +49,21 @@
           
           <!-- グリッド背景 -->
           <g class="grid" opacity="0.08">
-            <line x1="0" y1="175" x2="500" y2="175" stroke="#FFF" stroke-width="1"/>
-            <line x1="250" y1="0" x2="250" y2="350" stroke="#FFF" stroke-width="1"/>
+            <line x1="0" y1="140" x2="500" y2="140" stroke="#FFF" stroke-width="1"/>
+            <line x1="250" y1="0" x2="250" y2="280" stroke="#FFF" stroke-width="1"/>
           </g>
           
           <!-- 左側：光源 -->
           <g id="lightSource">
             <!-- 光源の長方形（ライト） -->
-            <rect x="10" y="110" width="35" height="130" fill="#FFD700" opacity="0.4" rx="4"/>
-            <rect x="10" y="110" width="35" height="130" fill="none" stroke="#FFD700" stroke-width="2" opacity="0.8" rx="4"/>
+            <rect x="10" y="75" width="35" height="130" fill="#FFD700" opacity="0.4" rx="4"/>
+            <rect x="10" y="75" width="35" height="130" fill="none" stroke="#FFD700" stroke-width="2" opacity="0.8" rx="4"/>
             
             <!-- 光の帯 -->
             <g id="lightBeam">
-              <rect id="lightBeamRect" x="50" y="100" width="180" height="150" fill="url(#lightGradient)" opacity="0.6"/>
-              <line x1="50" y1="100" x2="230" y2="100" stroke="#FFD700" stroke-width="1" opacity="0.3"/>
-              <line x1="50" y1="250" x2="230" y2="250" stroke="#FFD700" stroke-width="1" opacity="0.3"/>
+              <rect id="lightBeamRect" x="50" y="65" width="180" height="150" fill="url(#lightGradient)" opacity="0.6"/>
+              <line x1="50" y1="65" x2="230" y2="65" stroke="#FFD700" stroke-width="1" opacity="0.3"/>
+              <line x1="50" y1="215" x2="230" y2="215" stroke="#FFD700" stroke-width="1" opacity="0.3"/>
             </g>
             
             <!-- 光子コンテナ -->
@@ -72,35 +72,35 @@
             </g>
             
             <!-- ラベル -->
-            <text x="5" y="320" font-size="12" fill="#91a097">光源</text>
+            <text x="5" y="270" font-size="12" fill="#91a097">光源</text>
           </g>
           
           <!-- 右側：光電面とアンテナ -->
           <g id="detector">
             <!-- 光電面：中心角120度の扇形（右向き） -->
             <g id="photosurface" class="photosurface">
-              <path d="M 330 175 L 370 105.72 A 80 80 0 0 1 370 244.28 Z" fill="none" stroke="#4a7c8c" stroke-width="5" opacity="0.9"/>
-              <path d="M 330 175 L 370 105.72 A 80 80 0 0 1 370 244.28 Z" fill="#4a7c8c" opacity="0.1"/>
+              <path d="M 330 140 L 370 70.72 A 80 80 0 0 1 370 209.28 Z" fill="none" stroke="#4a7c8c" stroke-width="5" opacity="0.9"/>
+              <path d="M 330 140 L 370 70.72 A 80 80 0 0 1 370 209.28 Z" fill="#4a7c8c" opacity="0.1"/>
             </g>
             
             <!-- 中心のアンテナ -->
             <g id="antenna" filter="url(#antennaGlow)">
               <!-- 赤い丸 -->
-              <circle cx="330" cy="175" r="14" fill="#FF6B6B" stroke="#FFB3B3" stroke-width="2.5"/>
+              <circle cx="330" cy="140" r="14" fill="#FF6B6B" stroke="#FFB3B3" stroke-width="2.5"/>
               
               <!-- アンテナから下への導線 -->
-              <line x1="330" y1="189" x2="330" y2="330" stroke="#FF6B6B" stroke-width="3" opacity="0.8"/>
+              <line x1="330" y1="154" x2="330" y2="245" stroke="#FF6B6B" stroke-width="3" opacity="0.8"/>
               
               <!-- 接地点 -->
-              <line x1="315" y1="330" x2="345" y2="330" stroke="#FF6B6B" stroke-width="2.5"/>
-              <line x1="308" y1="338" x2="352" y2="338" stroke="#FF6B6B" stroke-width="2"/>
-              <line x1="301" y1="346" x2="359" y2="346" stroke="#FF6B6B" stroke-width="1.5"/>
+              <line x1="315" y1="245" x2="345" y2="245" stroke="#FF6B6B" stroke-width="2.5"/>
+              <line x1="308" y1="253" x2="352" y2="253" stroke="#FF6B6B" stroke-width="2"/>
+              <line x1="301" y1="261" x2="359" y2="261" stroke="#FF6B6B" stroke-width="1.5"/>
             </g>
             
             <!-- 光電面から右への導線 -->
             <g id="wireRight" opacity="0.8">
-              <line x1="330" y1="175" x2="480" y2="175" stroke="#4a7c8c" stroke-width="2.5"/>
-              <text x="405" y="165" font-size="13" fill="#91a097" font-weight="bold">+</text>
+              <line x1="330" y1="140" x2="480" y2="140" stroke="#4a7c8c" stroke-width="2.5"/>
+              <text x="405" y="130" font-size="13" fill="#91a097" font-weight="bold">+</text>
             </g>
             
             <!-- 光電子コンテナ -->
@@ -109,8 +109,8 @@
             </g>
             
             <!-- ラベル -->
-            <text x="300" y="320" font-size="12" fill="#91a097">光電面</text>
-            <text x="330" y="320" font-size="12" fill="#91a097">接地</text>
+            <text x="300" y="270" font-size="12" fill="#91a097">光電面</text>
+            <text x="330" y="270" font-size="12" fill="#91a097">接地</text>
           </g>
         </svg>
         <div class="readout">
