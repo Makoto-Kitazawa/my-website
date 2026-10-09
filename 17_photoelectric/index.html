@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>光電効果の実験</title>
   <link rel="icon" type="image/svg+xml" href="../_common_/favicon.svg">
-  <meta name="project:title" content="光電効果を視覚化しよう">
+  <meta name="project:title" content="光電効果を視覚化しよう（β）">
   <meta name="project:category" content="物理用ファイル">
   <meta name="project:icon" content="💡">
   <meta name="project:description" content="光子が光電面に当たり光電子を放出する現象を可視化">
@@ -18,7 +18,7 @@
   <main class="photoelectric-page">
     <header class="page-header">
       <p class="eyebrow">PHOTOELECTRIC EFFECT</p>
-      <h1>光電効果の実験 <span>v1.0</span></h1>
+      <h1>光電効果の実験 <span>v1.0 β</span></h1>
       <p class="intro">光子が光電面に当たり光電子を放出する現象</p>
     </header>
 
@@ -121,6 +121,12 @@
     </section>
 
     <section class="controls" aria-label="光の条件を調整">
+      <div class="control-column buttons-column">
+        <div class="action-buttons">
+          <button id="playButton" type="button">▶ 開始</button>
+          <button id="resetButton" type="button">↺ リセット</button>
+        </div>
+      </div>
       <div class="control-column">
         <div class="control intensity-control">
           <div class="control-heading">
@@ -128,19 +134,9 @@
             <label for="intensitySlider">光の強度 (Intensity)</label>
             <output id="intensityValueControl" for="intensitySlider">100%</output>
           </div>
-          <input type="range" id="intensitySlider" min="0" max="100" step="5" value="100">
+          <input type="range" id="intensitySlider" min="0" max="200" step="5" value="100">
         </div>
-        <div class="control frequency-control">
-          <div class="control-heading">
-            <span class="control-dot"></span>
-            <label for="frequencySlider">光の周波数 (Frequency)</label>
-            <output id="frequencyValueControl" for="frequencySlider">紫外線</output>
-          </div>
-          <input type="range" id="frequencySlider" min="0" max="3" step="1" value="0" data-frequencies="赤外線,赤,黄,紫外線">
-        </div>
-      </div>
-      <div class="control-column">
-        <div class="control">
+        <div class="control work-function-control">
           <div class="control-heading">
             <span class="control-dot"></span>
             <label for="workFunctionSlider">仕事関数 W</label>
@@ -148,15 +144,29 @@
           </div>
           <input type="range" id="workFunctionSlider" min="1" max="5" step="0.1" value="2.0">
         </div>
-        <div class="action-buttons">
-          <button id="playButton" type="button">▶ 開始</button>
-          <button id="resetButton" type="button">↺ リセット</button>
+      </div>
+      <div class="control-column">
+        <div class="control frequency-control">
+          <div class="control-heading">
+            <span class="control-dot"></span>
+            <label for="frequencySlider">光の周波数 (Frequency)</label>
+            <output id="frequencyValueControl" for="frequencySlider">赤外線 (1.24 eV)</output>
+          </div>
+          <input type="range" id="frequencySlider" min="0" max="10" step="1" value="0" data-frequencies="赤外線,赤,黄,緑,青,紫,紫外線,深紫外線,軟X線,X線,硬X線">
+        </div>
+        <div class="control voltage-control">
+          <div class="control-heading">
+            <span class="control-dot"></span>
+            <label for="voltageSlider">極間の電圧 V</label>
+            <output id="voltageValue" for="voltageSlider">0.0 V</output>
+          </div>
+          <input type="range" id="voltageSlider" min="-3" max="5" step="0.1" value="0">
         </div>
       </div>
     </section>
 
     <section class="info-panel">
-      <p class="info-text">光子がエネルギー <span id="photonEnergy">0</span> eV で光電面に衝突します。仕事関数 W = <span id="workFunctionDisplay">2.0</span> eV を超えたとき、光電子が放出されます。</p>
+      <p class="info-text">光子がエネルギー <span id="photonEnergy">1.24 eV</span> で光電面に衝突します。仕事関数 W = <span id="workFunctionDisplay">2.0</span> eV を超えたとき、光電子が放出されます。</p>
       <p class="formula">E<sub>photon</sub> = h·f （光子のエネルギー）</p>
       <p class="formula">E<sub>kinetic</sub> = h·f - W （放出電子の運動エネルギー）</p>
     </section>

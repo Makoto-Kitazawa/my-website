@@ -173,7 +173,7 @@
 
 #photoelectric-app .controls {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 0.7fr 1fr 1fr;
   gap: 14px;
   margin-top: 16px;
   text-align: left;
@@ -201,8 +201,21 @@
   --control-color: #FF6B6B;
 }
 
+#photoelectric-app .voltage-control {
+  --control-color: #4A9EFF;
+}
+
 #photoelectric-app .control:nth-child(2) {
   --control-color: #65d0c2;
+}
+
+#photoelectric-app .voltage-control:nth-child(2) {
+  --control-color: #4A9EFF;
+}
+
+#photoelectric-app .buttons-column {
+  display: flex;
+  align-items: center;
 }
 
 #photoelectric-app .control-heading {
@@ -233,9 +246,11 @@
 
 #photoelectric-app .action-buttons {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   gap: 10px;
-  margin-top: 12px;
+  margin-top: 0;
+  width: 100%;
 }
 
 #photoelectric-app .action-buttons button {

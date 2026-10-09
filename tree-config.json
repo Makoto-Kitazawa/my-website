@@ -125,6 +125,12 @@
       "category": "物理用ファイル",
       "icon": "〰️",
       "description": "回転する動径と正弦波で交流回路の位相を可視化"
+    },
+    "17_photoelectric": {
+      "title": "光電効果を視覚化しよう（β）",
+      "category": "物理用ファイル",
+      "icon": "💡",
+      "description": "光子が光電面に当たり光電子を放出する現象を可視化"
     }
   },
   "otherLinks": [

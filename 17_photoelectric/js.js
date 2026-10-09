@@ -1,6 +1,6 @@
 // Configuration and constants
-const PHOTON_WIDTH = 6;
-const PHOTON_HEIGHT = 12;
+const PHOTON_WIDTH = 12;  // 横長の長方形
+const PHOTON_HEIGHT = 6;
 const PHOTON_SPEED = 2;
 const ELECTRON_SPEED = 3; // 高速化でメモリ負荷低減
 const MAX_ELECTRONS = 50; // 同時存在できる電子の最大数
@@ -11,20 +11,39 @@ const DETECTOR_CENTER_Y = 175;
 const DETECTOR_RADIUS = 80;
 const PHOTOSURFACE_X_START = 410; // X coordinate where photosurface starts
 
-// Frequency data: eV values for different frequencies
+// Planck constant [eV·s]
+const H_EV_S = 4.1357e-15;
+
+// Frequency data: 周波数 ν [Hz] と色。エネルギーは E = hν で計算
 const FREQUENCY_DATA = [
-  { name: "赤外線", energy: 1.5, color: "#FF4444" },
-  { name: "赤", energy: 2.0, color: "#FF6B6B" },
-  { name: "黄", energy: 2.5, color: "#FFD700" },
-  { name: "紫外線", energy: 4.0, color: "#9D4EDD" }
+  { name: "赤外線",   freq: 3.0e14, color: "#FF4444" },
+  { name: "赤",       freq: 4.3e14, color: "#FF6B6B" },
+  { name: "黄",       freq: 5.2e14, color: "#FFD700" },
+  { name: "緑",       freq: 5.7e14, color: "#4ADE80" },
+  { name: "青",       freq: 6.4e14, color: "#4A9EFF" },
+  { name: "紫",       freq: 7.5e14, color: "#C77DFF" },
+  { name: "紫外線",   freq: 1.0e15, color: "#9D4EDD" },
+  { name: "深紫外線", freq: 1.5e15, color: "#E0AAFF" },
+  { name: "軟X線",    freq: 3.0e16, color: "#B8E0FF" },
+  { name: "X線",      freq: 3.0e17, color: "#D0ECFF" },
+  { name: "硬X線",    freq: 3.0e18, color: "#FFFFFF" }
 ];
+FREQUENCY_DATA.forEach(f => { f.energy = H_EV_S * f.freq; });
+
+// エネルギーを適切な単位（eV / keV）で整形
+function formatEnergy(eV) {
+  if (eV >= 1000) return `${(eV / 1000).toPrecision(3)} keV`;
+  if (eV >= 100) return `${eV.toPrecision(3)} eV`;
+  return `${eV.toFixed(2)} eV`;
+}
 
 // Application state
 const state = {
   playing: false,
-  intensity: 100, // 0-100%
-  frequency: 0, // 0-3, index into FREQUENCY_DATA
+  intensity: 100, // 0-200%
+  frequency: 0, // index into FREQUENCY_DATA
   workFunction: 2.0, // eV
+  voltage: 0, // V（正の値は阻止電圧として作用）
   photonCount: 0,
   electronCount: 0,
   lastPhotonTime: 0,
@@ -43,6 +62,8 @@ const intensityValueControl = document.getElementById("intensityValueControl");
 const frequencyValueControl = document.getElementById("frequencyValueControl");
 const workFunctionValue = document.getElementById("workFunctionValue");
 const workFunctionDisplay = document.getElementById("workFunctionDisplay");
+const voltageSlider = document.getElementById("voltageSlider");
+const voltageValue = document.getElementById("voltageValue");
 const photonCountValue = document.getElementById("photonCountValue");
 const electronCountValue = document.getElementById("electronCountValue");
 const photonEnergy = document.getElementById("photonEnergy");
@@ -86,7 +107,7 @@ function createPhoton(x, y) {
 }
 
 // Create an electron element
-function createElectron(x, y) {
+function createElectron(x, y, kineticEnergy) {
   const electron = {
     x: x,
     y: y,
@@ -94,6 +115,7 @@ function createElectron(x, y) {
     startY: y,
     targetX: DETECTOR_CENTER_X,
     targetY: DETECTOR_CENTER_Y,
+    ke: kineticEnergy, // 放出時の運動エネルギー [eV]
     progress: 0,
     element: null
   };
@@ -139,7 +161,8 @@ function updatePhotons() {
           
           // 20% probability to emit electron (max制限)
           if (electrons.length < MAX_ELECTRONS && Math.random() < 0.2 && canEmitElectron(FREQUENCY_DATA[state.frequency].energy, state.workFunction)) {
-            const newElectron = createElectron(photon.x, photon.y);
+            const kineticEnergy = FREQUENCY_DATA[state.frequency].energy - state.workFunction;
+            const newElectron = createElectron(photon.x, photon.y, kineticEnergy);
             electrons.push(newElectron);
             state.electronCount++;
             electronCountValue.textContent = state.electronCount;
@@ -169,10 +192,16 @@ function updateElectrons() {
   for (let i = electrons.length - 1; i >= 0; i--) {
     const electron = electrons[i];
     
-    electron.progress += ELECTRON_SPEED / 150; // 高速化
+    // 極間の電圧による減速/加速（正の電圧は阻止電圧として作用）
+    const effectiveEnergy = electron.ke - state.voltage;
+    const speedFactor = Math.sqrt(Math.max(0.2, effectiveEnergy) / Math.max(0.2, electron.ke));
+    electron.progress += (ELECTRON_SPEED / 150) * speedFactor;
     
-    if (electron.progress >= 1) {
-      // Electron reached antenna - remove immediately
+    // 阻止電圧が運動エネルギーを上回る場合、電子は途中までしか進めない
+    const maxProgress = state.voltage > 0 ? Math.min(1, electron.ke / state.voltage) : 1;
+    
+    if (electron.progress >= 1 || electron.progress >= maxProgress) {
+      // Electron reached antenna or was repelled - remove immediately
       if (electron.element && electron.element.parentNode) {
         electron.element.remove();
       }
@@ -190,28 +219,35 @@ function updateElectrons() {
   }
 }
 
+// Photon emission rate [photons/s]（強度100%で2.5/s、上限200%で5.0/s）
+function photonRate() {
+  return (state.intensity / 100) * 2.5;
+}
+
 // Generate photons based on intensity
 function generatePhotons(deltaTime) {
-  const basePhotonsPerSecond = Math.floor((10 + (state.intensity / 100) * 40) / 20);
-  const photonsPerSecond = Math.max(1, basePhotonsPerSecond);
-  const timeBetweenPhotons = 1000 / photonsPerSecond;
+  const photonsPerSecond = photonRate();
   
-  state.lastPhotonTime += deltaTime;
-  
-  while (state.lastPhotonTime >= timeBetweenPhotons) {
-    const startY = LIGHT_BEAM_CENTER_Y + (Math.random() - 0.5) * LIGHT_BEAM_HEIGHT;
-    const newPhoton = createPhoton(50, startY);
-    photons.push(newPhoton);
-    state.lastPhotonTime -= timeBetweenPhotons;
-    state.photonCount++;
+  if (photonsPerSecond > 0) {
+    const timeBetweenPhotons = 1000 / photonsPerSecond;
+    
+    state.lastPhotonTime += deltaTime;
+    
+    while (state.lastPhotonTime >= timeBetweenPhotons) {
+      const startY = LIGHT_BEAM_CENTER_Y + (Math.random() - 0.5) * LIGHT_BEAM_HEIGHT;
+      const newPhoton = createPhoton(50, startY);
+      photons.push(newPhoton);
+      state.lastPhotonTime -= timeBetweenPhotons;
+      state.photonCount++;
+    }
   }
   
-  photonCountValue.textContent = photonsPerSecond;
+  photonCountValue.textContent = photonsPerSecond.toFixed(1);
 }
 
 // Update light beam opacity
 function updateLightBeam() {
-  const opacity = 0.3 + (state.intensity / 100) * 0.6;
+  const opacity = Math.min(1, 0.3 + (state.intensity / 100) * 0.6);
   lightBeamRect.setAttribute("opacity", opacity);
 }
 
@@ -266,20 +302,22 @@ resetButton.addEventListener("click", () => {
   });
   electrons = [];
   
-  photonCountValue.textContent = "10";
+  photonCountValue.textContent = photonRate().toFixed(1);
   electronCountValue.textContent = "0";
 });
 
 intensitySlider.addEventListener("input", (e) => {
   state.intensity = parseInt(e.target.value);
   intensityValueControl.textContent = state.intensity + "%";
+  photonCountValue.textContent = photonRate().toFixed(1);
   updateLightBeam();
 });
 
 frequencySlider.addEventListener("input", (e) => {
   state.frequency = parseInt(e.target.value);
-  frequencyValueControl.textContent = FREQUENCY_DATA[state.frequency].name;
-  photonEnergy.textContent = FREQUENCY_DATA[state.frequency].energy.toFixed(1);
+  const freq = FREQUENCY_DATA[state.frequency];
+  frequencyValueControl.textContent = `${freq.name} (${formatEnergy(freq.energy)})`;
+  photonEnergy.textContent = formatEnergy(freq.energy);
   
   // Update photon colors
   photons.forEach(p => {
@@ -295,13 +333,19 @@ workFunctionSlider.addEventListener("input", (e) => {
   workFunctionDisplay.textContent = state.workFunction.toFixed(1);
 });
 
+voltageSlider.addEventListener("input", (e) => {
+  state.voltage = parseFloat(e.target.value);
+  voltageValue.textContent = state.voltage.toFixed(1) + " V";
+});
+
 // Initialize
 intensityValueControl.textContent = state.intensity + "%";
-frequencyValueControl.textContent = FREQUENCY_DATA[state.frequency].name;
-photonEnergy.textContent = FREQUENCY_DATA[state.frequency].energy.toFixed(1);
+frequencyValueControl.textContent = `${FREQUENCY_DATA[state.frequency].name} (${formatEnergy(FREQUENCY_DATA[state.frequency].energy)})`;
+photonEnergy.textContent = formatEnergy(FREQUENCY_DATA[state.frequency].energy);
 workFunctionValue.textContent = state.workFunction.toFixed(1) + " eV";
 workFunctionDisplay.textContent = state.workFunction.toFixed(1);
-photonCountValue.textContent = "10";
+voltageValue.textContent = state.voltage.toFixed(1) + " V";
+photonCountValue.textContent = photonRate().toFixed(1);
 electronCountValue.textContent = "0";
 
 // Start animation loop
