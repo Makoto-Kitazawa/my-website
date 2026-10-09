@@ -4,6 +4,7 @@ const PHOTON_HEIGHT = 6;
 const PHOTON_SPEED = 2;
 const ELECTRON_SPEED = 3; // 高速化でメモリ負荷低減
 const MAX_ELECTRONS = 50; // 同時存在できる電子の最大数
+const MAX_PHOTONS = 40; // 同時存在できる光子の最大数（安全上限）
 const LIGHT_BEAM_CENTER_Y = 140; // Center of light beam
 const LIGHT_BEAM_HEIGHT = 150; // Total height of light beam
 const DETECTOR_CENTER_X = 330;
@@ -233,7 +234,7 @@ function generatePhotons(deltaTime) {
     
     state.lastPhotonTime += deltaTime;
     
-    while (state.lastPhotonTime >= timeBetweenPhotons) {
+    while (state.lastPhotonTime >= timeBetweenPhotons && photons.length < MAX_PHOTONS) {
       const startY = LIGHT_BEAM_CENTER_Y + (Math.random() - 0.5) * LIGHT_BEAM_HEIGHT;
       const newPhoton = createPhoton(50, startY);
       photons.push(newPhoton);
@@ -254,16 +255,20 @@ function updateLightBeam() {
 // Animation loop
 function animate(currentTime) {
   if (state.playing) {
-    const deltaTime = state.lastTime > 0 ? currentTime - state.lastTime : 16;
+    // タブ切替直後などに巨大なdeltaTimeが来ないようクランプ（光子の大量生成を防止）
+    const deltaTime = Math.min(50, state.lastTime > 0 ? currentTime - state.lastTime : 16);
     state.lastTime = currentTime;
     
     generatePhotons(deltaTime);
     updatePhotons();
     updateElectrons();
     updateLightBeam();
+    
+    state.frame = requestAnimationFrame(animate);
+  } else {
+    // 停止中はループを回さない（CPU負荷を抑える）
+    state.frame = null;
   }
-  
-  state.frame = requestAnimationFrame(animate);
 }
 
 // Event listeners
