@@ -46,7 +46,8 @@ const state = {
   workFunction: 2.0, // eV
   voltage: 0, // V（正：球が高電位で電子を加速、負：電子を減速）
   photonCount: 0,
-  electronCount: 0,
+  electronEmitted: 0,  // 発生した光電子の数
+  electronDetected: 0, // アンテナに到達した光電子の数
   lastPhotonTime: 0,
   frame: null,
   lastTime: 0
@@ -68,6 +69,7 @@ const voltageValue = document.getElementById("voltageValue");
 const antennaBall = document.getElementById("antennaBall");
 const photonCountValue = document.getElementById("photonCountValue");
 const electronCountValue = document.getElementById("electronCountValue");
+const electronEmittedValue = document.getElementById("electronEmittedValue");
 const photonEnergy = document.getElementById("photonEnergy");
 const mainSvg = document.getElementById("mainSvg");
 const photonContainer = document.getElementById("photonContainer");
@@ -175,8 +177,8 @@ function updatePhotons() {
             const kineticEnergy = (FREQUENCY_DATA[state.frequency].energy - state.workFunction) * energyRatio;
             const newElectron = createElectron(photon.x, photon.y, kineticEnergy);
             electrons.push(newElectron);
-            state.electronCount++;
-            electronCountValue.textContent = state.electronCount;
+            state.electronEmitted++;
+            electronEmittedValue.textContent = state.electronEmitted;
           }
           
           // Remove photon
@@ -212,6 +214,11 @@ function updateElectrons() {
     electron.s += electron.v;
     
     if (electron.v <= 0 || electron.s >= electron.dist) {
+      // アンテナに到達した場合は検出カウントを増やす
+      if (electron.v > 0 && electron.s >= electron.dist) {
+        state.electronDetected++;
+        electronCountValue.textContent = state.electronDetected;
+      }
       // 静止した（到達不能）またはアンテナに到達 → 即座に消去
       if (electron.element && electron.element.parentNode) {
         electron.element.remove();
@@ -297,7 +304,8 @@ playButton.addEventListener("click", () => {
 resetButton.addEventListener("click", () => {
   state.playing = false;
   state.photonCount = 0;
-  state.electronCount = 0;
+  state.electronEmitted = 0;
+  state.electronDetected = 0;
   state.lastPhotonTime = 0;
   state.lastTime = 0;
   
@@ -318,6 +326,7 @@ resetButton.addEventListener("click", () => {
   
   photonCountValue.textContent = photonRate().toFixed(1);
   electronCountValue.textContent = "0";
+  electronEmittedValue.textContent = "0";
 });
 
 intensitySlider.addEventListener("input", (e) => {
@@ -366,6 +375,7 @@ workFunctionDisplay.textContent = state.workFunction.toFixed(1);
 voltageValue.textContent = state.voltage.toFixed(1) + " V";
 photonCountValue.textContent = photonRate().toFixed(1);
 electronCountValue.textContent = "0";
+electronEmittedValue.textContent = "0";
 
 // Start animation loop
 animate(0);
