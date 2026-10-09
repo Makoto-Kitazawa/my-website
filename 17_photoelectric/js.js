@@ -44,7 +44,7 @@ const state = {
   intensity: 100, // 0-200%
   frequency: 0, // index into FREQUENCY_DATA
   workFunction: 2.0, // eV
-  voltage: 0, // V（正の値は阻止電圧として作用）
+  voltage: 0, // V（正：球が高電位で電子を加速、負：電子を減速）
   photonCount: 0,
   electronCount: 0,
   lastPhotonTime: 0,
@@ -65,6 +65,7 @@ const workFunctionValue = document.getElementById("workFunctionValue");
 const workFunctionDisplay = document.getElementById("workFunctionDisplay");
 const voltageSlider = document.getElementById("voltageSlider");
 const voltageValue = document.getElementById("voltageValue");
+const antennaBall = document.getElementById("antennaBall");
 const photonCountValue = document.getElementById("photonCountValue");
 const electronCountValue = document.getElementById("electronCountValue");
 const photonEnergy = document.getElementById("photonEnergy");
@@ -109,15 +110,22 @@ function createPhoton(x, y) {
 
 // Create an electron element
 function createElectron(x, y, kineticEnergy) {
+  const dx = DETECTOR_CENTER_X - x;
+  const dy = DETECTOR_CENTER_Y - y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const ke = Math.max(0.05, kineticEnergy);
+  const v0 = (distance / 50) * Math.sqrt(ke / 2); // 初速度 [px/frame]
+  
   const electron = {
-    x: x,
-    y: y,
     startX: x,
     startY: y,
-    targetX: DETECTOR_CENTER_X,
-    targetY: DETECTOR_CENTER_Y,
-    ke: kineticEnergy, // 放出時の運動エネルギー [eV]
-    progress: 0,
+    dirX: dx / distance,
+    dirY: dy / distance,
+    dist: distance,
+    s: 0,   // 進んだ距離 [px]
+    v0: v0, // 初速度 [px/frame]
+    v: v0,  // 現在の速度 [px/frame]
+    ke: ke, // 放出時の運動エネルギー [eV]
     element: null
   };
   
@@ -162,7 +170,9 @@ function updatePhotons() {
           
           // 20% probability to emit electron (max制限)
           if (electrons.length < MAX_ELECTRONS && Math.random() < 0.2 && canEmitElectron(FREQUENCY_DATA[state.frequency].energy, state.workFunction)) {
-            const kineticEnergy = FREQUENCY_DATA[state.frequency].energy - state.workFunction;
+            // hν - W は最大運動エネルギー。実際の光電子はその20〜100%の5段階でランダムに放出される
+            const energyRatio = [0.2, 0.4, 0.6, 0.8, 1.0][Math.floor(Math.random() * 5)];
+            const kineticEnergy = (FREQUENCY_DATA[state.frequency].energy - state.workFunction) * energyRatio;
             const newElectron = createElectron(photon.x, photon.y, kineticEnergy);
             electrons.push(newElectron);
             state.electronCount++;
@@ -188,29 +198,28 @@ function updatePhotons() {
   }
 }
 
-// Update electron positions
+// Update electron positions（等加速度運動）
 function updateElectrons() {
   for (let i = electrons.length - 1; i >= 0; i--) {
     const electron = electrons[i];
     
-    // 極間の電圧による減速/加速（正の電圧は阻止電圧として作用）
-    const effectiveEnergy = electron.ke - state.voltage;
-    const speedFactor = Math.sqrt(Math.max(0.2, effectiveEnergy) / Math.max(0.2, electron.ke));
-    electron.progress += (ELECTRON_SPEED / 150) * speedFactor;
+    // 極間の電圧による加速度 [px/frame²]
+    // V > 0：球が高電位 → 電子は加速して届きやすくなる
+    // V < 0：電子は減速し、静止するとその場で消える
+    const accel = (electron.v0 * electron.v0 * state.voltage) / (2 * electron.dist * electron.ke);
     
-    // 阻止電圧が運動エネルギーを上回る場合、電子は途中までしか進めない
-    const maxProgress = state.voltage > 0 ? Math.min(1, electron.ke / state.voltage) : 1;
+    electron.v += accel;
+    electron.s += electron.v;
     
-    if (electron.progress >= 1 || electron.progress >= maxProgress) {
-      // Electron reached antenna or was repelled - remove immediately
+    if (electron.v <= 0 || electron.s >= electron.dist) {
+      // 静止した（到達不能）またはアンテナに到達 → 即座に消去
       if (electron.element && electron.element.parentNode) {
         electron.element.remove();
       }
       electrons.splice(i, 1);
     } else {
-      // Linear interpolation to center
-      electron.x = electron.startX + (electron.targetX - electron.startX) * electron.progress;
-      electron.y = electron.startY + (electron.targetY - electron.startY) * electron.progress;
+      electron.x = electron.startX + electron.dirX * electron.s;
+      electron.y = electron.startY + electron.dirY * electron.s;
       
       if (electron.element && electron.element.parentNode) {
         electron.element.setAttribute("cx", electron.x);
@@ -341,6 +350,11 @@ workFunctionSlider.addEventListener("input", (e) => {
 voltageSlider.addEventListener("input", (e) => {
   state.voltage = parseFloat(e.target.value);
   voltageValue.textContent = state.voltage.toFixed(1) + " V";
+  
+  // 電位が負のとき球を青色にする
+  const negative = state.voltage < 0;
+  antennaBall.setAttribute("fill", negative ? "#4A9EFF" : "#FF6B6B");
+  antennaBall.setAttribute("stroke", negative ? "#B8D4FF" : "#FFB3B3");
 });
 
 // Initialize

@@ -70,16 +70,15 @@
           
           <!-- 右側：光電面とアンテナ -->
           <g id="detector">
-            <!-- 光電面：中心角120度の扇形（右向き） -->
+            <!-- 光電面：中心角120度の弧のみ（右向き） -->
             <g id="photosurface" class="photosurface">
-              <path d="M 330 140 L 370 70.72 A 80 80 0 0 1 370 209.28 Z" fill="none" stroke="#4a7c8c" stroke-width="5" opacity="0.9"/>
-              <path d="M 330 140 L 370 70.72 A 80 80 0 0 1 370 209.28 Z" fill="#4a7c8c" opacity="0.1"/>
+              <path d="M 370 70.72 A 80 80 0 0 1 370 209.28" fill="none" stroke="#4a7c8c" stroke-width="5" opacity="0.9"/>
             </g>
             
             <!-- 中心のアンテナ -->
             <g id="antenna" filter="url(#antennaGlow)">
               <!-- 赤い丸 -->
-              <circle cx="330" cy="140" r="14" fill="#FF6B6B" stroke="#FFB3B3" stroke-width="2.5"/>
+              <circle id="antennaBall" cx="330" cy="140" r="14" fill="#FF6B6B" stroke="#FFB3B3" stroke-width="2.5"/>
               
               <!-- アンテナから下への導線 -->
               <line x1="330" y1="154" x2="330" y2="245" stroke="#FF6B6B" stroke-width="3" opacity="0.8"/>
@@ -90,20 +89,16 @@
               <line x1="301" y1="261" x2="359" y2="261" stroke="#FF6B6B" stroke-width="1.5"/>
             </g>
             
-            <!-- 光電面から右への導線 -->
+            <!-- 光電面から右への導線（弧の外側から引く） -->
             <g id="wireRight" opacity="0.8">
-              <line x1="330" y1="140" x2="480" y2="140" stroke="#4a7c8c" stroke-width="2.5"/>
-              <text x="405" y="130" font-size="13" fill="#91a097" font-weight="bold">+</text>
+              <line x1="410" y1="140" x2="480" y2="140" stroke="#4a7c8c" stroke-width="2.5"/>
+              <text x="440" y="130" font-size="13" fill="#91a097" font-weight="bold">+</text>
             </g>
             
             <!-- 光電子コンテナ -->
             <g id="electronContainer">
               <!-- 電子は動的に追加される -->
             </g>
-            
-            <!-- ラベル -->
-            <text x="300" y="270" font-size="12" fill="#91a097">光電面</text>
-            <text x="330" y="270" font-size="12" fill="#91a097">接地</text>
           </g>
         </svg>
         <div class="readout">
