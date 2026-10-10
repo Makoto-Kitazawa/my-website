@@ -81,13 +81,15 @@ document.getElementById('applySettingsButton').addEventListener('click', () => {
   params.delete('yx');
   history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`);
 });
-axisXInput.addEventListener('input', () => { axisVariables.x = axisXInput.value.trim() || 'x'; updateInputRowLabels(); update(); });
-axisYInput.addEventListener('input', () => { axisVariables.y = axisYInput.value.trim() || 'y'; updateInputRowLabels(); update(); });
-function applyLegendAxisVariables() { legendCurveEquation.innerHTML = legendCurveEquation.innerHTML.replace(/\bx\b/g, () => escapeHtml(axisVariables.x)).replace(/\by\b/g, () => escapeHtml(axisVariables.y)); }
+function updateAxisVariableWarning() { axisVariableWarning.hidden = axisVariables.x !== axisVariables.y; }
+axisXInput.addEventListener('input', () => { axisVariables.x = axisXInput.value.trim() || 'x'; updateInputRowLabels(); updateAxisVariableWarning(); update(); });
+axisYInput.addEventListener('input', () => { axisVariables.y = axisYInput.value.trim() || 'y'; updateInputRowLabels(); updateAxisVariableWarning(); update(); });
+function applyLegendAxisVariables() { legendCurveEquation.innerHTML = legendCurveEquation.innerHTML.replace(/x(?![A-Za-z0-9])/g, () => escapeHtml(axisVariables.x)).replace(/y(?![A-Za-z0-9])/g, () => escapeHtml(axisVariables.y)); }
 const updateWithLegendAxisVariables = update;
 update = (...args) => { updateWithLegendAxisVariables(...args); applyLegendAxisVariables(); };
 const getExportLegendLinesWithDefaultVariables = getExportLegendLines;
-getExportLegendLines = (data) => { const lines = getExportLegendLinesWithDefaultVariables(data); if (lines[2]) lines[2] = lines[2].replace(/\bx\b/g, () => axisVariables.x).replace(/\by\b/g, () => axisVariables.y); return lines; };
+getExportLegendLines = (data) => { const lines = getExportLegendLinesWithDefaultVariables(data); if (lines[2]) lines[2] = lines[2].replace(/x(?![A-Za-z0-9])/g, () => axisVariables.x).replace(/y(?![A-Za-z0-9])/g, () => axisVariables.y); return lines; };
+updateAxisVariableWarning();
 applyLegendAxisVariables();
 [axisXLabelInput, axisXUnitInput, axisYLabelInput, axisYUnitInput, axisLabelFontSizeInput].forEach((input) => input.addEventListener('input', update));
 const resetButton = document.getElementById('resetButton');

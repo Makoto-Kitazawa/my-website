@@ -48,6 +48,7 @@ const customFunctionState = { type: 'linear', values: { A: 1, B: 0, C: 0 } };
 let controlsReady = false;
 const axisXInput = document.getElementById('axisXInput');
 const axisYInput = document.getElementById('axisYInput');
+const axisVariableWarning = document.getElementById('axisVariableWarning');
 const axisXLabelInput = document.getElementById('axisXLabelInput');
 const axisXUnitInput = document.getElementById('axisXUnitInput');
 const axisYLabelInput = document.getElementById('axisYLabelInput');
