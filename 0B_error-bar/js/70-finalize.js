@@ -48,7 +48,7 @@ function drawLogChart(data, size) {
   const xValues = points.map((point) => axisDisplayValue(point.x, logXToggle.checked));
   const yValues = points.flatMap((point) => [axisDisplayValue(point.mean + point.error, logYToggle.checked), axisDisplayValue(Math.max(Number.MIN_VALUE, point.mean - point.error), logYToggle.checked)]);
   const rawXMin = Math.min(...xValues); const rawXMax = Math.max(...xValues); const rawYMin = Math.min(...yValues); const rawYMax = Math.max(...yValues);
-  const xLimit = niceAxisLimit(Math.max(1, Math.abs(rawXMin), Math.abs(rawXMax)) * 1.18); const xMin = logXToggle.checked ? Math.floor(rawXMin) : rawXMin < 0 ? -xLimit : 0; const xMax = logXToggle.checked ? Math.max(Math.ceil(rawXMax), xMin + 1) : rawXMax > 0 || rawXMin >= 0 ? xLimit : 0; const yMin = logYToggle.checked ? Math.floor(rawYMin) : rawYMin; const yMax = logYToggle.checked ? Math.max(Math.ceil(rawYMax), yMin + 1) : rawYMax;
+  const xLimit = niceAxisLimit(Math.max(0, Math.abs(rawXMin), Math.abs(rawXMax)) * 1.18); const xMin = logXToggle.checked ? Math.floor(rawXMin) : rawXMin < 0 ? -xLimit : 0; const xMax = logXToggle.checked ? Math.max(Math.ceil(rawXMax), xMin + 1) : rawXMax > 0 || rawXMin >= 0 ? xLimit : 0; const yMin = logYToggle.checked ? Math.floor(rawYMin) : rawYMin; const yMax = logYToggle.checked ? Math.max(Math.ceil(rawYMax), yMin + 1) : rawYMax;
   const yPad = logYToggle.checked ? 0 : Math.max(0.2, (yMax - yMin) * 0.08);
   const xLabelText = formatAxisLabel(axisXLabelInput.value, axisXUnitInput.value); const yLabelText = formatAxisLabel(axisYLabelInput.value, axisYUnitInput.value);
   const yTicksForMeasure = logYToggle.checked ? Math.max(1, Math.ceil(rawYMax) - Math.floor(rawYMin)) : 5;
