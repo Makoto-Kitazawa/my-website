@@ -202,9 +202,19 @@ function fitWeightedModel(data, basis, valueOf, sigmaOf, evaluate) {
       values.forEach((otherValue, column) => { normal[row][column] += weight * value * otherValue; });
     });
   });
-  const covariance = getMatrixInverse(normal);
-  if (!covariance) return null;
-  const coefficients = covariance.map((row) => row.reduce((sum, value, index) => sum + value * right[index], 0));
+  const inverse = getMatrixInverse(normal);
+  if (!inverse) return null;
+  const coefficients = inverse.map((row) => row.reduce((sum, value, index) => sum + value * right[index], 0));
+  // 重みなし（標準誤差0の点を含む）場合、係数の共分散は (XᵀX)⁻¹ に残差分散 σ² = 残差/自由度 を掛けたもの
+  let covariance = inverse;
+  if (!useErrorWeights) {
+    const residual = validData.reduce((sum, point) => {
+      const predicted = basis.reduce((total, getBasis, index) => total + coefficients[index] * getBasis(point), 0);
+      return sum + (valueOf(point) - predicted) ** 2;
+    }, 0);
+    const varianceScale = residual / Math.max(1, validData.length - size);
+    covariance = inverse.map((row) => row.map((value) => value * varianceScale));
+  }
   const predictionUncertainty = (x) => {
     const values = basis.map((getBasis) => getBasis({ x }));
     if (values.some((value) => !Number.isFinite(value))) return NaN;
@@ -223,7 +233,7 @@ function getImprovedRegression(data, type) {
   }
   if (type === 'exponential') {
     const positive = data.filter((point) => point.mean > 0);
-    const fit = fitWeightedModel(positive, [() => 1, (point) => point.x], (point) => Math.log(point.mean), (point) => point.error > 0 ? point.error / point.mean : 1, ([intercept, slope], x) => Math.exp(intercept + slope * x));
+    const fit = fitWeightedModel(positive, [() => 1, (point) => point.x], (point) => Math.log(point.mean), (point) => point.error / point.mean, ([intercept, slope], x) => Math.exp(intercept + slope * x));
     if (!fit) return null;
     const transformedUncertainty = fit.uncertainty;
     return { ...fit, uncertainty: (x) => { const value = fit.evaluate(x); return Number.isFinite(value) ? Math.abs(value) * transformedUncertainty(x) : NaN; }, rSquared: getRSquared(data, fit.evaluate) };

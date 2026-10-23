@@ -8,10 +8,6 @@ function updateLegendRegression(data) {
     legendHalfLife.textContent = '';
     return;
   }
-  if (fitType === 'quadratic') {
-    const errors = getQuadraticParameterErrors(data);
-    if (errors) details.parameters.forEach((parameter, index) => { parameter.error = errors[2 - index]; });
-  }
   const equations = { linear: 'y = Ax <span class="legend-operator">+</span> B', quadratic: 'y = Ax<sup>2</sup> <span class="legend-operator">+</span> Bx <span class="legend-operator">+</span> C', polynomial: details.equation, squareRoot: details.equation, exponential: regressionDisplayType === 'exponentialDecay' ? 'y = Ae<sup><span class="legend-operator">-</span>x/τ</sup>' : 'y = Ae<sup>Bx</sup>', inverse: 'y = A/x <span class="legend-operator">+</span> B' };
   legendCurveLabel.textContent = regressionDisplayType === 'exponentialDecay' ? '指数回帰（減衰）' : details.label;
   if (regressionDisplayType === 'exponentialDecay') {

@@ -94,6 +94,7 @@ table { width:100%; border-collapse:collapse; font-size:14px; } th,td { padding:
 .chart-legend.corner-bottom-right { right:72px; bottom:72px; }
 .legend-curve { width:20px; height:0; border-top:2px dashed var(--blue); }
 .legend-band { width:20px; height:10px; border:1px solid rgba(50,123,159,.35); background:rgba(50,123,159,.16); }
+.legend-band-key[hidden] { display:none; }
 .legend-curve-block { margin-top:8px; padding-top:8px; border-top:1px solid #e8edf0; }
 .legend-equation { margin-top:7px; color:var(--ink); font:italic 20px "KaTeX Math","STIX Two Math","Cambria Math","Times New Roman",serif; white-space:nowrap; }
 .legend-operator { font-style:normal; }

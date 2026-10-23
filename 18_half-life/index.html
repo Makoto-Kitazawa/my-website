@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>さいころで半減期をシミュレーションしよう</title>
+  <link rel="icon" type="image/svg+xml" href="../_common_/favicon.svg">
+  <meta name="project:title" content="さいころで半減期をシミュレーションしよう">
+  <meta name="project:category" content="物理用ファイル">
+  <meta name="project:icon" content="🎲">
+  <meta name="project:description" content="さいころを振って放射性崩壊と半減期の様子を模擬体験">
+  <meta name="project:status" content="ready">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="../_common_/style_slide-menu.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">RADIOACTIVE DECAY</p>
+        <h1>さいころで半減期をシミュレーションしよう</h1>
+      </div>
+      <div class="header-actions">
+        <button class="reset-button" id="resetButton" type="button">↺ リセット</button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <section class="dice-panel" aria-labelledby="dice-heading">
+        <div class="section-heading">
+          <div><p class="section-kicker">01 / DICE</p><h2 id="dice-heading">さいころ</h2></div>
+          <span class="panel-badge" id="diceCountBadge">1000 個</span>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat"><span class="stat-label">振った数</span><span class="stat-value" id="rollCount">0 回</span></div>
+          <div class="stat"><span class="stat-label">残り</span><span class="stat-value" id="remainCount">1000 個</span></div>
+          <div class="stat"><span class="stat-label">今回崩壊</span><span class="stat-value" id="decayedCount">0 個</span></div>
+        </div>
+
+        <div class="dice-frame"><canvas id="diceCanvas" aria-label="残っているさいころの図"></canvas></div>
+
+        <div class="settings-grid">
+          <label class="field-label" for="diceCountInput">さいころの数</label>
+          <input class="number-input" id="diceCountInput" type="number" min="10" max="1000" step="10" value="1000" inputmode="numeric">
+          <label class="field-label" for="decayProbSelect">崩壊する目</label>
+          <select class="select-input" id="decayProbSelect">
+            <option value="1" selected>1 の目（確率 1/6）</option>
+            <option value="2">1, 2 の目（確率 2/6）</option>
+            <option value="3">1, 2, 3 の目（確率 3/6）</option>
+          </select>
+        </div>
+
+        <div class="roll-controls">
+          <button class="roll-button" id="rollButton" type="button">🎲 1回振る</button>
+          <button class="auto-button" id="autoButton" type="button">▶ 自動で振る</button>
+        </div>
+
+        <p class="panel-note">指定の目が出たさいころは「崩壊」して取り除かれます。残りの個数が半分になるまでに振った回数が、半減期に相当します。</p>
+      </section>
+
+      <section class="chart-panel" aria-labelledby="chart-heading">
+        <div class="chart-header">
+          <div><p class="section-kicker">02 / GRAPH</p><h2 id="chart-heading">残ったさいころの数の推移</h2></div>
+          <div class="chart-actions">
+            <button class="log-toggle-button" id="logToggleButton" type="button" aria-pressed="false">対数軸</button>
+            <span class="panel-badge" id="halfLifeBadge">理論半減期 ≈ 3.8 回</span>
+          </div>
+        </div>
+        <div class="chart-frame"><canvas id="chartCanvas" aria-label="さいころを振った数と残ったさいころの数のグラフ"></canvas></div>
+        <div class="chart-legend-note">
+          <span class="legend-item"><span class="legend-swatch actual"></span>実測値</span>
+          <span class="legend-item"><span class="legend-swatch theory"></span><span id="theoryLabel">理論曲線 N=N₀(5/6)ˣ</span></span>
+          <span class="legend-item" id="measuredHalfLife" hidden>実測の半減期：— 回</span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="last-updated" id="lastUpdated"></div>
+
+  <script src="./js.js" charset="utf-8"></script>
+  <script src="../_common_/js_common.js" charset="utf-8"></script>
+  <script src="../_common_/slide-menu.js" charset="utf-8"></script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 const originalDrawSelectedRegression = drawSelectedRegression;
 function getRegressionUncertaintyBand(data, xMin, xLimit, steps) {
   const baseRegression = fitCurve(data, regressionType);
-  if (!baseRegression?.uncertainty || !data.some((point) => point.error > 0)) return [];
+  if (!baseRegression?.uncertainty) return [];
   const band = [];
   for (let index = 0; index <= steps; index += 1) {
     const x = xMin + (xLimit - xMin) * index / steps;
@@ -37,6 +37,13 @@ drawSelectedRegression = (data) => {
     drawRegressionUncertaintyBand(data);
     originalDrawSelectedRegression(data);
   }
+};
+const legendBandKey = chartLegend.querySelector('.legend-band-key');
+const updateLegendRegressionWithBandKey = updateLegendRegression;
+updateLegendRegression = (data) => {
+  updateLegendRegressionWithBandKey(data);
+  const fit = fitCurve(data, regressionType);
+  legendBandKey.hidden = !(showRegressionBandToggle.checked && showRegressionToggle.checked && !logXToggle.checked && !logYToggle.checked && fit?.uncertainty);
 };
 const originalDraw = draw;
 function drawLogChart(data, size) {
