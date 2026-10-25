@@ -22,6 +22,9 @@ const halfLifeBadge = document.getElementById('halfLifeBadge');
 const theoryLabel = document.getElementById('theoryLabel');
 const measuredHalfLifeEl = document.getElementById('measuredHalfLife');
 const logToggleButton = document.getElementById('logToggleButton');
+const collapseOverlay = document.getElementById('collapseOverlay');
+const collapseJudgement = document.getElementById('collapseJudgement');
+const collapseAdvice = document.getElementById('collapseAdvice');
 
 // ---- 定数 ----
 const SHAKE_MS = 550;      // シャッフル演出の時間
@@ -29,6 +32,18 @@ const RESULT_MS = 260;     // 結果表示の間
 const FADE_MS = 320;       // 崩壊したさいころのフェード時間
 const AUTO_DELAY_MS = 500; // 自動モードで次に振るまでの間隔
 const Q_LABELS = { 1: '5/6', 2: '2/3', 3: '1/2' }; // 生存確率 q の表示
+const UNLUCKY_ADVICES = [
+  'もう一度振ってみよう。次はきっといい結果になるはず',
+  '振る前に深呼吸してみよう',
+  'さいころの数を増やすと、結果が理論値に近づくよ',
+  'たまには自動で振って、流れに任せてみよう',
+  '崩壊する目を変えて、別の条件でも試してみよう',
+  '今日は運が悪い日だと思って、ゆっくり休もう',
+  'ログ軸に切り替えて、グラフの減り方をじっくり眺めてみよう',
+  '振る回数を増やすと、平均の力が効いてくるよ',
+  '1の目以外の条件でも試すと、半減期の違いがわかるよ',
+  'こんなのたいしたことないさ',
+];
 
 // ---- 状態 ----
 let dice = [];          // { face, decaying, opacity }
@@ -381,6 +396,20 @@ async function rollDice() {
   updateButtons();
   drawDice();
   drawChart();
+  if (dice.length === 0) showCollapseMessage();
+}
+
+function showCollapseMessage() {
+  // 理論的に期待値が1個未満になるまでの回数 t* = ln(N0) / ln(1/q)
+  const tStar = Math.log(initialCount) / Math.log(1 / survivalQ());
+  const unlucky = rollCount < tStar;
+  const verdict = unlucky ? '運が悪いね'
+    : rollCount > tStar ? '運がよかったね'
+    : 'ちょうど理論どおりだね';
+  collapseJudgement.textContent = `理論値 約 ${tStar.toFixed(1)} 回 / 実際 ${rollCount} 回 → ${verdict}`;
+  collapseAdvice.textContent = unlucky ? UNLUCKY_ADVICES[Math.floor(Math.random() * UNLUCKY_ADVICES.length)] : '';
+  collapseAdvice.hidden = !unlucky;
+  collapseOverlay.hidden = false;
 }
 
 async function autoLoop() {
@@ -418,6 +447,7 @@ function resetSimulation() {
   rollCount = 0;
   lastDecayed = 0;
   history = [initialCount];
+  collapseOverlay.hidden = true;
 
   updateStats();
   updateButtons();
@@ -435,6 +465,7 @@ autoButton.addEventListener('click', () => {
   else startAuto();
 });
 resetButton.addEventListener('click', resetSimulation);
+collapseOverlay.addEventListener('click', () => { collapseOverlay.hidden = true; });
 logToggleButton.addEventListener('click', () => {
   logY = !logY;
   logToggleButton.classList.toggle('active', logY);
