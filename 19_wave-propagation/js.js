@@ -23,7 +23,7 @@ const CHALLENGE_STAGES = [
   { label: '正弦波', shape: (th) => Math.sin(th) },
   { label: '余弦波', shape: (th) => Math.cos(th) },
   { label: '矩形波', shape: (th) => (Math.sin(th) >= 0 ? 1 : -1) },
-  { label: 'のこぎり波', shape: (th) => th / Math.PI - 1 },
+  { label: '三角波', shape: (th) => (2 / Math.PI) * Math.asin(Math.sin(th)) },
   { label: 'すごい波', shape: (th) => 0.5 * Math.sin(th) + 0.3 * Math.cos(2 * th) + 0.2 * Math.sin(3 * th) },
 ];
 
