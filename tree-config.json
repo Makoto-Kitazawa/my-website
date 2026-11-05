@@ -137,6 +137,12 @@
       "category": "物理用ファイル",
       "icon": "🎲",
       "description": "さいころを振って放射性崩壊と半減期の様子を模擬体験"
+    },
+    "19_wave-propagation": {
+      "title": "波が波源から伝わる様子を見てみよう",
+      "category": "物理用ファイル",
+      "icon": "🌊",
+      "description": "波源を動かし、波の速さvで伝わる波を可視化"
     }
   },
   "otherLinks": [
