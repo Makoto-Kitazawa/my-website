@@ -31,7 +31,28 @@ let originX = ORIGIN_MARGIN_X;
 let originY = 0;
 let speed = 3;
 let simTime = 0;          // 再生中かつ波源が動いてから進む時刻
+let travel = 0;           // 波が進んだ距離（速さを積分したもの。履歴の横軸）
 let sourceStarted = false; // 波源が初めて動いたか
+let autoWave = null;      // 自動再生中の波形名（'sine' | 'triangle' | 'square'）
+let autoT = 0;
+let selectingMarker = false;
+let marked = [];          // マーカーを付けた粒子 { i: 粒子番号, c: キャラ番号 }
+const AUTO_AMPLITUDE = 1.5;
+const AUTO_PERIOD = 2;
+const CHARA_IMAGES = [0, 1, 2, 3, 4, 5].map((k) => {
+  const img = new Image();
+  img.src = `./img/chara${k}.png`;
+  return img;
+});
+const CHARA_SIZE = 34;
+const CHARA_COLORS = ['#ff7a7a', '#ffd250', '#6fe0a8', '#7fd0ff', '#d9a0ff', '#ffae60'];
+const GRAPH_WINDOW = 6; // y-tグラフに表示する秒数
+let frames = [];        // y-tグラフ用の記録 { time, travel, y }
+const AUTO_SHAPES = {
+  sine: (th) => Math.sin(th),
+  triangle: (th) => (2 / Math.PI) * Math.asin(Math.sin(th)),
+  square: (th) => (Math.sin(th) >= 0 ? 1 : -1),
+};
 let playing = true;
 let lastFrameTs = null;
 let challengeMode = false;
@@ -48,6 +69,10 @@ const speedValue = document.getElementById('speedValue');
 const sourceDisp = document.getElementById('sourceDisp');
 const playBtn = document.getElementById('playBtn');
 const resetBtn = document.getElementById('resetBtn');
+const markBtn = document.getElementById('markBtn');
+const autoBtn = document.getElementById('autoBtn');
+const autoMenu = document.getElementById('autoMenu');
+const autoBtns = document.querySelectorAll('.auto-btn');
 const challengeBtn = document.getElementById('challengeBtn');
 const scoreCard = document.getElementById('scoreCard');
 const scoreValue = document.getElementById('scoreValue');
@@ -141,10 +166,21 @@ function recordSource(t) {
   } else {
     history.push({ t, y: marker.y });
   }
-  const keep = ((canvas.width - originX) / GRID_SIZE) / SPEED_MIN + 2;
+  const keep = (canvas.width - originX) / GRID_SIZE + 2 + GRAPH_WINDOW * 8;
   while (history.length > 2 && history[1].t <= t - keep) {
     history.shift();
   }
+}
+
+function recordFrame() {
+  const last = frames[frames.length - 1];
+  if (last && last.time === simTime) {
+    last.travel = travel;
+    last.y = marker.y;
+  } else {
+    frames.push({ time: simTime, travel, y: marker.y });
+  }
+  while (frames.length > 2 && frames[1].time <= simTime - GRAPH_WINDOW) frames.shift();
 }
 
 // 時刻ttにおける波源の変位（線形補間）
@@ -171,11 +207,69 @@ function sourceAt(tt) {
 }
 
 // マーカーのスワイプ（y方向のみ）
+function particleCount() {
+  return Math.floor((canvas.width - originX) / (PARTICLE_SPACING * GRID_SIZE));
+}
+
+function selectParticleAt(px, py) {
+  let best = -1;
+  let bestD = 30;
+  for (let i = 1; i <= particleCount(); i++) {
+    const ppx = originX + i * PARTICLE_SPACING * GRID_SIZE;
+    const ppy = toPixelY(sourceAt(travel - i * PARTICLE_SPACING));
+    const d = Math.hypot(px - ppx, py - ppy);
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  if (best < 0) return;
+  toggleMark(best);
+  setSelecting(false);
+}
+
+function toggleMark(i) {
+  const at = marked.findIndex((m) => m.i === i);
+  if (at >= 0) {
+    marked.splice(at, 1);
+    return;
+  }
+  const used = marked.map((m) => m.c);
+  let c = 0;
+  while (used.includes(c) && c < CHARA_IMAGES.length - 1) c++;
+  marked.push({ i, c });
+}
+
+// 選択モード外でも、キャラクターをタップすれば外せる
+function markedAt(px, py) {
+  return marked.find((m) => {
+    const ppx = originX + m.i * PARTICLE_SPACING * GRID_SIZE;
+    const ppy = toPixelY(sourceAt(travel - m.i * PARTICLE_SPACING));
+    return Math.hypot(px - ppx, py - ppy) <= CHARA_SIZE / 2 + 6;
+  });
+}
+
+function setSelecting(v) {
+  selectingMarker = v;
+  markBtn.classList.toggle('active', v);
+}
+
 function handlePointerDown(e) {
-  if (challengeDone) return;
   const rect = canvas.getBoundingClientRect();
+  if (selectingMarker) {
+    e.preventDefault();
+    selectParticleAt(e.clientX - rect.left, e.clientY - rect.top);
+    return;
+  }
   const px = e.clientX - rect.left;
   const py = e.clientY - rect.top;
+  const hit = markedAt(px, py);
+  if (hit) {
+    e.preventDefault();
+    toggleMark(hit.i);
+    return;
+  }
+  if (challengeDone || autoWave) return;
   const markerPy = toPixelY(marker.y);
 
   if (Math.abs(px - originX) > HIT_RADIUS || Math.abs(py - markerPy) > HIT_RADIUS) return;
@@ -215,11 +309,49 @@ function setPlaying(value) {
 
 playBtn.addEventListener('click', () => setPlaying(!playing));
 
+markBtn.addEventListener('click', () => {
+  autoMenu.hidden = true;
+  setSelecting(!selectingMarker);
+});
+
+function setAuto(name) {
+  autoWave = name;
+  autoT = 0;
+  autoBtns.forEach((b) => b.classList.toggle('active', b.dataset.wave === name));
+  autoBtn.classList.toggle('active', !!name);
+  autoMenu.hidden = true;
+  if (name) {
+    dragging = null;
+    sourceStarted = true;
+  }
+}
+
+autoBtn.addEventListener('click', () => {
+  if (autoWave) {
+    setAuto(null);
+    return;
+  }
+  setSelecting(false);
+  autoMenu.hidden = !autoMenu.hidden;
+});
+
+autoBtns.forEach((b) => {
+  b.addEventListener('click', () => {
+    setAuto(b.dataset.wave);
+    setPlaying(true);
+  });
+});
+
 function resetSimulation() {
+  setAuto(null);
+  setSelecting(false);
   simTime = 0;
+  travel = 0;
   sourceStarted = false;
   resetMarkerPosition();
   history = [];
+  vel = 0;
+  frames = [];
   challengeDone = false;
   scoreCard.hidden = true;
   updateStageUI();
@@ -244,6 +376,7 @@ challengeBtn.addEventListener('click', () => {
   challengeBtn.textContent = challengeMode ? 'チャレンジ: ON' : 'チャレンジ: OFF';
   challengeBtn.classList.toggle('active', challengeMode);
   speedSlider.disabled = challengeMode;
+  autoBtn.disabled = challengeMode;
   updateScale();
   if (challengeMode) {
     speed = CHALLENGE_SPEED;
@@ -270,7 +403,7 @@ function evaluateChallenge() {
   for (let i = 0; i <= SCORE_SAMPLES; i++) {
     const x = (CHALLENGE_WAVELENGTH * i) / SCORE_SAMPLES;
     targets.push(targetAt(x));
-    players.push(sourceAt(simTime - x / CHALLENGE_SPEED));
+    players.push(sourceAt(travel - x));
   }
   const meanT = targets.reduce((a, b) => a + b, 0) / targets.length;
   let ssRes = 0;
@@ -387,7 +520,7 @@ function drawWave(t) {
   for (let i = 0; i <= count; i++) {
     const px = originX + i * WAVE_STEP;
     const x = (px - originX) / GRID_SIZE;
-    const y = sourceAt(t - x / speed);
+    const y = sourceAt(t - x);
     if (i === 0) {
       ctx.moveTo(px, toPixelY(y));
     } else {
@@ -447,11 +580,11 @@ function drawTarget() {
 
 // 媒質の粒子（x軸上に等間隔、波形に従って上下に動く）
 function drawParticles(t) {
-  const count = Math.floor((canvas.width - originX) / (PARTICLE_SPACING * GRID_SIZE));
+  const count = particleCount();
   for (let i = 1; i <= count; i++) {
     const x = i * PARTICLE_SPACING;
     const px = originX + x * GRID_SIZE;
-    const py = toPixelY(sourceAt(t - x / speed));
+    const py = toPixelY(sourceAt(t - x));
 
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
     ctx.lineWidth = 1;
@@ -467,6 +600,151 @@ function drawParticles(t) {
   }
 }
 
+function drawMarkedParticles(t) {
+  marked.forEach((m) => {
+    if (m.i > particleCount()) return;
+    const px = originX + m.i * PARTICLE_SPACING * GRID_SIZE;
+    const py = toPixelY(sourceAt(t - m.i * PARTICLE_SPACING));
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(originX, py);
+    ctx.lineTo(px, py);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const img = CHARA_IMAGES[m.c];
+    if (img.complete && img.naturalWidth) {
+      ctx.drawImage(img, px - CHARA_SIZE / 2, py - CHARA_SIZE / 2, CHARA_SIZE, CHARA_SIZE);
+    } else {
+      ctx.fillStyle = '#ffd250';
+      ctx.beginPath();
+      ctx.arc(px, py, PARTICLE_RADIUS + 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+}
+function drawSelectOverlay() {
+  ctx.fillStyle = 'rgba(190, 215, 255, 0.28)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#e8f1ff';
+  ctx.font = 'bold 24px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('観察したい媒質を選んでください', canvas.width / 2, 50);
+}
+
+function bubblePath(x, y, w, h, tipX) {
+  const r = 12;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(tipX - 10, y);
+  ctx.lineTo(tipX, y - 12);
+  ctx.lineTo(tipX + 10, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// マーカーと波源のy-tグラフ（吹き出し）
+function drawGraph() {
+  if (!marked.length || challengeMode) return;
+  const bw = Math.max(280, canvas.width * 0.3);
+  const bx = canvas.width - bw - 16;
+  const by = originY + 30;
+  const bh = canvas.height - by - 16;
+  const legendRows = marked.length + 1;
+  const gx = bx + 44;
+  const gy = by + 30 + legendRows * 22 + 8;
+  const gw = bw - 44 - 20;
+  const gh = Math.max(60, by + bh - gy - 28);
+  const tipX = clamp(originX + marked[0].i * PARTICLE_SPACING * GRID_SIZE, bx + 30, bx + bw - 30);
+
+  bubblePath(bx, by, bw, bh, tipX);
+  ctx.fillStyle = 'rgba(25, 28, 36, 0.92)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  const t0 = simTime - GRAPH_WINDOW;
+  const sample = (f, i) => (i === null ? f.y : sourceAt(f.travel - i * PARTICLE_SPACING));
+  let ymax = 1;
+  frames.forEach((f) => {
+    ymax = Math.max(ymax, Math.abs(f.y));
+    marked.forEach((m) => { ymax = Math.max(ymax, Math.abs(sample(f, m.i))); });
+  });
+  ymax = Math.ceil(ymax * 2) / 2;
+  const toX = (time) => gx + ((time - t0) / GRAPH_WINDOW) * gw;
+  const toY = (y) => gy + gh / 2 - (y / ymax) * (gh / 2);
+
+  ctx.fillStyle = '#ddd';
+  ctx.font = 'bold 13px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('y - t グラフ', bx + 16, by + 16);
+
+  ctx.strokeStyle = '#666';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(gx, gy, gw, gh);
+  ctx.beginPath();
+  ctx.moveTo(gx, gy + gh / 2);
+  ctx.lineTo(gx + gw, gy + gh / 2);
+  ctx.stroke();
+  ctx.fillStyle = '#999';
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'right';
+  ctx.fillText(ymax.toFixed(1), gx - 5, gy);
+  ctx.fillText('0', gx - 5, gy + gh / 2);
+  ctx.fillText((-ymax).toFixed(1), gx - 5, gy + gh);
+  ctx.textAlign = 'right';
+  ctx.fillText('t（現在）', gx + gw, gy + gh + 12);
+
+  const plot = (color, i) => {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    let started = false;
+    frames.forEach((f) => {
+      if (f.time < t0) return;
+      const px = toX(f.time);
+      const py = toY(sample(f, i));
+      if (started) ctx.lineTo(px, py);
+      else ctx.moveTo(px, py);
+      started = true;
+    });
+    ctx.stroke();
+  };
+  plot('#ffffff', null);
+  marked.forEach((m) => plot(CHARA_COLORS[m.c], m.i));
+
+  // 凡例と、波源からマーカーまでの伝搬時間
+  const lx = bx + 16;
+  let ly = by + 40;
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(lx + 9, ly, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillText('波源', lx + 24, ly);
+  marked.forEach((m) => {
+    ly += 22;
+    const img = CHARA_IMAGES[m.c];
+    if (img.complete && img.naturalWidth) ctx.drawImage(img, lx, ly - 10, 20, 20);
+    ctx.fillStyle = CHARA_COLORS[m.c];
+    ctx.fillText(`波源 → ${(m.i * PARTICLE_SPACING / speed).toFixed(1)}秒で伝わる`, lx + 26, ly);
+  });
+}
+
 function draw(t) {
   ctx.fillStyle = '#1a1a1a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -474,23 +752,66 @@ function draw(t) {
   drawGrid();
   if (challengeMode) drawTarget();
   drawWave(t);
+  if (selectingMarker) drawSelectOverlay();
   drawParticles(t);
+  drawMarkedParticles(t);
   drawMarker();
+  drawGraph();
 }
 
-function frame(ts) {
-  const dt = lastFrameTs === null ? 0 : Math.min((ts - lastFrameTs) / 1000, 0.05);
+// 離したら、減衰するばねのように静止位置へ戻る
+const SPRING_K = 90;
+const SPRING_C = 6;
+let vel = 0;
+let prevY = 0;
+
+function updateSpring(dt) {
+  if (autoWave || challengeDone) {
+    vel = 0;
+    prevY = marker.y;
+    return;
+  }
+  if (dragging) {
+    vel = dt > 0 ? (marker.y - prevY) / dt : 0;
+    prevY = marker.y;
+    return;
+  }
+  if (dt > 0) {
+    vel += (-SPRING_K * (marker.y - markerRestY) - SPRING_C * vel) * dt;
+    marker.y = clamp(marker.y + vel * dt, -maxMarkerY(), maxMarkerY());
+    if (Math.abs(marker.y - markerRestY) < 0.002 && Math.abs(vel) < 0.01) {
+      marker.y = markerRestY;
+      vel = 0;
+    }
+  }
+  prevY = marker.y;
+}
+
+function frame(ts) {  const dt = lastFrameTs === null ? 0 : Math.min((ts - lastFrameTs) / 1000, 0.05);
   lastFrameTs = ts;
+  updateSpring(dt);
   if (!sourceStarted && marker.y !== markerRestY) sourceStarted = true;
-  if (playing && sourceStarted) simTime += dt;
+  if (autoWave && playing) {
+    autoT += dt;
+    const shape = AUTO_SHAPES[autoWave];
+    marker.y = clamp(AUTO_AMPLITUDE * shape((2 * Math.PI * autoT) / AUTO_PERIOD), -maxMarkerY(), maxMarkerY());
+  }
+  if (playing && sourceStarted) {
+    simTime += dt;
+    travel += speed * dt;
+  }
 
   const reachedEnd = challengeMode && playing && simTime >= CHALLENGE_END_TIME;
-  if (reachedEnd) simTime = CHALLENGE_END_TIME;
-  recordSource(simTime);
+  if (reachedEnd) {
+    simTime = CHALLENGE_END_TIME;
+    travel = simTime * CHALLENGE_SPEED;
+  }
+  recordSource(travel);
+  recordFrame();
   if (reachedEnd) finishChallenge();
 
   sourceDisp.textContent = marker.y.toFixed(1);
-  draw(simTime);
+  draw(travel);
   updateControlPanel();
   requestAnimationFrame(frame);
 }

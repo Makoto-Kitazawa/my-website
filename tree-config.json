@@ -143,6 +143,18 @@
       "category": "物理用ファイル",
       "icon": "🌊",
       "description": "波源を動かし、波の速さvで伝わる波を可視化"
+    },
+    "20_wave-reflection": {
+      "title": "波の反射（固定端・自由端）を見てみよう",
+      "category": "物理用ファイル",
+      "icon": "🪞",
+      "description": "固定端反射と自由端反射を、入射波・反射波・合成波で可視化"
+    },
+    "21_wave-superposition": {
+      "title": "波の重ね合わせの原理を見てみよう",
+      "category": "物理用ファイル",
+      "icon": "➕",
+      "description": "左右から向かい合う2つの波の重ね合わせ（同位相・逆位相）を可視化"
     }
   },
   "otherLinks": [

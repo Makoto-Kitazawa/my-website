@@ -39,7 +39,17 @@
       <button id="playBtn">一時停止</button>
       <button id="resetBtn">リセット</button>
     </div>
-    <button id="challengeBtn" class="challenge-btn">チャレンジ: OFF</button>
+    <div class="button-row sub-row">
+      <button id="markBtn" class="tool-btn">マーカー</button>
+      <div class="pop-wrap">
+        <button id="autoBtn" class="tool-btn">自動再生</button>
+        <div class="popover" id="autoMenu" hidden>
+          <button class="tool-btn auto-btn" data-wave="sine">正弦波</button>
+          <button class="tool-btn auto-btn" data-wave="triangle">三角波</button>
+          <button class="tool-btn auto-btn" data-wave="square">矩形波</button>
+        </div>
+      </div>
+    </div>    <button id="challengeBtn" class="challenge-btn">チャレンジ: OFF</button>
     <div class="stage-label" id="stageLabel" hidden></div>
   </div>
 

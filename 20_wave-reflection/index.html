@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>波の反射</title>
+  <link rel="icon" type="image/svg+xml" href="../_common_/favicon.svg">
+  <meta name="project:title" content="波の反射（固定端・自由端）を見てみよう">
+  <meta name="project:category" content="物理用ファイル">
+  <meta name="project:icon" content="🪞">
+  <meta name="project:description" content="固定端反射と自由端反射を、入射波・反射波・合成波で可視化">
+  <meta name="project:status" content="beta">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="../_common_/style_slide-menu.css">
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <div class="hint">
+    赤いマーカーを上下にスワイプして波源を動かしましょう
+    <span class="separator">|</span>
+    画面中央が反射する端です（破線：入射波・反射波、白：合成波）
+  </div>
+
+  <div class="info-panel">
+    <div class="info-label">波の設定</div>
+    <div class="control">
+      <div class="control-heading">
+        <label for="speedSlider">波の速さ v</label>
+        <output id="speedValue">3.0</output>
+      </div>
+      <input type="range" id="speedSlider" min="0.5" max="8" step="0.1" value="3">
+    </div>
+    <div class="info-row">
+      <span class="info-key">波源の変位 y:</span>
+      <span class="info-value blue" id="sourceDisp">0.0</span>
+    </div>
+    <div class="info-row">
+      <span class="info-key">端の変位 y:</span>
+      <span class="info-value blue" id="endDisp">0.0</span>
+    </div>
+    <div class="button-row">
+      <button id="playBtn">一時停止</button>
+      <button id="resetBtn">リセット</button>
+    </div>
+    <div class="button-row sub-row">
+      <button id="fixedBtn" class="tool-btn active">固定端</button>
+      <button id="freeBtn" class="tool-btn">自由端</button>
+    </div>
+    <div class="button-row sub-row">
+      <button id="guideBtn" class="tool-btn active">作図補助</button>
+      <div class="pop-wrap">
+        <button id="autoBtn" class="tool-btn">自動再生</button>
+        <div class="popover" id="autoMenu" hidden>
+          <button class="tool-btn auto-btn" data-wave="sine">正弦波</button>
+          <button class="tool-btn auto-btn" data-wave="triangle">三角波</button>
+          <button class="tool-btn auto-btn" data-wave="square">矩形波</button>
+        </div>
+      </div>
+    </div>
+    <button id="tutorialBtn" class="tool-btn tutorial-btn">作図の解説</button>
+  </div>
+
+  <div class="tutorial-nav" id="tutNav" hidden>
+    <button id="tutPrev" class="tool-btn">◀ もどる</button>
+    <span id="tutStep">1 / 4</span>
+    <button id="tutNext" class="tool-btn">つぎへ ▶</button>
+    <button id="tutClose" class="tool-btn">とじる</button>
+  </div>
+
+  <div class="last-updated" id="lastUpdated"></div>
+
+  <script src="js.js" charset="utf-8"></script>
+  <script src="../_common_/js_common.js" charset="utf-8"></script>
+  <script src="../_common_/slide-menu.js" charset="utf-8"></script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>波の重ね合わせ</title>
+  <link rel="icon" type="image/svg+xml" href="../_common_/favicon.svg">
+  <meta name="project:title" content="波の重ね合わせの原理を見てみよう">
+  <meta name="project:category" content="物理用ファイル">
+  <meta name="project:icon" content="➕">
+  <meta name="project:description" content="左右から向かい合う2つの波の重ね合わせ（同位相・逆位相）を可視化">
+  <meta name="project:status" content="beta">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="../_common_/style_slide-menu.css">
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <div class="hint">
+    左右の赤いマーカーを、それぞれ上下にスワイプして波源を動かしましょう
+    <span class="separator">|</span>
+    破線：左右それぞれの波、白：合成波
+  </div>
+
+  <div class="info-panel">
+    <div class="info-label">波の設定</div>
+    <div class="control">
+      <div class="control-heading">
+        <label for="speedSlider">波の速さ v</label>
+        <output id="speedValue">3.0</output>
+      </div>
+      <input type="range" id="speedSlider" min="0.5" max="8" step="0.1" value="3">
+    </div>
+    <div class="info-row">
+      <span class="info-key">左の波源 y:</span>
+      <span class="info-value blue" id="sourceDisp">0.0</span>
+    </div>
+    <div class="info-row">
+      <span class="info-key">右の波源 y:</span>
+      <span class="info-value blue" id="rightDisp">0.0</span>
+    </div>
+    <div class="info-row">
+      <span class="info-key">中央の変位 y:</span>
+      <span class="info-value blue" id="endDisp">0.0</span>
+    </div>
+    <div class="button-row">
+      <button id="playBtn">一時停止</button>
+      <button id="resetBtn">リセット</button>
+    </div>
+    <div class="button-row sub-row">
+      <button id="modeManual" class="tool-btn active">手動</button>
+      <button id="modeSame" class="tool-btn">同位相</button>
+      <button id="modeAnti" class="tool-btn">逆位相</button>
+    </div>
+    <div class="button-row sub-row">
+      <button id="guideBtn" class="tool-btn active">作図補助</button>
+      <div class="pop-wrap">
+        <button id="autoBtn" class="tool-btn">自動再生</button>
+        <div class="popover" id="autoMenu" hidden>
+          <div class="auto-group">
+            <div class="auto-title">左の波源</div>
+            <button class="tool-btn auto-btn active" data-wave="manual">手動</button>
+            <button class="tool-btn auto-btn" data-wave="sine">正弦波</button>
+            <button class="tool-btn auto-btn" data-wave="triangle">三角波</button>
+            <button class="tool-btn auto-btn" data-wave="square">矩形波</button>
+          </div>
+          <div class="auto-group">
+            <div class="auto-title">右の波源</div>
+            <button class="tool-btn auto-btn active" data-wave="manual">手動</button>
+            <button class="tool-btn auto-btn" data-wave="sine">正弦波</button>
+            <button class="tool-btn auto-btn" data-wave="triangle">三角波</button>
+            <button class="tool-btn auto-btn" data-wave="square">矩形波</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button id="tutorialBtn" class="tool-btn tutorial-btn">重ね合わせの解説</button>
+  </div>
+
+  <div class="tutorial-nav" id="tutNav" hidden>
+    <button id="tutPrev" class="tool-btn">◀ もどる</button>
+    <span id="tutStep">1 / 5</span>
+    <button id="tutNext" class="tool-btn">つぎへ ▶</button>
+    <button id="tutClose" class="tool-btn">とじる</button>
+  </div>
+
+  <div class="last-updated" id="lastUpdated"></div>
+
+  <script src="js.js" charset="utf-8"></script>
+  <script src="../_common_/js_common.js" charset="utf-8"></script>
+  <script src="../_common_/slide-menu.js" charset="utf-8"></script>
+</body>
+</html>
