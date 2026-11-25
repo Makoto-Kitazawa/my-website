@@ -261,19 +261,20 @@ function showPenetrationPoints() {
   penetrationPointsGroup.clear();
   
   // Only show when surface-only mode is active
-  if (!surfaceOnlyVisible) return;
+  if (!surfaceOnlyVisible || !currentChargeType) return;
   
   const pointGeometry = new THREE.SphereGeometry(0.3, 8, 8);
   const pointMaterial = new THREE.MeshBasicMaterial({ color: 0xff3333, emissive: 0xff3333 });
   
   if (currentChargeType === 'line') {
-    // Penetration points on cylinder surface
+    // For line charge: points on cylinder (radius 5) and caps (y = ±5)
+    // Cylinder side: radius 5, y range [-5, 5]
     const radius = 5;
     const numAngular = 16;
     const numHeights = 5;
     
     for (let h = 0; h < numHeights; h++) {
-      const y = -6 + (h / (numHeights - 1)) * 12;
+      const y = -5 + (h / (numHeights - 1)) * 10;
       
       for (let i = 0; i < numAngular; i++) {
         const angle = (i / numAngular) * Math.PI * 2;
@@ -286,60 +287,32 @@ function showPenetrationPoints() {
       }
     }
     
-    // Top cap penetration points
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      const r = radius * 0.5;
-      const x = Math.cos(angle) * r;
-      const z = Math.sin(angle) * r;
-      
-      const point = new THREE.Mesh(pointGeometry, pointMaterial);
-      point.position.set(x, 5, z);
-      penetrationPointsGroup.add(point);
-    }
-    
-    // Bottom cap penetration points
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      const r = radius * 0.5;
-      const x = Math.cos(angle) * r;
-      const z = Math.sin(angle) * r;
-      
-      const point = new THREE.Mesh(pointGeometry, pointMaterial);
-      point.position.set(x, -5, z);
-      penetrationPointsGroup.add(point);
-    }
-    
   } else if (currentChargeType === 'plane') {
-    // Penetration points on box faces
-    const size = 8;
+    // For plane charge: points on the 2 planes perpendicular to Z-axis
+    // The electric field lines penetrate at z = ±4 (box has size 8, so half = 4)
     const spacing = 2;
     const range = 4;
     
-    for (let u = -range; u <= range; u += spacing) {
-      for (let v = -range; v <= range; v += spacing) {
+    // Positive side (z = 4)
+    for (let x = -range; x <= range; x += spacing) {
+      for (let y = -range; y <= range; y += spacing) {
         const point = new THREE.Mesh(pointGeometry, pointMaterial);
-        
-        // All 6 faces of the cube
-        const positions = [
-          { x: u, y: v, z: 4 },   // front
-          { x: u, y: v, z: -4 },  // back
-          { x: 4, y: u, z: v },   // right
-          { x: -4, y: u, z: v },  // left
-          { x: u, y: 4, z: v },   // top
-          { x: u, y: -4, z: v }   // bottom
-        ];
-        
-        positions.forEach(pos => {
-          const p = new THREE.Mesh(pointGeometry, pointMaterial);
-          p.position.set(pos.x, pos.y, pos.z);
-          penetrationPointsGroup.add(p);
-        });
+        point.position.set(x, y, 4);
+        penetrationPointsGroup.add(point);
+      }
+    }
+    
+    // Negative side (z = -4)
+    for (let x = -range; x <= range; x += spacing) {
+      for (let y = -range; y <= range; y += spacing) {
+        const point = new THREE.Mesh(pointGeometry, pointMaterial);
+        point.position.set(x, y, -4);
+        penetrationPointsGroup.add(point);
       }
     }
     
   } else if (currentChargeType === 'sphere') {
-    // Penetration points on sphere surface
+    // For sphere: points on sphere surface (radius 6) where field lines exit
     const radius = 6;
     const numPhi = 10;
     const numTheta = 10;
@@ -383,7 +356,7 @@ function updateFieldLines() {
 function updateClosedSurface() {
   if (!currentChargeType) return;
   
-  if (closedSurfaceVisible) {
+  if (closedSurfaceVisible || surfaceOnlyVisible) {
     generateClosedSurface();
   } else {
     closedSurfaceGroup.clear();
