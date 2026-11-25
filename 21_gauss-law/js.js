@@ -212,7 +212,7 @@ function generateClosedSurface() {
     const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
     closedSurfaceGroup.add(cylinder);
     
-    // Top cap
+    // Top cap (rotate to face +Y direction)
     const topCapGeometry = new THREE.CircleGeometry(5, 32);
     const capMaterial = new THREE.MeshBasicMaterial({
       color: 0x4a90e2,
@@ -222,13 +222,13 @@ function generateClosedSurface() {
     });
     const topCap = new THREE.Mesh(topCapGeometry, capMaterial);
     topCap.position.y = 5;
-    topCap.rotation.x = 0;
+    topCap.rotation.x = Math.PI / 2;
     closedSurfaceGroup.add(topCap);
     
-    // Bottom cap
+    // Bottom cap (rotate to face -Y direction)
     const bottomCap = new THREE.Mesh(topCapGeometry, capMaterial);
     bottomCap.position.y = -5;
-    bottomCap.rotation.x = 0;
+    bottomCap.rotation.x = -Math.PI / 2;
     closedSurfaceGroup.add(bottomCap);
     
   } else if (currentChargeType === 'plane') {
@@ -402,8 +402,6 @@ document.querySelectorAll('.charge-btn').forEach(btn => {
     e.target.classList.add('active');
     
     currentChargeType = type;
-    unfoldProgress = 0;
-    isUnfolding = false;
     
     if (type === 'line') {
       createLineCharge();
