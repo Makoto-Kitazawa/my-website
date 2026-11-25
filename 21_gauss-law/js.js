@@ -190,10 +190,6 @@ function generateSphereChargeFieldLines() {
   }
 }
 
-// Store original surface geometry for unfolding
-let originalSurfaceGeometry = null;
-let unfoldedSurfaces = [];
-
 // Generate closed surface (cylinder for line, box for plane, sphere for sphere)
 function generateClosedSurface() {
   closedSurfaceGroup.clear();
