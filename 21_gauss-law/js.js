@@ -31,8 +31,6 @@ scene.add(gridHelper);
 let currentChargeType = null;
 let fieldLinesVisible = false;
 let closedSurfaceVisible = false;
-let isUnfolding = false;
-let unfoldProgress = 0;
 let isAnimating = false;
 let chargeObject = null;
 
@@ -200,7 +198,6 @@ let unfoldedSurfaces = [];
 function generateClosedSurface() {
   closedSurfaceGroup.clear();
   penetrationPointsGroup.clear();
-  unfoldedSurfaces = [];
   
   if (currentChargeType === 'line') {
     // Cylindrical surface
@@ -215,23 +212,25 @@ function generateClosedSurface() {
     const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
     closedSurfaceGroup.add(cylinder);
     
-    // Top and bottom caps
-    const capGeometry = new THREE.CircleGeometry(5, 32);
+    // Top cap
+    const topCapGeometry = new THREE.CircleGeometry(5, 32);
     const capMaterial = new THREE.MeshBasicMaterial({
       color: 0x4a90e2,
       transparent: true,
       opacity: 0.15,
       side: THREE.DoubleSide
     });
-    const topCap = new THREE.Mesh(capGeometry, capMaterial);
+    const topCap = new THREE.Mesh(topCapGeometry, capMaterial);
     topCap.position.y = 5;
+    topCap.rotation.x = 0;
     closedSurfaceGroup.add(topCap);
     
-    const bottomCap = new THREE.Mesh(capGeometry, capMaterial);
+    // Bottom cap
+    const bottomCap = new THREE.Mesh(topCapGeometry, capMaterial);
     bottomCap.position.y = -5;
+    bottomCap.rotation.x = 0;
     closedSurfaceGroup.add(bottomCap);
     
-    originalSurfaceGeometry = { type: 'cylinder', radius: 5, height: 10 };
   } else if (currentChargeType === 'plane') {
     // Cubic surface
     const boxGeometry = new THREE.BoxGeometry(8, 8, 8);
@@ -245,7 +244,6 @@ function generateClosedSurface() {
     const box = new THREE.Mesh(boxGeometry, boxMaterial);
     closedSurfaceGroup.add(box);
     
-    originalSurfaceGeometry = { type: 'box', size: 8 };
   } else if (currentChargeType === 'sphere') {
     // Spherical surface
     const sphereGeometry = new THREE.SphereGeometry(6, 32, 32);
@@ -258,159 +256,6 @@ function generateClosedSurface() {
     });
     const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
     closedSurfaceGroup.add(sphere);
-    
-    originalSurfaceGeometry = { type: 'sphere', radius: 6 };
-  }
-}
-
-// Unfold closed surface with animation
-function unfoldClosedSurface(progress) {
-  if (!currentChargeType || !originalSurfaceGeometry) return;
-  
-  closedSurfaceGroup.clear();
-  
-  // Hide charge object and field lines during unfolding
-  chargeGroup.visible = progress > 0;
-  fieldLinesGroup.visible = progress > 0;
-  
-  if (currentChargeType === 'line') {
-    // Cylindrical unfolding - like a toilet paper roll
-    const { radius, height } = originalSurfaceGeometry;
-    
-    // Top cap (opens upward)
-    const topCapGeometry = new THREE.CircleGeometry(radius, 32);
-    const capMaterial = new THREE.MeshBasicMaterial({
-      color: 0x4a90e2,
-      transparent: true,
-      opacity: 0.3,
-      side: THREE.DoubleSide
-    });
-    const topCap = new THREE.Mesh(topCapGeometry, capMaterial);
-    topCap.position.y = height / 2 + progress * 3;
-    closedSurfaceGroup.add(topCap);
-    
-    // Bottom cap (opens downward)
-    const bottomCap = new THREE.Mesh(topCapGeometry, capMaterial);
-    bottomCap.position.y = -height / 2 - progress * 3;
-    closedSurfaceGroup.add(bottomCap);
-    
-    // Side unrolls left and right (opens like a book)
-    const circumference = Math.PI * 2 * radius;
-    const sideLeftGeometry = new THREE.PlaneGeometry(circumference / 2, height);
-    const sideMaterial = new THREE.MeshBasicMaterial({
-      color: 0x4a90e2,
-      transparent: true,
-      opacity: 0.3,
-      side: THREE.DoubleSide
-    });
-    
-    const sideLeft = new THREE.Mesh(sideLeftGeometry, sideMaterial);
-    sideLeft.position.x = -radius - progress * 4;
-    closedSurfaceGroup.add(sideLeft);
-    
-    const sideRight = new THREE.Mesh(sideLeftGeometry, sideMaterial);
-    sideRight.position.x = radius + progress * 4;
-    closedSurfaceGroup.add(sideRight);
-    
-  } else if (currentChargeType === 'plane') {
-    // Box unfolding - open like a flower (flat cross pattern)
-    const { size } = originalSurfaceGeometry;
-    const half = size / 2;
-    
-    const faceMaterial = new THREE.MeshBasicMaterial({
-      color: 0x4a90e2,
-      transparent: true,
-      opacity: 0.3,
-      side: THREE.DoubleSide
-    });
-    
-    // Center face stays in place
-    const centerGeometry = new THREE.PlaneGeometry(size, size);
-    const center = new THREE.Mesh(centerGeometry, faceMaterial);
-    closedSurfaceGroup.add(center);
-    
-    // Top face
-    const topGeometry = new THREE.PlaneGeometry(size, size);
-    const top = new THREE.Mesh(topGeometry, faceMaterial);
-    top.position.y = size / 2 + progress * size;
-    top.rotation.x = -Math.PI / 2 * progress;
-    closedSurfaceGroup.add(top);
-    
-    // Bottom face
-    const bottomGeometry = new THREE.PlaneGeometry(size, size);
-    const bottom = new THREE.Mesh(bottomGeometry, faceMaterial);
-    bottom.position.y = -size / 2 - progress * size;
-    bottom.rotation.x = Math.PI / 2 * progress;
-    closedSurfaceGroup.add(bottom);
-    
-    // Right face
-    const rightGeometry = new THREE.PlaneGeometry(size, size);
-    const right = new THREE.Mesh(rightGeometry, faceMaterial);
-    right.position.x = size / 2 + progress * size;
-    right.rotation.z = -Math.PI / 2 * progress;
-    closedSurfaceGroup.add(right);
-    
-    // Left face
-    const leftGeometry = new THREE.PlaneGeometry(size, size);
-    const left = new THREE.Mesh(leftGeometry, faceMaterial);
-    left.position.x = -size / 2 - progress * size;
-    left.rotation.z = Math.PI / 2 * progress;
-    closedSurfaceGroup.add(left);
-    
-    // Front face
-    const frontGeometry = new THREE.PlaneGeometry(size, size);
-    const front = new THREE.Mesh(frontGeometry, faceMaterial);
-    front.position.z = size / 2 + progress * size;
-    front.rotation.y = Math.PI * progress;
-    closedSurfaceGroup.add(front);
-    
-    // Back face
-    const backGeometry = new THREE.PlaneGeometry(size, size);
-    const back = new THREE.Mesh(backGeometry, faceMaterial);
-    back.position.z = -size / 2 - progress * size;
-    back.rotation.y = -Math.PI * progress;
-    closedSurfaceGroup.add(back);
-    
-  } else if (currentChargeType === 'sphere') {
-    // Sphere unfolding - like peeling an orange with flat strips
-    const { radius } = originalSurfaceGeometry;
-    const numSegments = 16;
-    
-    // Create vertical strips from top to bottom
-    for (let i = 0; i < numSegments; i++) {
-      const angle = (i / numSegments) * Math.PI * 2;
-      const nextAngle = ((i + 1) / numSegments) * Math.PI * 2;
-      
-      // Create latitude strip geometry
-      const stripGeometry = new THREE.SphereGeometry(
-        radius, 
-        2,           // width segments
-        32,          // height segments
-        angle, 
-        nextAngle - angle,
-        0,
-        Math.PI
-      );
-      
-      const stripMaterial = new THREE.MeshBasicMaterial({
-        color: 0x4a90e2,
-        transparent: true,
-        opacity: 0.3,
-        side: THREE.DoubleSide
-      });
-      
-      const strip = new THREE.Mesh(stripGeometry, stripMaterial);
-      
-      // Position strips in a fan pattern around the bottom
-      const stripAngle = angle + (nextAngle - angle) / 2;
-      const posDistance = radius + progress * 8;
-      
-      strip.position.x = Math.cos(stripAngle) * posDistance;
-      strip.position.z = Math.sin(stripAngle) * posDistance;
-      strip.position.y = -radius * Math.cos(progress * Math.PI / 2);
-      
-      closedSurfaceGroup.add(strip);
-    }
   }
 }
 
@@ -418,9 +263,9 @@ function unfoldClosedSurface(progress) {
 function showPenetrationPoints() {
   penetrationPointsGroup.clear();
   
-  if (!fieldLinesVisible || unfoldProgress < 0.1) return;
+  if (!closedSurfaceVisible || !fieldLinesVisible) return;
   
-  const pointGeometry = new THREE.SphereGeometry(0.25, 8, 8);
+  const pointGeometry = new THREE.SphereGeometry(0.3, 8, 8);
   const pointMaterial = new THREE.MeshBasicMaterial({ color: 0xff3333, emissive: 0xff3333 });
   
   if (currentChargeType === 'line') {
@@ -434,59 +279,69 @@ function showPenetrationPoints() {
       
       for (let i = 0; i < numAngular; i++) {
         const angle = (i / numAngular) * Math.PI * 2;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
         
-        // During unfolding, map cylinder surface to unfolded position
-        if (unfoldProgress >= 0.1) {
-          // Which side (left or right half)?
-          const side = angle < Math.PI ? -1 : 1;
-          const circumference = Math.PI * 2 * radius;
-          
-          // Position along unfolded rectangle
-          const x = -circumference / 4 + (angle % Math.PI) / Math.PI * (circumference / 2);
-          const posX = x + side * (radius + unfoldProgress * 4);
-          
-          const point = new THREE.Mesh(pointGeometry, pointMaterial);
-          point.position.set(posX, y, 0);
-          penetrationPointsGroup.add(point);
-        }
+        const point = new THREE.Mesh(pointGeometry, pointMaterial);
+        point.position.set(x, y, z);
+        penetrationPointsGroup.add(point);
       }
     }
+    
+    // Top cap penetration points
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const r = radius * 0.5;
+      const x = Math.cos(angle) * r;
+      const z = Math.sin(angle) * r;
+      
+      const point = new THREE.Mesh(pointGeometry, pointMaterial);
+      point.position.set(x, 5, z);
+      penetrationPointsGroup.add(point);
+    }
+    
+    // Bottom cap penetration points
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const r = radius * 0.5;
+      const x = Math.cos(angle) * r;
+      const z = Math.sin(angle) * r;
+      
+      const point = new THREE.Mesh(pointGeometry, pointMaterial);
+      point.position.set(x, -5, z);
+      penetrationPointsGroup.add(point);
+    }
+    
   } else if (currentChargeType === 'plane') {
     // Penetration points on box faces
     const size = 8;
     const spacing = 2;
     const range = 4;
     
-    // Generate penetration points for all 6 faces
-    const faceData = [
-      { z: 4, x: null, y: null },   // front
-      { z: -4, x: null, y: null },  // back
-      { x: 4, y: null, z: null },   // right
-      { x: -4, y: null, z: null },  // left
-      { y: 4, x: null, z: null },   // top
-      { y: -4, x: null, z: null }   // bottom
-    ];
-    
-    faceData.forEach((face) => {
-      for (let u = -range; u <= range; u += spacing) {
-        for (let v = -range; v <= range; v += spacing) {
-          const point = new THREE.Mesh(pointGeometry, pointMaterial);
-          
-          if (face.z !== null) {
-            point.position.set(u, v, face.z + unfoldProgress * size);
-          } else if (face.x !== null) {
-            point.position.set(face.x + unfoldProgress * size, u, v);
-          } else if (face.y !== null) {
-            point.position.set(u, face.y + unfoldProgress * size, v);
-          }
-          
-          penetrationPointsGroup.add(point);
-        }
+    for (let u = -range; u <= range; u += spacing) {
+      for (let v = -range; v <= range; v += spacing) {
+        const point = new THREE.Mesh(pointGeometry, pointMaterial);
+        
+        // All 6 faces of the cube
+        const positions = [
+          { x: u, y: v, z: 4 },   // front
+          { x: u, y: v, z: -4 },  // back
+          { x: 4, y: u, z: v },   // right
+          { x: -4, y: u, z: v },  // left
+          { x: u, y: 4, z: v },   // top
+          { x: u, y: -4, z: v }   // bottom
+        ];
+        
+        positions.forEach(pos => {
+          const p = new THREE.Mesh(pointGeometry, pointMaterial);
+          p.position.set(pos.x, pos.y, pos.z);
+          penetrationPointsGroup.add(p);
+        });
       }
-    });
+    }
     
   } else if (currentChargeType === 'sphere') {
-    // Penetration points on sphere - arranged in fan pattern when unfolded
+    // Penetration points on sphere surface
     const radius = 6;
     const numPhi = 10;
     const numTheta = 10;
@@ -500,15 +355,8 @@ function showPenetrationPoints() {
         const y = Math.cos(phi) * radius;
         const z = Math.sin(phi) * Math.sin(theta) * radius;
         
-        // Map to unfolded position
-        const stripAngle = theta;
-        const posDistance = radius + unfoldProgress * 8;
-        const unfoldedX = Math.cos(stripAngle) * posDistance;
-        const unfoldedZ = Math.sin(stripAngle) * posDistance;
-        const unfoldedY = -radius * Math.cos(unfoldProgress * Math.PI / 2) + phi * 2;
-        
         const point = new THREE.Mesh(pointGeometry, pointMaterial);
-        point.position.set(unfoldedX, unfoldedY, unfoldedZ);
+        point.position.set(x, y, z);
         penetrationPointsGroup.add(point);
       }
     }
@@ -584,20 +432,7 @@ document.getElementById('toggleClosedSurface').addEventListener('click', (e) => 
   closedSurfaceVisible = !closedSurfaceVisible;
   e.target.classList.toggle('active');
   updateClosedSurface();
-  unfoldProgress = 0;
-  isUnfolding = false;
-  document.getElementById('toggleUnfold').classList.remove('active');
-});
-
-// Unfold closed surface
-document.getElementById('toggleUnfold').addEventListener('click', (e) => {
-  if (!closedSurfaceVisible) {
-    alert('先に「電場が等しい閉曲面を表示」をONにしてください');
-    return;
-  }
-  
-  isUnfolding = !isUnfolding;
-  e.target.classList.toggle('active');
+  showPenetrationPoints();
 });
 
 // Reset button
@@ -610,12 +445,10 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   fieldLinesVisible = false;
   closedSurfaceVisible = false;
   isUnfolding = false;
-  unfoldProgress = 0;
   
   document.querySelectorAll('.charge-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('toggleFieldLines').classList.remove('active');
   document.getElementById('toggleClosedSurface').classList.remove('active');
-  document.getElementById('toggleUnfold').classList.remove('active');
   document.getElementById('chargeDesc').textContent = '';
   document.getElementById('fieldLineCount').textContent = '0';
   
@@ -720,25 +553,6 @@ function animate() {
   
   if (isAnimating && chargeObject) {
     chargeObject.rotation.y += 0.005;
-  }
-  
-  // Handle unfolding animation
-  if (isUnfolding) {
-    unfoldProgress = Math.min(unfoldProgress + 0.02, 1.0);
-    unfoldClosedSurface(unfoldProgress);
-    
-    if (unfoldProgress >= 0.1) {
-      showPenetrationPoints();
-    }
-  } else {
-    if (unfoldProgress > 0) {
-      unfoldProgress = Math.max(unfoldProgress - 0.02, 0);
-      unfoldClosedSurface(unfoldProgress);
-    } else {
-      chargeGroup.visible = true;
-      fieldLinesGroup.visible = fieldLinesVisible;
-      penetrationPointsGroup.clear();
-    }
   }
   
   renderer.render(scene, camera);
