@@ -31,6 +31,7 @@ scene.add(gridHelper);
 let currentChargeType = null;
 let fieldLinesVisible = false;
 let closedSurfaceVisible = false;
+let onlyPlaneVisible = false;
 let isAnimating = false;
 let chargeObject = null;
 
@@ -255,6 +256,51 @@ function generateClosedSurface() {
   }
 }
 
+// Generate and show only the plane with penetration points
+function generatePlaneWithPoints() {
+  closedSurfaceGroup.clear();
+  penetrationPointsGroup.clear();
+  
+  // Show only plane (平面電荷の場合のみ)
+  if (currentChargeType === 'plane') {
+    // Central plane
+    const planeGeometry = new THREE.PlaneGeometry(10, 10);
+    const planeMaterial = new THREE.MeshBasicMaterial({
+      color: 0x4a90e2,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide
+    });
+    const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+    closedSurfaceGroup.add(plane);
+    
+    // Add penetration points on the plane
+    const pointGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+    const pointMaterial = new THREE.MeshBasicMaterial({ color: 0xff3333, emissive: 0xff3333 });
+    
+    const spacing = 2;
+    const range = 4;
+    
+    // Points on top of plane
+    for (let u = -range; u <= range; u += spacing) {
+      for (let v = -range; v <= range; v += spacing) {
+        const point = new THREE.Mesh(pointGeometry, pointMaterial);
+        point.position.set(u, v, 0.1);
+        penetrationPointsGroup.add(point);
+      }
+    }
+    
+    // Points on bottom of plane (symmetric)
+    for (let u = -range; u <= range; u += spacing) {
+      for (let v = -range; v <= range; v += spacing) {
+        const point = new THREE.Mesh(pointGeometry, pointMaterial);
+        point.position.set(u, v, -0.1);
+        penetrationPointsGroup.add(point);
+      }
+    }
+  }
+}
+
 // Show field line penetration points on closed surface
 function showPenetrationPoints() {
   penetrationPointsGroup.clear();
@@ -424,9 +470,26 @@ document.getElementById('toggleFieldLines').addEventListener('click', (e) => {
 // Toggle closed surface
 document.getElementById('toggleClosedSurface').addEventListener('click', (e) => {
   closedSurfaceVisible = !closedSurfaceVisible;
+  onlyPlaneVisible = false;
   e.target.classList.toggle('active');
+  document.getElementById('toggleOnlyPlane').classList.remove('active');
   updateClosedSurface();
   showPenetrationPoints();
+});
+
+// Toggle plane only view
+document.getElementById('toggleOnlyPlane').addEventListener('click', (e) => {
+  onlyPlaneVisible = !onlyPlaneVisible;
+  closedSurfaceVisible = false;
+  e.target.classList.toggle('active');
+  document.getElementById('toggleClosedSurface').classList.remove('active');
+  
+  if (onlyPlaneVisible) {
+    generatePlaneWithPoints();
+  } else {
+    closedSurfaceGroup.clear();
+    penetrationPointsGroup.clear();
+  }
 });
 
 // Reset button
@@ -438,11 +501,12 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   currentChargeType = null;
   fieldLinesVisible = false;
   closedSurfaceVisible = false;
-  isUnfolding = false;
+  onlyPlaneVisible = false;
   
   document.querySelectorAll('.charge-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('toggleFieldLines').classList.remove('active');
   document.getElementById('toggleClosedSurface').classList.remove('active');
+  document.getElementById('toggleOnlyPlane').classList.remove('active');
   document.getElementById('chargeDesc').textContent = '';
   document.getElementById('fieldLineCount').textContent = '0';
   
