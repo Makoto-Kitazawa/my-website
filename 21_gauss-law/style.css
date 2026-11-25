@@ -1,0 +1,263 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow: hidden;
+  background: #1a1a1a;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  touch-action: none;
+}
+
+canvas {
+  display: block;
+  cursor: grab;
+}
+
+canvas:active {
+  cursor: grabbing;
+}
+
+/* 操作パネル */
+.info-panel {
+  position: fixed;
+  right: 20px;
+  top: 20px;
+  width: 240px;
+  background: rgba(30, 30, 30, 0.95);
+  border: 2px solid #444;
+  border-radius: 12px;
+  padding: 16px;
+  color: #fff;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .info-panel {
+    right: 10px;
+    top: 10px;
+    width: 180px;
+    padding: 12px;
+    font-size: 12px;
+  }
+}
+
+.info-label {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #4a90e2;
+  text-align: center;
+  border-bottom: 1px solid #444;
+  padding-bottom: 8px;
+}
+
+/* 電荷ボタン */
+.charge-buttons {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.charge-btn {
+  padding: 10px;
+  background: #333;
+  color: #ccc;
+  border: 2px solid #555;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.charge-btn:hover {
+  border-color: #4a90e2;
+  color: #4a90e2;
+  background: rgba(74, 144, 226, 0.1);
+}
+
+.charge-btn.active {
+  background: #4a90e2;
+  color: #1a1a1a;
+  border-color: #4a90e2;
+  box-shadow: 0 0 12px rgba(74, 144, 226, 0.5);
+}
+
+/* トグルボタン */
+.display-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.toggle-btn {
+  padding: 8px;
+  background: #333;
+  color: #aaa;
+  border: 1px solid #555;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.toggle-btn:hover {
+  border-color: #50c878;
+  color: #50c878;
+  background: rgba(80, 200, 120, 0.1);
+}
+
+.toggle-btn.active {
+  background: #50c878;
+  color: #1a1a1a;
+  border-color: #50c878;
+  box-shadow: 0 0 10px rgba(80, 200, 120, 0.4);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  margin-bottom: 8px;
+  border-top: 1px dashed #333;
+  font-size: 12px;
+}
+
+.info-key {
+  font-weight: 600;
+  color: #aaa;
+}
+
+.info-value {
+  font-family: 'Courier New', monospace;
+  font-weight: bold;
+  color: #ffd250;
+}
+
+.button-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.button-row button {
+  flex: 1;
+  padding: 8px;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.button-row button:hover {
+  background: #357abd;
+}
+
+.button-row button:active {
+  background: #2d6aa3;
+}
+
+#resetBtn {
+  background: #666;
+}
+
+#resetBtn:hover {
+  background: #777;
+}
+
+#toggleAnimBtn {
+  background: #50c878;
+}
+
+#toggleAnimBtn:hover {
+  background: #3fa865;
+}
+
+/* 説明文 */
+.description {
+  margin-top: 10px;
+  padding: 8px;
+  background: rgba(74, 144, 226, 0.1);
+  border-left: 3px solid #4a90e2;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #bbb;
+  line-height: 1.4;
+}
+
+.description p {
+  margin: 4px 0;
+}
+
+/* 操作ヒント */
+.hint {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 12px 20px;
+  color: #fff;
+  font-size: 13px;
+  text-align: center;
+  border-top: 2px solid #4a90e2;
+  z-index: 50;
+  transition: transform 0.4s ease;
+}
+
+.hint.slide-out {
+  transform: translateY(100%);
+}
+
+.hint .separator {
+  margin: 0 12px;
+  color: #666;
+}
+
+.hint .icon-blue {
+  color: #4a90e2;
+  font-weight: bold;
+}
+
+.last-updated {
+  position: fixed;
+  left: 20px;
+  top: 16px;
+  color: #666;
+  font-size: 11px;
+  z-index: 50;
+}
+
+@media (max-width: 768px) {
+  .hint {
+    font-size: 11px;
+    padding: 10px 15px;
+  }
+
+  .hint .separator {
+    margin: 0 8px;
+  }
+
+  .charge-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .info-panel {
+    max-height: 70vh;
+  }
+}
