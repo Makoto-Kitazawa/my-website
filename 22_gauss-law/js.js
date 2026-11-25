@@ -32,6 +32,7 @@ let currentChargeType = null;
 let fieldLinesVisible = false;
 let closedSurfaceVisible = false;
 let surfaceOnlyVisible = false;
+let arrowsVisible = false;
 let isAnimating = false;
 let chargeObject = null;
 
@@ -113,24 +114,42 @@ function createConductingSphere() {
 function generateLineChargeFieldLines() {
   fieldLinesGroup.clear();
   
-  const radius = 8;
+  const lineRadius = 1;  // Start from line charge surface
   const numAngular = 16;
   const numHeights = 5;
-  const lineLength = 6;
+  const lineLength = 10;  // Extend beyond closed surface (radius 8) for visual effect
   
+  // Field lines start from the line charge (Y-axis) and radiate outward
   for (let h = 0; h < numHeights; h++) {
-    const y = -6 + (h / (numHeights - 1)) * 12;
+    const y = -5 + (h / (numHeights - 1)) * 10;  // y range [-5, 5]
     
     for (let i = 0; i < numAngular; i++) {
       const angle = (i / numAngular) * Math.PI * 2;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
       
-      const direction = new THREE.Vector3(x, 0, z).normalize();
-      const startPos = new THREE.Vector3(x * 0.3, y, z * 0.3);
+      // Start from line charge surface
+      const startX = Math.cos(angle) * lineRadius;
+      const startZ = Math.sin(angle) * lineRadius;
+      const startPos = new THREE.Vector3(startX, y, startZ);
       
-      const arrowHelper = new THREE.ArrowHelper(direction, startPos, lineLength, 0x00dd00, 0.6, 0.35);
-      fieldLinesGroup.add(arrowHelper);
+      // Direction: radially outward from Y-axis
+      const direction = new THREE.Vector3(startX, 0, startZ).normalize();
+      const endPos = startPos.clone().addScaledVector(direction, lineLength);
+      
+      // Create line
+      const lineGeometry = new THREE.BufferGeometry();
+      lineGeometry.setAttribute('position', new THREE.BufferAttribute(
+        new Float32Array([startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z]),
+        3
+      ));
+      const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00dd00, linewidth: 2 });
+      const line = new THREE.Line(lineGeometry, lineMaterial);
+      fieldLinesGroup.add(line);
+      
+      // Add arrow if enabled
+      if (arrowsVisible) {
+        const arrowHelper = new THREE.ArrowHelper(direction, startPos, lineLength, 0x00dd00, 0.6, 0.35);
+        fieldLinesGroup.add(arrowHelper);
+      }
     }
   }
 }
@@ -140,26 +159,56 @@ function generatePlaneChargeFieldLines() {
   fieldLinesGroup.clear();
   
   const spacing = 2;
-  const range = 8;
-  const lineLength = 5;
+  const range = 4;
+  const lineLength = 7;  // Extend beyond closed surface (z=±4) for visual effect
   
-  // Positive side
+  // Positive side (z = 0.5 starts, goes to z = 7.5)
   for (let x = -range; x <= range; x += spacing) {
     for (let y = -range; y <= range; y += spacing) {
-      const startPos = new THREE.Vector3(x, y, 0.3);
+      const startPos = new THREE.Vector3(x, y, 0.5);
       const direction = new THREE.Vector3(0, 0, 1);
-      const arrowHelper = new THREE.ArrowHelper(direction, startPos, lineLength, 0x00dd00, 0.5, 0.25);
-      fieldLinesGroup.add(arrowHelper);
+      const endPos = startPos.clone().addScaledVector(direction, lineLength);
+      
+      // Create line
+      const lineGeometry = new THREE.BufferGeometry();
+      lineGeometry.setAttribute('position', new THREE.BufferAttribute(
+        new Float32Array([startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z]),
+        3
+      ));
+      const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00dd00, linewidth: 2 });
+      const line = new THREE.Line(lineGeometry, lineMaterial);
+      fieldLinesGroup.add(line);
+      
+      // Add arrow if enabled
+      if (arrowsVisible) {
+        const arrowHelper = new THREE.ArrowHelper(direction, startPos, lineLength, 0x00dd00, 0.5, 0.25);
+        fieldLinesGroup.add(arrowHelper);
+      }
     }
   }
   
-  // Negative side
+  // Negative side (z = -0.5 starts, goes to z = -5.5)
   for (let x = -range; x <= range; x += spacing) {
     for (let y = -range; y <= range; y += spacing) {
-      const startPos = new THREE.Vector3(x, y, -0.3);
+      const startPos = new THREE.Vector3(x, y, -0.5);
       const direction = new THREE.Vector3(0, 0, -1);
-      const arrowHelper = new THREE.ArrowHelper(direction, startPos, lineLength, 0x00dd00, 0.5, 0.25);
-      fieldLinesGroup.add(arrowHelper);
+      const endPos = startPos.clone().addScaledVector(direction, lineLength);
+      
+      // Create line
+      const lineGeometry = new THREE.BufferGeometry();
+      lineGeometry.setAttribute('position', new THREE.BufferAttribute(
+        new Float32Array([startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z]),
+        3
+      ));
+      const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00dd00, linewidth: 2 });
+      const line = new THREE.Line(lineGeometry, lineMaterial);
+      fieldLinesGroup.add(line);
+      
+      // Add arrow if enabled
+      if (arrowsVisible) {
+        const arrowHelper = new THREE.ArrowHelper(direction, startPos, lineLength, 0x00dd00, 0.5, 0.25);
+        fieldLinesGroup.add(arrowHelper);
+      }
     }
   }
 }
@@ -169,22 +218,37 @@ function generateSphereChargeFieldLines() {
   fieldLinesGroup.clear();
   
   const radius = 2;
-  const numPhi = 10;
-  const numTheta = 10;
-  const lineLength = 5;
+  const numLines = 100;  // Total number of field lines
+  const lineLength = 6;  // Extend beyond closed surface (radius 6) for visual effect
   
-  for (let i = 0; i < numTheta; i++) {
-    for (let j = 0; j < numPhi; j++) {
-      const theta = (i / numTheta) * Math.PI * 2;
-      const phi = (j / (numPhi - 1)) * Math.PI;
-      
-      const x = Math.sin(phi) * Math.cos(theta) * radius;
-      const y = Math.cos(phi) * radius;
-      const z = Math.sin(phi) * Math.sin(theta) * radius;
-      
-      const direction = new THREE.Vector3(x, y, z).normalize();
-      const startPos = new THREE.Vector3(x, y, z).multiplyScalar(1.15);
-      
+  // Use golden angle for even distribution over sphere
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));  // ≈ 2.39996 rad
+  
+  for (let i = 0; i < numLines; i++) {
+    const y = 1 - (i / (numLines - 1)) * 2;  // y from 1 to -1
+    const radiusAtY = Math.sqrt(1 - y * y);  // Radius at this height
+    const theta = goldenAngle * i;  // Golden angle rotation
+    
+    const x = Math.cos(theta) * radiusAtY * radius;
+    const z = Math.sin(theta) * radiusAtY * radius;
+    const posY = y * radius;
+    
+    const direction = new THREE.Vector3(x, posY, z).normalize();
+    const startPos = new THREE.Vector3(x, posY, z);  // Start from sphere surface
+    const endPos = startPos.clone().addScaledVector(direction, lineLength);
+    
+    // Create line
+    const lineGeometry = new THREE.BufferGeometry();
+    lineGeometry.setAttribute('position', new THREE.BufferAttribute(
+      new Float32Array([startPos.x, startPos.y, startPos.z, endPos.x, endPos.y, endPos.z]),
+      3
+    ));
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00dd00, linewidth: 2 });
+    const line = new THREE.Line(lineGeometry, lineMaterial);
+    fieldLinesGroup.add(line);
+    
+    // Add arrow if enabled
+    if (arrowsVisible) {
       const arrowHelper = new THREE.ArrowHelper(direction, startPos, lineLength, 0x00dd00, 0.5, 0.25);
       fieldLinesGroup.add(arrowHelper);
     }
@@ -194,11 +258,10 @@ function generateSphereChargeFieldLines() {
 // Generate closed surface (cylinder for line, box for plane, sphere for sphere)
 function generateClosedSurface() {
   closedSurfaceGroup.clear();
-  penetrationPointsGroup.clear();
   
   if (currentChargeType === 'line') {
     // Cylindrical surface
-    const cylinderGeometry = new THREE.CylinderGeometry(5, 5, 10, 32);
+    const cylinderGeometry = new THREE.CylinderGeometry(5, 5, 11, 32);
     const cylinderMaterial = new THREE.MeshBasicMaterial({
       color: 0x4a90e2,
       transparent: true,
@@ -218,19 +281,19 @@ function generateClosedSurface() {
       side: THREE.DoubleSide
     });
     const topCap = new THREE.Mesh(topCapGeometry, capMaterial);
-    topCap.position.y = 5;
+    topCap.position.y = 5.5;
     topCap.rotation.x = Math.PI / 2;
     closedSurfaceGroup.add(topCap);
     
     // Bottom cap (rotate to face -Y direction)
     const bottomCap = new THREE.Mesh(topCapGeometry, capMaterial);
-    bottomCap.position.y = -5;
+    bottomCap.position.y = -5.5;
     bottomCap.rotation.x = -Math.PI / 2;
     closedSurfaceGroup.add(bottomCap);
     
   } else if (currentChargeType === 'plane') {
-    // Cubic surface
-    const boxGeometry = new THREE.BoxGeometry(8, 8, 8);
+    // Cubic surface - base increased by 10%
+    const boxGeometry = new THREE.BoxGeometry(8.8, 8.8, 8);
     const boxMaterial = new THREE.MeshBasicMaterial({
       color: 0x4a90e2,
       transparent: true,
@@ -267,19 +330,19 @@ function showPenetrationPoints() {
   const pointMaterial = new THREE.MeshBasicMaterial({ color: 0xff3333, emissive: 0xff3333 });
   
   if (currentChargeType === 'line') {
-    // For line charge: points on cylinder (radius 5) and caps (y = ±5)
-    // Cylinder side: radius 5, y range [-5, 5]
-    const radius = 5;
+    // For line charge: points on cylinder surface (closed surface at radius 5)
+    // Field lines span y ∈ [-5, 5], same as generateLineChargeFieldLines
+    const closedRadius = 5;
     const numAngular = 16;
     const numHeights = 5;
     
     for (let h = 0; h < numHeights; h++) {
-      const y = -5 + (h / (numHeights - 1)) * 10;
+      const y = -5 + (h / (numHeights - 1)) * 10;  // y ∈ [-5, 5]
       
       for (let i = 0; i < numAngular; i++) {
         const angle = (i / numAngular) * Math.PI * 2;
-        const x = Math.cos(angle) * radius;
-        const z = Math.sin(angle) * radius;
+        const x = Math.cos(angle) * closedRadius;
+        const z = Math.sin(angle) * closedRadius;
         
         const point = new THREE.Mesh(pointGeometry, pointMaterial);
         point.position.set(x, y, z);
@@ -288,8 +351,8 @@ function showPenetrationPoints() {
     }
     
   } else if (currentChargeType === 'plane') {
-    // For plane charge: points on the 2 planes perpendicular to Z-axis
-    // The electric field lines penetrate at z = ±4 (box has size 8, so half = 4)
+    // For plane charge: field lines penetrate at z = ±4 (closed surface boundary)
+    // Field lines span x,y ∈ [-4, 4] with spacing 2
     const spacing = 2;
     const range = 4;
     
@@ -312,24 +375,24 @@ function showPenetrationPoints() {
     }
     
   } else if (currentChargeType === 'sphere') {
-    // For sphere: points on sphere surface (radius 6) where field lines exit
-    const radius = 6;
-    const numPhi = 10;
-    const numTheta = 10;
+    // For sphere: points on closed surface (radius 6) where field lines exit
+    // Field lines start at radius 2 and extend 4 units to radius 6
+    const exitRadius = 6;
+    const numLines = 100;
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
     
-    for (let i = 0; i < numTheta; i++) {
-      for (let j = 0; j < numPhi; j++) {
-        const theta = (i / numTheta) * Math.PI * 2;
-        const phi = (j / (numPhi - 1)) * Math.PI;
-        
-        const x = Math.sin(phi) * Math.cos(theta) * radius;
-        const y = Math.cos(phi) * radius;
-        const z = Math.sin(phi) * Math.sin(theta) * radius;
-        
-        const point = new THREE.Mesh(pointGeometry, pointMaterial);
-        point.position.set(x, y, z);
-        penetrationPointsGroup.add(point);
-      }
+    for (let i = 0; i < numLines; i++) {
+      const y = 1 - (i / (numLines - 1)) * 2;  // y from 1 to -1
+      const radiusAtY = Math.sqrt(1 - y * y);  // Radius at this height
+      const theta = goldenAngle * i;  // Golden angle rotation
+      
+      const x = Math.cos(theta) * radiusAtY * exitRadius;
+      const z = Math.sin(theta) * radiusAtY * exitRadius;
+      const posY = y * exitRadius;
+      
+      const point = new THREE.Mesh(pointGeometry, pointMaterial);
+      point.position.set(x, posY, z);
+      penetrationPointsGroup.add(point);
     }
   }
 }
@@ -425,6 +488,14 @@ document.getElementById('toggleSurfaceOnly').addEventListener('click', (e) => {
     fieldLinesGroup.visible = fieldLinesVisible;
     closedSurfaceGroup.clear();
     penetrationPointsGroup.clear();
+  }
+});
+
+// Toggle arrows display
+document.getElementById('toggleArrows').addEventListener('change', (e) => {
+  arrowsVisible = e.target.checked;
+  if (fieldLinesVisible) {
+    updateFieldLines();
   }
 });
 
